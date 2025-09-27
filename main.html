@@ -9,8 +9,12 @@
 <body>
     <div class="container">
         <header>
-            <h1>Etude - Система управления чеками</h1>
-            <div>
+            <div class="header-left">
+                <h1>Etude</h1>
+                <p>Система управления чеками</p>
+            </div>
+            <div class="header-right">
+                <button onclick="openSettings()" class="secondary-btn">Настройки</button>
                 <button onclick="manageClients()" class="secondary-btn">Клиенты</button>
                 <button onclick="viewAllChecks()" class="secondary-btn">Все чеки</button>
                 <button onclick="logout()" class="logout-btn">Выход</button>
@@ -20,43 +24,85 @@
         <div class="main-content">
             <div class="welcome-card">
                 <h2>Добро пожаловать, Евгения Громова</h2>
-                <p>Номер лицензии бизнеса: 346776909</p>
-                <p>Всего чеков: <span id="totalChecks">0</span></p>
-                <button onclick="createNewCheck()" class="primary-btn">Создать новый чек</button>
+                <div class="business-info">
+                    <p><strong>Номер лицензии бизнеса:</strong> 346776909</p>
+                    <p><strong>Тел:</strong> 0534726469</p>
+                    <p><strong>Адрес:</strong> Ха-Бадим 4, Ришон-ле-Цион</p>
+                </div>
+                <button onclick="createNewCheck()" class="primary-btn">➕ Создать новый чек</button>
             </div>
             
-            <div class="recent-checks">
-                <h3>Последние 10 чеков</h3>
-                <div id="recentChecksList"></div>
-                <div class="view-all-container">
-                    <button onclick="viewAllChecks()" class="secondary-btn">Просмотреть все чеки</button>
-                </div>
-            </div>
-
             <div class="stats">
-                <h3>Статистика</h3>
+                <h3>📊 Статистика</h3>
                 <div class="stats-grid">
                     <div class="stat-card">
+                        <div class="stat-icon">📋</div>
+                        <h4>Всего чеков</h4>
+                        <p id="totalChecks">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
                         <h4>Общий доход</h4>
                         <p id="totalRevenue">0 ₪</p>
                     </div>
                     <div class="stat-card">
-                        <h4>НДС</h4>
-                        <p id="totalVAT">0 ₪</p>
-                    </div>
-                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
                         <h4>Чеки за месяц</h4>
                         <p id="monthlyChecks">0</p>
                     </div>
                 </div>
             </div>
+
+            <div class="recent-checks">
+                <div class="section-header">
+                    <h3>⏳ Последние чеки</h3>
+                    <button onclick="viewAllChecks()" class="secondary-btn">Все чеки →</button>
+                </div>
+                <div id="recentChecksList" class="checks-grid"></div>
+            </div>
         </div>
     </div>
 
+    <!-- Модальное окно настроек -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Настройки системы</h3>
+                <button onclick="closeSettings()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="githubToken">GitHub API Token:</label>
+                    <input type="password" id="githubToken" placeholder="Введите ваш GitHub Token">
+                    <small>Токен для сохранения данных в репозитории GitHub</small>
+                </div>
+                <div class="form-group">
+                    <label for="repoInfo">Репозиторий:</label>
+                    <input type="text" id="repoInfo" value="2mmisha/etude" readonly>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveSettings()" class="primary-btn">Сохранить</button>
+                    <button onclick="testConnection()" class="secondary-btn">Проверить подключение</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="github-storage.js"></script>
     <script>
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'index.html';
         }
+
+        // Загружаем настройки при запуске
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedToken = localStorage.getItem('githubToken');
+            if (savedToken) {
+                document.getElementById('githubToken').value = savedToken;
+                window.githubStorage.token = savedToken;
+            }
+            loadDashboard();
+        });
 
         function createNewCheck() {
             window.location.href = 'check.html';
@@ -70,51 +116,91 @@
             window.location.href = 'all-checks.html';
         }
 
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            const token = document.getElementById('githubToken').value;
+            if (token) {
+                localStorage.setItem('githubToken', token);
+                window.githubStorage.token = token;
+                alert('Настройки сохранены!');
+                closeSettings();
+            }
+        }
+
+        async function testConnection() {
+            const token = document.getElementById('githubToken').value;
+            if (!token) {
+                alert('Введите GitHub Token');
+                return;
+            }
+
+            try {
+                window.githubStorage.token = token;
+                const checks = await window.githubStorage.loadChecks();
+                alert('✅ Подключение успешно! Загружено чеков: ' + checks.length);
+            } catch (error) {
+                alert('❌ Ошибка подключения: ' + error.message);
+            }
+        }
+
         function logout() {
             localStorage.removeItem('loggedIn');
             window.location.href = 'index.html';
         }
 
-        function loadDashboard() {
-            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-            
-            document.getElementById('totalChecks').textContent = checks.length;
-            
-            const totalRevenue = checks.reduce((sum, check) => sum + parseFloat(check.total), 0);
-            document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2) + ' ₪';
-            
-            const totalVAT = checks.reduce((sum, check) => sum + parseFloat(check.vat), 0);
-            document.getElementById('totalVAT').textContent = totalVAT.toFixed(2) + ' ₪';
-            
-            const currentMonth = new Date().getMonth();
-            const monthlyChecks = checks.filter(check => {
-                const checkDate = new Date(check.date);
-                return checkDate.getMonth() === currentMonth;
-            }).length;
-            document.getElementById('monthlyChecks').textContent = monthlyChecks;
+        async function loadDashboard() {
+            try {
+                const checks = await window.githubStorage.loadChecks();
+                
+                // Статистика
+                document.getElementById('totalChecks').textContent = checks.length;
+                
+                const totalRevenue = checks.reduce((sum, check) => sum + parseFloat(check.total), 0);
+                document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2) + ' ₪';
+                
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+                const monthlyChecks = checks.filter(check => {
+                    const checkDate = new Date(check.date);
+                    return checkDate.getMonth() === currentMonth && checkDate.getFullYear() === currentYear;
+                }).length;
+                document.getElementById('monthlyChecks').textContent = monthlyChecks;
 
-            const recentList = document.getElementById('recentChecksList');
-            if (checks.length === 0) {
-                recentList.innerHTML = '<p>Пока нет чеков</p>';
-                return;
+                // Последние 6 чеков
+                const recentChecks = checks.slice(-6).reverse();
+                const checksList = document.getElementById('recentChecksList');
+                
+                if (recentChecks.length === 0) {
+                    checksList.innerHTML = '<div class="empty-state">Пока нет чеков</div>';
+                    return;
+                }
+
+                checksList.innerHTML = recentChecks.map(check => `
+                    <div class="check-card">
+                        <div class="check-header">
+                            <span class="check-number">#${check.receiptNumber}</span>
+                            <span class="check-date">${check.date}</span>
+                        </div>
+                        <div class="check-customer">${check.customerName}</div>
+                        <div class="check-amount">${parseFloat(check.total).toFixed(2)} ₪</div>
+                        <div class="check-actions">
+                            <button onclick="viewCheck('${check.receiptNumber}')" class="small-btn">👁️</button>
+                            <button onclick="deleteCheck('${check.receiptNumber}')" class="small-btn delete-btn">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('recentChecksList').innerHTML = 
+                    '<div class="empty-state">Ошибка загрузки данных</div>';
             }
-
-            // Показываем только последние 10 чеков
-            const recentChecks = checks.slice(-10).reverse();
-            recentList.innerHTML = recentChecks.map(check => `
-                <div class="check-item">
-                    <div class="check-info">
-                        <span class="check-number">Чек №${check.receiptNumber}</span>
-                        <span class="check-customer">${check.customerName}</span>
-                        <span class="check-date">${check.date}</span>
-                        <span class="check-amount">${check.total} ₪</span>
-                    </div>
-                    <div class="check-actions">
-                        <button onclick="viewCheck(${check.receiptNumber})" class="small-btn">Просмотр</button>
-                        <button onclick="deleteCheck(${check.receiptNumber})" class="small-btn delete-btn">Удалить</button>
-                    </div>
-                </div>
-            `).join('');
         }
 
         function viewCheck(receiptNumber) {
@@ -122,17 +208,27 @@
             window.open('view-check.html', '_blank');
         }
 
-        function deleteCheck(receiptNumber) {
+        async function deleteCheck(receiptNumber) {
             if (confirm('Вы уверены, что хотите удалить этот чек?')) {
-                const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-                const updatedChecks = checks.filter(check => check.receiptNumber != receiptNumber);
-                localStorage.setItem('checks', JSON.stringify(updatedChecks));
-                loadDashboard();
-                alert('Чек удален');
+                try {
+                    const checks = await window.githubStorage.loadChecks();
+                    const updatedChecks = checks.filter(check => check.receiptNumber != receiptNumber);
+                    await window.githubStorage.saveChecks(updatedChecks);
+                    loadDashboard();
+                    alert('Чек удален');
+                } catch (error) {
+                    alert('Ошибка при удалении: ' + error.message);
+                }
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadDashboard);
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('settingsModal');
+            if (event.target === modal) {
+                closeSettings();
+            }
+        }
     </script>
 </body>
 </html>
