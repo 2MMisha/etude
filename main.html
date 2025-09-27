@@ -11,9 +11,8 @@
         <header>
             <h1>Etude - Система управления чеками</h1>
             <div>
-                <button onclick="exportToJSON()" class="secondary-btn">Экспорт JSON</button>
-                <button onclick="importFromJSON()" class="secondary-btn">Импорт JSON</button>
                 <button onclick="manageClients()" class="secondary-btn">Клиенты</button>
+                <button onclick="viewAllChecks()" class="secondary-btn">Все чеки</button>
                 <button onclick="logout()" class="logout-btn">Выход</button>
             </div>
         </header>
@@ -27,8 +26,11 @@
             </div>
             
             <div class="recent-checks">
-                <h3>Последние чеки</h3>
+                <h3>Последние 10 чеков</h3>
                 <div id="recentChecksList"></div>
+                <div class="view-all-container">
+                    <button onclick="viewAllChecks()" class="secondary-btn">Просмотреть все чеки</button>
+                </div>
             </div>
 
             <div class="stats">
@@ -51,9 +53,6 @@
         </div>
     </div>
 
-    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
-
-    <script src="script.js"></script>
     <script>
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'index.html';
@@ -67,58 +66,14 @@
             window.location.href = 'clients.html';
         }
 
+        function viewAllChecks() {
+            window.location.href = 'all-checks.html';
+        }
+
         function logout() {
             localStorage.removeItem('loggedIn');
             window.location.href = 'index.html';
         }
-
-        function exportToJSON() {
-            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-            if (checks.length === 0) {
-                alert('Нет чеков для экспорта');
-                return;
-            }
-
-            const dataStr = JSON.stringify(checks, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `etude_checks_${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-        }
-
-        function importFromJSON() {
-            document.getElementById('jsonFileInput').click();
-        }
-
-        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedChecks = JSON.parse(e.target.result);
-                    if (Array.isArray(importedChecks)) {
-                        const existingChecks = JSON.parse(localStorage.getItem('checks') || '[]');
-                        const mergedChecks = [...existingChecks, ...importedChecks];
-                        localStorage.setItem('checks', JSON.stringify(mergedChecks));
-                        
-                        const maxReceiptNumber = Math.max(...mergedChecks.map(c => parseInt(c.receiptNumber)));
-                        localStorage.setItem('currentReceiptNumber', (maxReceiptNumber + 1).toString());
-                        
-                        alert(`Успешно импортировано ${importedChecks.length} чеков!`);
-                        loadDashboard();
-                    } else {
-                        alert('Неверный формат JSON файла');
-                    }
-                } catch (error) {
-                    alert('Ошибка чтения файла: ' + error.message);
-                }
-            };
-            reader.readAsText(file);
-        });
 
         function loadDashboard() {
             const checks = JSON.parse(localStorage.getItem('checks') || '[]');
@@ -144,10 +99,16 @@
                 return;
             }
 
-            recentList.innerHTML = checks.slice(-5).reverse().map(check => `
+            // Показываем только последние 10 чеков
+            const recentChecks = checks.slice(-10).reverse();
+            recentList.innerHTML = recentChecks.map(check => `
                 <div class="check-item">
-                    <span>Чек №${check.receiptNumber} - ${check.customerName}</span>
-                    <span>${check.date} - ${check.total} ₪</span>
+                    <div class="check-info">
+                        <span class="check-number">Чек №${check.receiptNumber}</span>
+                        <span class="check-customer">${check.customerName}</span>
+                        <span class="check-date">${check.date}</span>
+                        <span class="check-amount">${check.total} ₪</span>
+                    </div>
                     <div class="check-actions">
                         <button onclick="viewCheck(${check.receiptNumber})" class="small-btn">Просмотр</button>
                         <button onclick="deleteCheck(${check.receiptNumber})" class="small-btn delete-btn">Удалить</button>
