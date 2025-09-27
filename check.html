@@ -9,22 +9,24 @@
 <body>
     <div class="container">
         <header>
-            <h1>Создание нового чека</h1>
-            <div>
-                <button onclick="window.location.href='main.html'" class="secondary-btn">Назад</button>
+            <div class="header-left">
+                <h1>Создание чека</h1>
+                <p>Заполните информацию о чеке</p>
+            </div>
+            <div class="header-right">
+                <button onclick="window.location.href='main.html'" class="secondary-btn">← Назад</button>
                 <button onclick="logout()" class="logout-btn">Выход</button>
             </div>
         </header>
 
         <div class="check-form">
             <form id="checkForm">
+                <!-- Информация о бизнесе -->
                 <div class="form-section">
-                    <h3>Информация о бизнесе</h3>
-                    <div class="business-info">
-                        <p><strong>Etude</strong></p>
-                        <p>Евгения Громова</p>
-                        <p>Ха-Бадим 4, Ришон-ле-Цион</p>
-                        <p>Тел: 0534726469</p>
+                    <h3>🏢 Информация о бизнесе</h3>
+                    <div class="business-info-card">
+                        <p><strong>Etude</strong> - Евгения Громова</p>
+                        <p>Ха-Бадим 4, Ришон-ле-Цион | Тел: 0534726469</p>
                         <p>Лицензия бизнеса: 346776909</p>
                         <div class="form-group">
                             <label for="receiptNumber">Номер чека:</label>
@@ -33,8 +35,9 @@
                     </div>
                 </div>
 
+                <!-- Информация о клиенте -->
                 <div class="form-section">
-                    <h3>Информация о клиенте</h3>
+                    <h3>👤 Информация о клиенте</h3>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="customerSelect">Выберите клиента:</label>
@@ -46,84 +49,109 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="customerName">Имя клиента *:</label>
-                            <input type="text" id="customerName" required>
+                            <input type="text" id="customerName" required placeholder="Введите имя клиента">
                         </div>
                         <div class="form-group">
                             <label for="customerId">ID/Налоговый номер:</label>
-                            <input type="text" id="customerId">
+                            <input type="text" id="customerId" placeholder="Необязательно">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="customerAddress">Адрес:</label>
-                            <input type="text" id="customerAddress">
+                            <input type="text" id="customerAddress" placeholder="Необязательно">
                         </div>
                         <div class="form-group">
                             <label for="customerPhone">Телефон:</label>
-                            <input type="tel" id="customerPhone">
+                            <input type="tel" id="customerPhone" placeholder="Необязательно">
                         </div>
                     </div>
-                    <button type="button" onclick="saveCustomer()" class="secondary-btn">Сохранить клиента</button>
+                    <button type="button" onclick="saveCustomer()" class="secondary-btn">💾 Сохранить клиента</button>
                 </div>
 
+                <!-- Товары/услуги -->
                 <div class="form-section">
-                    <h3>Детали услуг/товаров</h3>
+                    <h3>📦 Товары и услуги</h3>
                     <div id="itemsContainer">
                         <div class="item-row">
-                            <input type="text" placeholder="Описание" class="item-details">
-                            <input type="number" placeholder="Цена" class="item-amount" step="0.01">
-                            <input type="number" placeholder="Количество" class="item-quantity" value="1">
+                            <input type="text" placeholder="Описание услуги/товара" class="item-details" required>
+                            <input type="number" placeholder="Цена" class="item-amount" step="0.01" min="0" required>
+                            <input type="number" placeholder="Количество" class="item-quantity" value="1" min="1" required>
                             <button type="button" onclick="removeItem(this)" class="remove-btn">×</button>
                         </div>
                     </div>
-                    <button type="button" onclick="addItem()" class="add-btn">+ Добавить строку</button>
+                    <button type="button" onclick="addItem()" class="add-btn">+ Добавить позицию</button>
                 </div>
 
+                <!-- Итоги -->
                 <div class="form-section">
-                    <h3>Итоги</h3>
-                    <div class="summary">
-                        <p>Итого до НДС: <span id="subtotal">0.00</span> ₪</p>
-                        <p>НДС (18%): <span id="vat">0.00</span> ₪</p>
-                        <p>Итого с НДС: <span id="total">0.00</span> ₪</p>
+                    <h3>💰 Итоги</h3>
+                    <div class="summary-card">
+                        <div class="summary-row">
+                            <span>Сумма до НДС:</span>
+                            <span id="subtotal">0.00 ₪</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>НДС (18%):</span>
+                            <span id="vat">0.00 ₪</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span><strong>Итого к оплате:</strong></span>
+                            <span id="total"><strong>0.00 ₪</strong></span>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Дополнительная информация -->
                 <div class="form-section">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="paymentType">Тип оплаты:</label>
+                            <label for="paymentType">💳 Способ оплаты:</label>
                             <select id="paymentType">
-                                <option value="cash">Наличные</option>
-                                <option value="credit">Кредитная карта</option>
-                                <option value="check">Чек</option>
-                                <option value="transfer">Банковский перевод</option>
+                                <option value="cash">💵 Наличные</option>
+                                <option value="credit">💳 Кредитная карта</option>
+                                <option value="check">📝 Чек</option>
+                                <option value="transfer">🏦 Банковский перевод</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="date">Дата:</label>
+                            <label for="date">📅 Дата:</label>
                             <input type="date" id="date" required>
                         </div>
                     </div>
                 </div>
 
+                <!-- Кнопки действий -->
                 <div class="form-actions">
-                    <button type="button" onclick="saveCheck()" class="primary-btn">Сохранить чек</button>
-                    <button type="button" onclick="saveCheck(true)" class="primary-btn">Сохранить и создать PDF</button>
+                    <button type="button" onclick="saveCheck()" class="primary-btn">💾 Сохранить чек</button>
+                    <button type="button" onclick="saveCheckAndPrint()" class="primary-btn">🖨️ Сохранить и печать</button>
+                    <button type="button" onclick="previewCheck()" class="secondary-btn">👁️ Предпросмотр</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="script.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="github-storage.js"></script>
     <script>
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'index.html';
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentNumber = localStorage.getItem('currentReceiptNumber') || '1';
-            document.getElementById('receiptNumber').value = currentNumber;
+        let currentCheckNumber = 1;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Загружаем последний номер чека
+            try {
+                const checks = await window.githubStorage.loadChecks();
+                if (checks.length > 0) {
+                    const lastNumber = Math.max(...checks.map(c => parseInt(c.receiptNumber)));
+                    currentCheckNumber = lastNumber + 1;
+                }
+            } catch (error) {
+                console.error('Error loading checks:', error);
+            }
+
+            document.getElementById('receiptNumber').value = currentCheckNumber;
             document.getElementById('date').valueAsDate = new Date();
             setupCalculations();
             loadCustomers();
@@ -137,12 +165,12 @@
                 subtotal += amount * quantity;
             });
 
-            const vat = subtotal * 0.18; // 18% НДС
+            const vat = subtotal * 0.18;
             const total = subtotal + vat;
 
-            document.getElementById('subtotal').textContent = subtotal.toFixed(2);
-            document.getElementById('vat').textContent = vat.toFixed(2);
-            document.getElementById('total').textContent = total.toFixed(2);
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2) + ' ₪';
+            document.getElementById('vat').textContent = vat.toFixed(2) + ' ₪';
+            document.getElementById('total').textContent = total.toFixed(2) + ' ₪';
         }
 
         function setupCalculations() {
@@ -158,9 +186,9 @@
             const newItem = document.createElement('div');
             newItem.className = 'item-row';
             newItem.innerHTML = `
-                <input type="text" placeholder="Описание" class="item-details">
-                <input type="number" placeholder="Цена" class="item-amount" step="0.01">
-                <input type="number" placeholder="Количество" class="item-quantity" value="1">
+                <input type="text" placeholder="Описание услуги/товара" class="item-details">
+                <input type="number" placeholder="Цена" class="item-amount" step="0.01" min="0">
+                <input type="number" placeholder="Количество" class="item-quantity" value="1" min="1">
                 <button type="button" onclick="removeItem(this)" class="remove-btn">×</button>
             `;
             container.appendChild(newItem);
@@ -174,36 +202,44 @@
             }
         }
 
-        function loadCustomers() {
-            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
-            const select = document.getElementById('customerSelect');
-            
-            select.innerHTML = '<option value="">-- Новый клиент --</option>';
-            customers.forEach(customer => {
-                const option = document.createElement('option');
-                option.value = customer.id;
-                option.textContent = `${customer.name} ${customer.phone ? '(' + customer.phone + ')' : ''}`;
-                select.appendChild(option);
-            });
+        async function loadCustomers() {
+            try {
+                const customers = await window.githubStorage.loadCustomers();
+                const select = document.getElementById('customerSelect');
+                
+                select.innerHTML = '<option value="">-- Новый клиент --</option>';
+                customers.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.id;
+                    option.textContent = `${customer.name} ${customer.phone ? '(' + customer.phone + ')' : ''}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
         }
 
-        function fillCustomerData() {
+        async function fillCustomerData() {
             const select = document.getElementById('customerSelect');
             const customerId = select.value;
             if (!customerId) return;
 
-            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
-            const customer = customers.find(c => c.id == customerId);
-            
-            if (customer) {
-                document.getElementById('customerName').value = customer.name;
-                document.getElementById('customerId').value = customer.taxId || '';
-                document.getElementById('customerAddress').value = customer.address || '';
-                document.getElementById('customerPhone').value = customer.phone || '';
+            try {
+                const customers = await window.githubStorage.loadCustomers();
+                const customer = customers.find(c => c.id == customerId);
+                
+                if (customer) {
+                    document.getElementById('customerName').value = customer.name;
+                    document.getElementById('customerId').value = customer.taxId || '';
+                    document.getElementById('customerAddress').value = customer.address || '';
+                    document.getElementById('customerPhone').value = customer.phone || '';
+                }
+            } catch (error) {
+                console.error('Error filling customer data:', error);
             }
         }
 
-        function saveCustomer() {
+        async function saveCustomer() {
             const name = document.getElementById('customerName').value;
             const taxId = document.getElementById('customerId').value;
             const address = document.getElementById('customerAddress').value;
@@ -214,23 +250,27 @@
                 return;
             }
 
-            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
-            const newCustomer = {
-                id: Date.now().toString(),
-                name: name,
-                taxId: taxId,
-                address: address,
-                phone: phone,
-                createdAt: new Date().toISOString()
-            };
+            try {
+                const customers = await window.githubStorage.loadCustomers();
+                const newCustomer = {
+                    id: Date.now().toString(),
+                    name: name,
+                    taxId: taxId,
+                    address: address,
+                    phone: phone,
+                    createdAt: new Date().toISOString()
+                };
 
-            customers.push(newCustomer);
-            localStorage.setItem('customers', JSON.stringify(customers));
-            loadCustomers();
-            alert('Клиент сохранен!');
+                customers.push(newCustomer);
+                await window.githubStorage.saveCustomers(customers);
+                loadCustomers();
+                alert('✅ Клиент сохранен!');
+            } catch (error) {
+                alert('❌ Ошибка сохранения клиента: ' + error.message);
+            }
         }
 
-        function saveCheck(createPDF = false) {
+        async function saveCheck(print = false) {
             const checkData = {
                 receiptNumber: document.getElementById('receiptNumber').value,
                 customerName: document.getElementById('customerName').value,
@@ -247,21 +287,38 @@
                 total: parseFloat(document.getElementById('total').textContent),
                 paymentType: document.getElementById('paymentType').value,
                 date: document.getElementById('date').value,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                businessInfo: {
+                    name: "Etude",
+                    owner: "Евгения Громова",
+                    address: "Ха-Бадим 4, Ришон-ле-Цион",
+                    phone: "0534726469",
+                    taxId: "346776909"
+                }
             };
 
             if (!validateCheck(checkData)) {
                 return;
             }
 
-            saveCheckToSystem(checkData);
+            try {
+                const checks = await window.githubStorage.loadChecks();
+                checks.push(checkData);
+                await window.githubStorage.saveChecks(checks);
 
-            if (createPDF) {
-                generatePDF(checkData);
+                if (print) {
+                    previewCheck();
+                }
+
+                alert('✅ Чек сохранен успешно!');
+                window.location.href = 'main.html';
+            } catch (error) {
+                alert('❌ Ошибка сохранения чека: ' + error.message);
             }
+        }
 
-            alert('Чек сохранен успешно!');
-            window.location.href = 'main.html';
+        function saveCheckAndPrint() {
+            saveCheck(true);
         }
 
         function validateCheck(checkData) {
@@ -283,28 +340,29 @@
             return true;
         }
 
-        function saveCheckToSystem(checkData) {
-            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-            checks.push(checkData);
-            localStorage.setItem('checks', JSON.stringify(checks));
-
-            const nextNumber = Math.max(parseInt(checkData.receiptNumber) + 1, 
-                                       parseInt(localStorage.getItem('currentReceiptNumber') || '1'));
-            localStorage.setItem('currentReceiptNumber', nextNumber.toString());
+        function previewCheck() {
+            localStorage.setItem('previewCheckData', JSON.stringify(getCheckData()));
+            window.open('view-check.html', '_blank');
         }
 
-        function generatePDF(checkData) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a5'
-            });
-
-            // Здесь будет код генерации PDF на иврите
-            // (потребуется дополнительная настройка для поддержки иврита)
-            
-            doc.save(`check_${checkData.receiptNumber}.pdf`);
+        function getCheckData() {
+            return {
+                receiptNumber: document.getElementById('receiptNumber').value,
+                customerName: document.getElementById('customerName').value,
+                customerId: document.getElementById('customerId').value,
+                customerAddress: document.getElementById('customerAddress').value,
+                customerPhone: document.getElementById('customerPhone').value,
+                items: Array.from(document.querySelectorAll('.item-row')).map(row => ({
+                    details: row.querySelector('.item-details').value,
+                    amount: parseFloat(row.querySelector('.item-amount').value) || 0,
+                    quantity: parseFloat(row.querySelector('.item-quantity').value) || 1
+                })),
+                subtotal: parseFloat(document.getElementById('subtotal').textContent),
+                vat: parseFloat(document.getElementById('vat').textContent),
+                total: parseFloat(document.getElementById('total').textContent),
+                paymentType: document.getElementById('paymentType').value,
+                date: document.getElementById('date').value
+            };
         }
 
         function logout() {
