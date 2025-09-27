@@ -6,76 +6,147 @@
     <title>Etude - Все чеки</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        .filters {
+        .filters-card {
             background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
         
-        .filter-row {
+        .filters-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
             margin-bottom: 1rem;
         }
         
-        .checks-list {
-            background: white;
+        .stats-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             padding: 1.5rem;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
         }
         
-        .check-item-detailed {
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .checks-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
             display: grid;
-            grid-template-columns: 100px 1fr 120px 100px 120px;
+            grid-template-columns: 80px 1fr 120px 100px 120px 100px;
             gap: 1rem;
-            padding: 1rem;
+            padding: 1rem 1.5rem;
+            background: #2c3e50;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .table-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 120px 100px 120px 100px;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
             border-bottom: 1px solid #eee;
             align-items: center;
+            transition: background-color 0.3s;
         }
         
-        @media (max-width: 768px) {
-            .check-item-detailed {
-                grid-template-columns: 1fr;
-                gap: 0.5rem;
-            }
+        .table-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .table-row:last-child {
+            border-bottom: none;
         }
         
         .pagination {
             display: flex;
             justify-content: center;
-            margin-top: 20px;
-            gap: 10px;
+            align-items: center;
+            margin-top: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         
-        .stats-bar {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
+        .page-info {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .table-header, .table-row {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+                text-align: center;
+            }
+            
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .empty-state {
             text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        
+        .export-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Все чеки</h1>
-            <div>
-                <button onclick="window.location.href='main.html'" class="secondary-btn">Назад</button>
+            <div class="header-left">
+                <h1>Все чеки</h1>
+                <p>Управление и поиск по чекам</p>
+            </div>
+            <div class="header-right">
+                <button onclick="window.location.href='main.html'" class="secondary-btn">← Назад</button>
                 <button onclick="logout()" class="logout-btn">Выход</button>
             </div>
         </header>
 
-        <div class="filters">
-            <h3>Фильтры и поиск</h3>
-            <div class="filter-row">
+        <div class="filters-card">
+            <h3>🔍 Поиск и фильтры</h3>
+            
+            <div class="filters-grid">
                 <div class="form-group">
                     <label for="searchQuery">Поиск:</label>
-                    <input type="text" id="searchQuery" placeholder="Поиск по клиенту, номеру чека...">
+                    <input type="text" id="searchQuery" placeholder="Клиент, номер чека...">
                 </div>
                 <div class="form-group">
                     <label for="dateFrom">Дата с:</label>
@@ -85,59 +156,101 @@
                     <label for="dateTo">Дата по:</label>
                     <input type="date" id="dateTo">
                 </div>
-            </div>
-            <div class="filter-row">
                 <div class="form-group">
                     <label for="customerFilter">Клиент:</label>
                     <select id="customerFilter">
                         <option value="">Все клиенты</option>
                     </select>
                 </div>
+            </div>
+            
+            <div class="filters-grid">
                 <div class="form-group">
-                    <label for="paymentFilter">Тип оплаты:</label>
+                    <label for="paymentFilter">Способ оплаты:</label>
                     <select id="paymentFilter">
-                        <option value="">Все типы</option>
+                        <option value="">Все способы</option>
                         <option value="cash">Наличные</option>
                         <option value="credit">Кредитная карта</option>
                         <option value="check">Чек</option>
-                        <option value="transfer">Банковский перевод</option>
+                        <option value="transfer">Перевод</option>
                     </select>
                 </div>
-                <button onclick="applyFilters()" class="primary-btn">Применить фильтры</button>
-                <button onclick="clearFilters()" class="secondary-btn">Сбросить</button>
+                <div class="form-group">
+                    <label for="sortBy">Сортировка:</label>
+                    <select id="sortBy">
+                        <option value="date-desc">Дата (новые сначала)</option>
+                        <option value="date-asc">Дата (старые сначала)</option>
+                        <option value="amount-desc">Сумма (по убыванию)</option>
+                        <option value="amount-asc">Сумма (по возрастанию)</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button onclick="applyFilters()" class="primary-btn">Применить</button>
+                    <button onclick="clearFilters()" class="secondary-btn">Сбросить</button>
+                    <button onclick="exportToCSV()" class="secondary-btn">📊 Экспорт CSV</button>
+                </div>
             </div>
         </div>
 
-        <div class="stats-bar">
-            Найдено чеков: <span id="totalFound">0</span> | 
-            Общая сумма: <span id="totalAmount">0 ₪</span> |
-            Средний чек: <span id="averageCheck">0 ₪</span>
+        <div class="stats-bar" id="statsBar">
+            <!-- Stats will be loaded here -->
         </div>
 
-        <div class="checks-list">
+        <div class="checks-table">
+            <div class="table-header">
+                <div>№</div>
+                <div>Клиент</div>
+                <div>Дата</div>
+                <div>Способ оплаты</div>
+                <div>Сумма</div>
+                <div>Действия</div>
+            </div>
+            
             <div id="checksContainer"></div>
-            <div class="pagination" id="pagination"></div>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be loaded here -->
         </div>
     </div>
 
+    <script src="github-storage.js"></script>
     <script>
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'index.html';
         }
 
         let currentPage = 1;
-        const checksPerPage = 20;
+        const checksPerPage = 15;
+        let allChecks = [];
         let filteredChecks = [];
 
-        function loadAllChecks() {
-            filteredChecks = JSON.parse(localStorage.getItem('checks') || '[]').reverse();
-            loadCustomersFilter();
-            applyFilters();
+        const paymentTypes = {
+            'cash': '💵 Наличные',
+            'credit': '💳 Кредитная карта',
+            'check': '📝 Чек',
+            'transfer': '🏦 Перевод'
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadAllChecks();
+            setupEventListeners();
+        });
+
+        async function loadAllChecks() {
+            try {
+                allChecks = await window.githubStorage.loadChecks();
+                allChecks.sort((a, b) => new Date(b.date) - new Date(a.date));
+                loadCustomersFilter();
+                applyFilters();
+            } catch (error) {
+                console.error('Error loading checks:', error);
+                alert('Ошибка загрузки чеков: ' + error.message);
+            }
         }
 
         function loadCustomersFilter() {
-            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-            const customers = [...new Set(checks.map(check => check.customerName))].sort();
+            const customers = [...new Set(allChecks.map(check => check.customerName))].sort();
             const select = document.getElementById('customerFilter');
             
             select.innerHTML = '<option value="">Все клиенты</option>';
@@ -149,21 +262,28 @@
             });
         }
 
+        function setupEventListeners() {
+            document.getElementById('searchQuery').addEventListener('input', applyFilters);
+            document.getElementById('dateFrom').addEventListener('change', applyFilters);
+            document.getElementById('dateTo').addEventListener('change', applyFilters);
+            document.getElementById('customerFilter').addEventListener('change', applyFilters);
+            document.getElementById('paymentFilter').addEventListener('change', applyFilters);
+            document.getElementById('sortBy').addEventListener('change', applyFilters);
+        }
+
         function applyFilters() {
             const searchQuery = document.getElementById('searchQuery').value.toLowerCase();
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
             const customerFilter = document.getElementById('customerFilter').value;
             const paymentFilter = document.getElementById('paymentFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
 
-            let checks = JSON.parse(localStorage.getItem('checks') || '[]').reverse();
-
-            // Применяем фильтры
-            checks = checks.filter(check => {
+            filteredChecks = allChecks.filter(check => {
                 const matchesSearch = !searchQuery || 
                     check.customerName.toLowerCase().includes(searchQuery) ||
                     check.receiptNumber.toString().includes(searchQuery) ||
-                    check.customerId?.toString().includes(searchQuery);
+                    (check.customerId && check.customerId.toString().includes(searchQuery));
                 
                 const matchesDate = (!dateFrom || check.date >= dateFrom) && 
                                   (!dateTo || check.date <= dateTo);
@@ -174,7 +294,21 @@
                 return matchesSearch && matchesDate && matchesCustomer && matchesPayment;
             });
 
-            filteredChecks = checks;
+            // Sorting
+            switch (sortBy) {
+                case 'date-asc':
+                    filteredChecks.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    break;
+                case 'amount-desc':
+                    filteredChecks.sort((a, b) => b.total - a.total);
+                    break;
+                case 'amount-asc':
+                    filteredChecks.sort((a, b) => a.total - b.total);
+                    break;
+                default: // date-desc
+                    filteredChecks.sort((a, b) => new Date(b.date) - new Date(a.date));
+            }
+
             currentPage = 1;
             displayChecks();
             updateStats();
@@ -186,6 +320,7 @@
             document.getElementById('dateTo').value = '';
             document.getElementById('customerFilter').value = '';
             document.getElementById('paymentFilter').value = '';
+            document.getElementById('sortBy').value = 'date-desc';
             applyFilters();
         }
 
@@ -193,24 +328,24 @@
             const startIndex = (currentPage - 1) * checksPerPage;
             const endIndex = startIndex + checksPerPage;
             const pageChecks = filteredChecks.slice(startIndex, endIndex);
-
             const container = document.getElementById('checksContainer');
             
             if (pageChecks.length === 0) {
-                container.innerHTML = '<p>Чеки не найдены</p>';
+                container.innerHTML = '<div class="empty-state">Чеки не найдены</div>';
                 document.getElementById('pagination').innerHTML = '';
                 return;
             }
 
             container.innerHTML = pageChecks.map(check => `
-                <div class="check-item-detailed">
-                    <span class="check-number">№${check.receiptNumber}</span>
-                    <span class="check-customer">${check.customerName}</span>
-                    <span class="check-date">${check.date}</span>
-                    <span class="check-amount">${check.total} ₪</span>
+                <div class="table-row">
+                    <div class="check-number">#${check.receiptNumber}</div>
+                    <div class="check-customer">${check.customerName}</div>
+                    <div class="check-date">${check.date}</div>
+                    <div class="check-payment">${paymentTypes[check.paymentType] || check.paymentType}</div>
+                    <div class="check-amount">${parseFloat(check.total).toFixed(2)} ₪</div>
                     <div class="check-actions">
-                        <button onclick="viewCheck(${check.receiptNumber})" class="small-btn">Просмотр</button>
-                        <button onclick="deleteCheck(${check.receiptNumber})" class="small-btn delete-btn">Удалить</button>
+                        <button onclick="viewCheck('${check.receiptNumber}')" class="small-btn">👁️</button>
+                        <button onclick="deleteCheck('${check.receiptNumber}')" class="small-btn delete-btn">🗑️</button>
                     </div>
                 </div>
             `).join('');
@@ -223,30 +358,39 @@
             const pagination = document.getElementById('pagination');
             
             if (totalPages <= 1) {
-                pagination.innerHTML = '';
+                pagination.innerHTML = `
+                    <div class="page-info">
+                        Показано ${filteredChecks.length} из ${allChecks.length} чеков
+                    </div>
+                `;
                 return;
             }
 
-            let paginationHTML = '';
+            let paginationHTML = `
+                <div class="page-info">
+                    Страница ${currentPage} из ${totalPages} | 
+                    Показано ${filteredChecks.length} чеков
+                </div>
+            `;
             
             if (currentPage > 1) {
-                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="small-btn">← Назад</button>`;
+                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="secondary-btn">← Назад</button>`;
             }
             
-            for (let i = 1; i <= totalPages; i++) {
+            // Show page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
-                    paginationHTML += `<button class="small-btn active">${i}</button>`;
-                } else if (i <= 3 || i > totalPages - 2 || Math.abs(i - currentPage) <= 1) {
-                    paginationHTML += `<button onclick="changePage(${i})" class="small-btn">${i}</button>`;
-                } else if (i === 4 && currentPage > 4) {
-                    paginationHTML += `<span>...</span>`;
-                } else if (i === totalPages - 1 && currentPage < totalPages - 2) {
-                    paginationHTML += `<span>...</span>`;
+                    paginationHTML += `<button class="primary-btn">${i}</button>`;
+                } else {
+                    paginationHTML += `<button onclick="changePage(${i})" class="secondary-btn">${i}</button>`;
                 }
             }
             
             if (currentPage < totalPages) {
-                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="small-btn">Вперед →</button>`;
+                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="secondary-btn">Вперед →</button>`;
             }
             
             pagination.innerHTML = paginationHTML;
@@ -262,10 +406,26 @@
             const totalFound = filteredChecks.length;
             const totalAmount = filteredChecks.reduce((sum, check) => sum + parseFloat(check.total), 0);
             const averageCheck = totalFound > 0 ? totalAmount / totalFound : 0;
+            const totalVAT = filteredChecks.reduce((sum, check) => sum + parseFloat(check.vat), 0);
 
-            document.getElementById('totalFound').textContent = totalFound;
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2) + ' ₪';
-            document.getElementById('averageCheck').textContent = averageCheck.toFixed(2) + ' ₪';
+            document.getElementById('statsBar').innerHTML = `
+                <div class="stat-item">
+                    <span class="stat-value">${totalFound}</span>
+                    <span class="stat-label">Найдено чеков</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">${totalAmount.toFixed(2)} ₪</span>
+                    <span class="stat-label">Общая сумма</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">${averageCheck.toFixed(2)} ₪</span>
+                    <span class="stat-label">Средний чек</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">${totalVAT.toFixed(2)} ₪</span>
+                    <span class="stat-label">Сумма НДС</span>
+                </div>
+            `;
         }
 
         function viewCheck(receiptNumber) {
@@ -273,29 +433,56 @@
             window.open('view-check.html', '_blank');
         }
 
-        function deleteCheck(receiptNumber) {
+        async function deleteCheck(receiptNumber) {
             if (confirm('Вы уверены, что хотите удалить этот чек?')) {
-                const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-                const updatedChecks = checks.filter(check => check.receiptNumber != receiptNumber);
-                localStorage.setItem('checks', JSON.stringify(updatedChecks));
-                loadAllChecks();
-                alert('Чек удален');
+                try {
+                    const checks = await window.githubStorage.loadChecks();
+                    const updatedChecks = checks.filter(check => check.receiptNumber != receiptNumber);
+                    await window.githubStorage.saveChecks(updatedChecks);
+                    await loadAllChecks();
+                    alert('Чек удален');
+                } catch (error) {
+                    alert('Ошибка при удалении: ' + error.message);
+                }
             }
+        }
+
+        function exportToCSV() {
+            if (filteredChecks.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            const headers = ['Номер', 'Дата', 'Клиент', 'Налоговый номер', 'Сумма', 'НДС', 'Способ оплаты'];
+            const csvData = filteredChecks.map(check => [
+                check.receiptNumber,
+                check.date,
+                `"${check.customerName}"`,
+                check.customerId || '',
+                check.total,
+                check.vat,
+                paymentTypes[check.paymentType] || check.paymentType
+            ]);
+
+            const csvContent = [headers, ...csvData]
+                .map(row => row.join(','))
+                .join('\n');
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `чеки_etude_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function logout() {
             localStorage.removeItem('loggedIn');
             window.location.href = 'index.html';
         }
-
-        // Обработчики событий для мгновенного поиска
-        document.getElementById('searchQuery').addEventListener('input', applyFilters);
-        document.getElementById('dateFrom').addEventListener('change', applyFilters);
-        document.getElementById('dateTo').addEventListener('change', applyFilters);
-        document.getElementById('customerFilter').addEventListener('change', applyFilters);
-        document.getElementById('paymentFilter').addEventListener('change', applyFilters);
-
-        document.addEventListener('DOMContentLoaded', loadAllChecks);
     </script>
 </body>
 </html>
