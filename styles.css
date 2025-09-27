@@ -15,112 +15,57 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    min-height: 100vh;
 }
 
+/* Header */
 header {
-    background: #2c3e50;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 1rem;
-    border-radius: 10px;
-    margin-bottom: 20px;
+    padding: 1.5rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
-}
-
-.main-content {
-    display: grid;
-    gap: 20px;
-    grid-template-columns: 1fr;
-}
-
-@media (min-width: 768px) {
-    .main-content {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.welcome-card, .recent-checks, .stats, .check-form, .clients-management {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.welcome-card {
-    text-align: center;
-}
-
-.form-section {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
-}
-
-.business-info {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 5px;
-    margin-bottom: 1rem;
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr;
     gap: 1rem;
-    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-@media (min-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr 1fr;
-    }
+.header-left h1 {
+    margin: 0;
+    font-size: 2rem;
 }
 
-.form-group {
-    margin-bottom: 1rem;
+.header-left p {
+    margin: 0.25rem 0 0 0;
+    opacity: 0.9;
 }
 
-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-}
-
-input, select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 1rem;
-}
-
-.item-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr auto;
+.header-right {
+    display: flex;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    align-items: center;
+    flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-    .item-row {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
-    }
-}
-
+/* Buttons */
 .primary-btn {
-    background: #007bff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 1rem;
-    margin: 0.25rem;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
 .secondary-btn {
@@ -128,10 +73,15 @@ input, select {
     color: white;
     padding: 0.5rem 1rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 0.9rem;
-    margin: 0.25rem;
+    transition: all 0.3s;
+}
+
+.secondary-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
 }
 
 .logout-btn {
@@ -139,8 +89,31 @@ input, select {
     color: white;
     padding: 0.5rem 1rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
+    transition: background 0.3s;
+}
+
+.logout-btn:hover {
+    background: #c82333;
+}
+
+.small-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #c82333;
 }
 
 .add-btn {
@@ -148,8 +121,13 @@ input, select {
     color: white;
     padding: 0.5rem 1rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
+    transition: background 0.3s;
+}
+
+.add-btn:hover {
+    background: #218838;
 }
 
 .remove-btn {
@@ -160,226 +138,32 @@ input, select {
     width: 30px;
     height: 30px;
     cursor: pointer;
-}
-
-.small-btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
-    margin: 0.1rem;
-}
-
-.delete-btn {
-    background: #dc3545;
-}
-
-.summary {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 5px;
-}
-
-.summary p {
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.form-actions {
-    text-align: center;
-    margin-top: 2rem;
-}
-
-.check-item, .client-card {
+    font-size: 1.2rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    border-bottom: 1px solid #eee;
-    flex-wrap: wrap;
-    gap: 10px;
+    justify-content: center;
 }
 
-.check-actions, .client-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.stats-grid {
+/* Main Content */
+.main-content {
     display: grid;
+    gap: 2rem;
     grid-template-columns: 1fr;
-    gap: 1rem;
 }
 
 @media (min-width: 768px) {
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-.stat-card {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 5px;
-    text-align: center;
-}
-
-.client-info {
-    flex: 1;
-}
-
-/* Адаптивность для мобильных устройств */
-@media (max-width: 480px) {
-    .container {
-        padding: 10px;
+    .main-content {
+        grid-template-columns: 1fr 1fr;
     }
     
-    header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .check-item, .client-card {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .check-actions, .client-actions {
-        width: 100%;
-        justify-content: flex-end;
+    .welcome-card {
+        grid-column: 1 / -1;
     }
 }
 
-/* Стили для чека на иврите */
-.hebrew-receipt {
-    direction: rtl;
-    text-align: right;
-    font-family: 'Arial', sans-serif;
-}
-
-.hebrew-receipt .check-header {
-    text-align: center;
-    border-bottom: 2px solid #000;
-    margin-bottom: 20px;
-}
-
-.signature-area {
-    margin-top: 50px;
-    text-align: left;
-}
-
-.signature-img {
-    max-width: 200px;
-    height: auto;
-    border-bottom: 1px solid #000;
-    display: block;
-}
-/* Добавляем эти стили в конец файла */
-
-.view-all-container {
-    text-align: center;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #eee;
-}
-
-.check-info {
-    display: grid;
-    grid-template-columns: 80px 1fr 100px 80px;
-    gap: 1rem;
-    flex: 1;
-    align-items: center;
-}
-
-@media (max-width: 768px) {
-    .check-info {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-    }
-}
-
-.check-number {
-    font-weight: bold;
-    color: #2c3e50;
-}
-
-.check-customer {
-    color: #34495e;
-}
-
-.check-date {
-    color: #7f8c8d;
-    font-size: 0.9em;
-}
-
-.check-amount {
-    font-weight: bold;
-    color: #27ae60;
-}
-
-.pagination {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.pagination button.active {
-    background: #007bff;
-    color: white;
-}
-
-.check-item-detailed {
-    display: grid;
-    grid-template-columns: 100px 1fr 120px 100px 120px;
-    gap: 1rem;
-    padding: 1rem;
-    border-bottom: 1px solid #eee;
-    align-items: center;
-}
-
-@media (max-width: 768px) {
-    .check-item-detailed {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-        text-align: center;
-    }
-}
-
-.filter-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.stats-bar {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 5px;
-    margin-bottom: 1rem;
-    text-align: center;
-    font-weight: bold;
-}
-
-/* Стили для страницы просмотра чека */
-@media (max-width: 768px) {
-    .check-view {
-        width: 95%;
-        margin: 10px auto;
-        padding: 10px;
-        font-size: 12px;
-    }
-    
-    .items-table {
-        font-size: 10px;
-    }
-    
-    .items-table th, 
-    .items-table td {
-        padding: 4px;
-    }
-}
-
-.actions {
-    text-align: center;
-    margin: 20px 0;
-}
+/* Cards */
+.welcome-card, .recent-checks, .stats, .check-form, .clients-management {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 15
