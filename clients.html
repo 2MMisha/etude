@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etude - Управление клиентами</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Управление клиентами</h1>
+            <div>
+                <button onclick="window.location.href='main.html'" class="secondary-btn">Назад</button>
+                <button onclick="logout()" class="logout-btn">Выход</button>
+            </div>
+        </header>
+
+        <div class="clients-management">
+            <div class="form-section">
+                <h3>Добавить нового клиента</h3>
+                <form id="clientForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clientName">Имя *:</label>
+                            <input type="text" id="clientName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="clientTaxId">Налоговый номер:</label>
+                            <input type="text" id="clientTaxId">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clientAddress">Адрес:</label>
+                            <input type="text" id="clientAddress">
+                        </div>
+                        <div class="form-group">
+                            <label for="clientPhone">Телефон:</label>
+                            <input type="tel" id="clientPhone">
+                        </div>
+                    </div>
+                    <button type="submit" class="primary-btn">Сохранить клиента</button>
+                </form>
+            </div>
+
+            <div class="form-section">
+                <h3>Список клиентов</h3>
+                <div id="clientsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if (!localStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('clientForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveClient();
+        });
+
+        function loadClients() {
+            const clients = JSON.parse(localStorage.getItem('customers') || '[]');
+            const list = document.getElementById('clientsList');
+            
+            if (clients.length === 0) {
+                list.innerHTML = '<p>Нет сохраненных клиентов</p>';
+                return;
+            }
+
+            list.innerHTML = clients.map(client => `
+                <div class="client-card">
+                    <div class="client-info">
+                        <h4>${client.name}</h4>
+                        <p>${client.taxId ? 'Налоговый номер: ' + client.taxId : ''}</p>
+                        <p>${client.address ? 'Адрес: ' + client.address : ''}</p>
+                        <p>${client.phone ? 'Телефон: ' + client.phone : ''}</p>
+                    </div>
+                    <div class="client-actions">
+                        <button onclick="editClient('${client.id}')" class="small-btn">Редактировать</button>
+                        <button onclick="deleteClient('${client.id}')" class="small-btn delete-btn">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveClient() {
+            const name = document.getElementById('clientName').value;
+            const taxId = document.getElementById('clientTaxId').value;
+            const address = document.getElementById('clientAddress').value;
+            const phone = document.getElementById('clientPhone').value;
+
+            if (!name) {
+                alert('Введите имя клиента');
+                return;
+            }
+
+            const clients = JSON.parse(localStorage.getItem('customers') || '[]');
+            const newClient = {
+                id: Date.now().toString(),
+                name: name,
+                taxId: taxId,
+                address: address,
+                phone: phone,
+                createdAt: new Date().toISOString()
+            };
+
+            clients.push(newClient);
+            localStorage.setItem('customers', JSON.stringify(clients));
+            
+            document.getElementById('clientForm').reset();
+            loadClients();
+            alert('Клиент сохранен!');
+        }
+
+        function deleteClient(clientId) {
+            if (confirm('Вы уверены, что хотите удалить этого клиента?')) {
+                const clients = JSON.parse(localStorage.getItem('customers') || '[]');
+                const updatedClients = clients.filter(client => client.id !== clientId);
+                localStorage.setItem('customers', JSON.stringify(updatedClients));
+                loadClients();
+            }
+        }
+
+        function editClient(clientId) {
+            // Реализация редактирования клиента
+            alert('Функция редактирования будет реализована в следующей версии');
+        }
+
+        function logout() {
+            localStorage.removeItem('loggedIn');
+            window.location.href = 'index.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadClients);
+    </script>
+</body>
+</html>
