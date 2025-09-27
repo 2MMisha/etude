@@ -9,7 +9,6 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f5f5f5;
-    direction: rtl;
 }
 
 .container {
@@ -27,33 +26,31 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .main-content {
     display: grid;
     gap: 20px;
+    grid-template-columns: 1fr;
 }
 
-.welcome-card {
-    background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    text-align: center;
+@media (min-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
-.recent-checks {
+.welcome-card, .recent-checks, .stats, .check-form, .clients-management {
     background: white;
     padding: 1.5rem;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.check-form {
-    background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.welcome-card {
+    text-align: center;
 }
 
 .form-section {
@@ -71,8 +68,15 @@ header {
 
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 .form-group {
@@ -101,6 +105,13 @@ input, select {
     align-items: center;
 }
 
+@media (max-width: 768px) {
+    .item-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+}
+
 .primary-btn {
     background: #007bff;
     color: white;
@@ -115,11 +126,11 @@ input, select {
 .secondary-btn {
     background: #6c757d;
     color: white;
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.9rem;
     margin: 0.25rem;
 }
 
@@ -151,6 +162,16 @@ input, select {
     cursor: pointer;
 }
 
+.small-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    margin: 0.1rem;
+}
+
+.delete-btn {
+    background: #dc3545;
+}
+
 .summary {
     background: #f8f9fa;
     padding: 1rem;
@@ -167,50 +188,87 @@ input, select {
     margin-top: 2rem;
 }
 
-.check-item {
+.check-item, .client-card {
     display: flex;
     justify-content: space-between;
-    padding: 0.5rem;
+    align-items: center;
+    padding: 0.75rem;
     border-bottom: 1px solid #eee;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-/* הדפסה - פורמט A5 */
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    
-    .check-form, .check-form * {
-        visibility: visible;
-    }
-    
-    .check-form {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 148mm;
-        height: 210mm;
-        padding: 10mm;
-        font-size: 12pt;
-    }
-    
-    .form-actions, header, .secondary-btn, .logout-btn, .add-btn, .remove-btn {
-        display: none !important;
+.check-actions, .client-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .item-row {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
+.stat-card {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.client-info {
+    flex: 1;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
     }
     
     header {
         flex-direction: column;
-        gap: 1rem;
+        text-align: center;
     }
+    
+    .check-item, .client-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .check-actions, .client-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* Стили для чека на иврите */
+.hebrew-receipt {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Arial', sans-serif;
+}
+
+.hebrew-receipt .check-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    margin-bottom: 20px;
+}
+
+.signature-area {
+    margin-top: 50px;
+    text-align: left;
+}
+
+.signature-img {
+    max-width: 200px;
+    height: auto;
+    border-bottom: 1px solid #000;
+    display: block;
 }
