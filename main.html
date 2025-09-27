@@ -1,35 +1,60 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etude - עמוד ראשי</title>
+    <title>Etude - Главная страница</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Etude - מערכת ניהול קבלות</h1>
-            <button onclick="logout()" class="logout-btn">יציאה</button>
+            <h1>Etude - Система управления чеками</h1>
+            <div>
+                <button onclick="exportToJSON()" class="secondary-btn">Экспорт JSON</button>
+                <button onclick="importFromJSON()" class="secondary-btn">Импорт JSON</button>
+                <button onclick="manageClients()" class="secondary-btn">Клиенты</button>
+                <button onclick="logout()" class="logout-btn">Выход</button>
+            </div>
         </header>
         
         <div class="main-content">
             <div class="welcome-card">
-                <h2>ברוך הבא, יבגניה גרומובה</h2>
-                <p>מספר עסק מורשה: 346776909</p>
-                <button onclick="createNewCheck()" class="primary-btn">יצירת קבלה חדשה</button>
+                <h2>Добро пожаловать, Евгения Громова</h2>
+                <p>Номер лицензии бизнеса: 346776909</p>
+                <p>Всего чеков: <span id="totalChecks">0</span></p>
+                <button onclick="createNewCheck()" class="primary-btn">Создать новый чек</button>
             </div>
             
             <div class="recent-checks">
-                <h3>קבלות אחרונות</h3>
+                <h3>Последние чеки</h3>
                 <div id="recentChecksList"></div>
+            </div>
+
+            <div class="stats">
+                <h3>Статистика</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Общий доход</h4>
+                        <p id="totalRevenue">0 ₪</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>НДС</h4>
+                        <p id="totalVAT">0 ₪</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Чеки за месяц</h4>
+                        <p id="monthlyChecks">0</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+
     <script src="script.js"></script>
     <script>
-        // בדיקת התחברות
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'index.html';
         }
@@ -38,32 +63,115 @@
             window.location.href = 'check.html';
         }
 
+        function manageClients() {
+            window.location.href = 'clients.html';
+        }
+
         function logout() {
             localStorage.removeItem('loggedIn');
             window.location.href = 'index.html';
         }
 
-        // טעינת קבלות אחרונות
-        document.addEventListener('DOMContentLoaded', function() {
-            loadRecentChecks();
+        function exportToJSON() {
+            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
+            if (checks.length === 0) {
+                alert('Нет чеков для экспорта');
+                return;
+            }
+
+            const dataStr = JSON.stringify(checks, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `etude_checks_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function importFromJSON() {
+            document.getElementById('jsonFileInput').click();
+        }
+
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedChecks = JSON.parse(e.target.result);
+                    if (Array.isArray(importedChecks)) {
+                        const existingChecks = JSON.parse(localStorage.getItem('checks') || '[]');
+                        const mergedChecks = [...existingChecks, ...importedChecks];
+                        localStorage.setItem('checks', JSON.stringify(mergedChecks));
+                        
+                        const maxReceiptNumber = Math.max(...mergedChecks.map(c => parseInt(c.receiptNumber)));
+                        localStorage.setItem('currentReceiptNumber', (maxReceiptNumber + 1).toString());
+                        
+                        alert(`Успешно импортировано ${importedChecks.length} чеков!`);
+                        loadDashboard();
+                    } else {
+                        alert('Неверный формат JSON файла');
+                    }
+                } catch (error) {
+                    alert('Ошибка чтения файла: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
         });
 
-        function loadRecentChecks() {
+        function loadDashboard() {
             const checks = JSON.parse(localStorage.getItem('checks') || '[]');
-            const recentList = document.getElementById('recentChecksList');
             
+            document.getElementById('totalChecks').textContent = checks.length;
+            
+            const totalRevenue = checks.reduce((sum, check) => sum + parseFloat(check.total), 0);
+            document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2) + ' ₪';
+            
+            const totalVAT = checks.reduce((sum, check) => sum + parseFloat(check.vat), 0);
+            document.getElementById('totalVAT').textContent = totalVAT.toFixed(2) + ' ₪';
+            
+            const currentMonth = new Date().getMonth();
+            const monthlyChecks = checks.filter(check => {
+                const checkDate = new Date(check.date);
+                return checkDate.getMonth() === currentMonth;
+            }).length;
+            document.getElementById('monthlyChecks').textContent = monthlyChecks;
+
+            const recentList = document.getElementById('recentChecksList');
             if (checks.length === 0) {
-                recentList.innerHTML = '<p>אין קבלות עדיין</p>';
+                recentList.innerHTML = '<p>Пока нет чеков</p>';
                 return;
             }
 
             recentList.innerHTML = checks.slice(-5).reverse().map(check => `
                 <div class="check-item">
-                    <span>קבלה מס׳ ${check.receiptNumber} - ${check.customerName}</span>
-                    <span>${check.date} - ${check.totalAmount} ₪</span>
+                    <span>Чек №${check.receiptNumber} - ${check.customerName}</span>
+                    <span>${check.date} - ${check.total} ₪</span>
+                    <div class="check-actions">
+                        <button onclick="viewCheck(${check.receiptNumber})" class="small-btn">Просмотр</button>
+                        <button onclick="deleteCheck(${check.receiptNumber})" class="small-btn delete-btn">Удалить</button>
+                    </div>
                 </div>
             `).join('');
         }
+
+        function viewCheck(receiptNumber) {
+            localStorage.setItem('viewCheckNumber', receiptNumber);
+            window.open('view-check.html', '_blank');
+        }
+
+        function deleteCheck(receiptNumber) {
+            if (confirm('Вы уверены, что хотите удалить этот чек?')) {
+                const checks = JSON.parse(localStorage.getItem('checks') || '[]');
+                const updatedChecks = checks.filter(check => check.receiptNumber != receiptNumber);
+                localStorage.setItem('checks', JSON.stringify(updatedChecks));
+                loadDashboard();
+                alert('Чек удален');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
