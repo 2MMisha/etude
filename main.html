@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etude - עמוד ראשי</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Etude - מערכת ניהול קבלות</h1>
+            <button onclick="logout()" class="logout-btn">יציאה</button>
+        </header>
+        
+        <div class="main-content">
+            <div class="welcome-card">
+                <h2>ברוך הבא, יבגניה גרומובה</h2>
+                <p>מספר עסק מורשה: 346776909</p>
+                <button onclick="createNewCheck()" class="primary-btn">יצירת קבלה חדשה</button>
+            </div>
+            
+            <div class="recent-checks">
+                <h3>קבלות אחרונות</h3>
+                <div id="recentChecksList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // בדיקת התחברות
+        if (!localStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+
+        function createNewCheck() {
+            window.location.href = 'check.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('loggedIn');
+            window.location.href = 'index.html';
+        }
+
+        // טעינת קבלות אחרונות
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRecentChecks();
+        });
+
+        function loadRecentChecks() {
+            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
+            const recentList = document.getElementById('recentChecksList');
+            
+            if (checks.length === 0) {
+                recentList.innerHTML = '<p>אין קבלות עדיין</p>';
+                return;
+            }
+
+            recentList.innerHTML = checks.slice(-5).reverse().map(check => `
+                <div class="check-item">
+                    <span>קבלה מס׳ ${check.receiptNumber} - ${check.customerName}</span>
+                    <span>${check.date} - ${check.totalAmount} ₪</span>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
