@@ -1,131 +1,133 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etude - יצירת קבלה</title>
+    <title>Etude - Создание чека</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>יצירת קבלה חדשה</h1>
+            <h1>Создание нового чека</h1>
             <div>
-                <button onclick="window.location.href='main.html'" class="secondary-btn">חזור</button>
-                <button onclick="logout()" class="logout-btn">יציאה</button>
+                <button onclick="window.location.href='main.html'" class="secondary-btn">Назад</button>
+                <button onclick="logout()" class="logout-btn">Выход</button>
             </div>
         </header>
 
         <div class="check-form">
             <form id="checkForm">
                 <div class="form-section">
-                    <h3>פרטי העסק</h3>
+                    <h3>Информация о бизнесе</h3>
                     <div class="business-info">
                         <p><strong>Etude</strong></p>
-                        <p>יבגניה גרומובה</p>
-                        <p>הבה״דים 4, ראשל״צ</p>
-                        <p>נייד: 0534726469</p>
-                        <p>עסק מורשה: 346776909</p>
-                        <p>חשבונית/קבלה מס׳: <span id="receiptNumber">1</span></p>
+                        <p>Евгения Громова</p>
+                        <p>Ха-Бадим 4, Ришон-ле-Цион</p>
+                        <p>Тел: 0534726469</p>
+                        <p>Лицензия бизнеса: 346776909</p>
+                        <div class="form-group">
+                            <label for="receiptNumber">Номер чека:</label>
+                            <input type="number" id="receiptNumber" min="1" required>
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <h3>פרטי הלקוח</h3>
+                    <h3>Информация о клиенте</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="customerName">לכבוד (שם הלקוח):</label>
+                            <label for="customerSelect">Выберите клиента:</label>
+                            <select id="customerSelect" onchange="fillCustomerData()">
+                                <option value="">-- Новый клиент --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="customerName">Имя клиента *:</label>
                             <input type="text" id="customerName" required>
                         </div>
                         <div class="form-group">
-                            <label for="customerId">ח.פ./ע.מ:</label>
+                            <label for="customerId">ID/Налоговый номер:</label>
                             <input type="text" id="customerId">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="customerAddress">כתובת:</label>
+                            <label for="customerAddress">Адрес:</label>
                             <input type="text" id="customerAddress">
                         </div>
                         <div class="form-group">
-                            <label for="customerPhone">טלפון:</label>
+                            <label for="customerPhone">Телефон:</label>
                             <input type="tel" id="customerPhone">
                         </div>
                     </div>
+                    <button type="button" onclick="saveCustomer()" class="secondary-btn">Сохранить клиента</button>
                 </div>
 
                 <div class="form-section">
-                    <h3>פרטי השירות/מוצר</h3>
+                    <h3>Детали услуг/товаров</h3>
                     <div id="itemsContainer">
                         <div class="item-row">
-                            <input type="text" placeholder="פרטים" class="item-details">
-                            <input type="number" placeholder="סכום" class="item-amount" step="0.01">
-                            <input type="number" placeholder="כמות" class="item-quantity" value="1">
+                            <input type="text" placeholder="Описание" class="item-details">
+                            <input type="number" placeholder="Цена" class="item-amount" step="0.01">
+                            <input type="number" placeholder="Количество" class="item-quantity" value="1">
                             <button type="button" onclick="removeItem(this)" class="remove-btn">×</button>
                         </div>
                     </div>
-                    <button type="button" onclick="addItem()" class="add-btn">+ הוסף שורה</button>
+                    <button type="button" onclick="addItem()" class="add-btn">+ Добавить строку</button>
                 </div>
 
                 <div class="form-section">
-                    <h3>סיכום</h3>
+                    <h3>Итоги</h3>
                     <div class="summary">
-                        <p>סה״כ לפני מע״מ: <span id="subtotal">0.00</span> ₪</p>
-                        <p>מע״מ (18%): <span id="vat">0.00</span> ₪</p>
-                        <p>סה״כ כולל מע״מ: <span id="total">0.00</span> ₪</p>
+                        <p>Итого до НДС: <span id="subtotal">0.00</span> ₪</p>
+                        <p>НДС (18%): <span id="vat">0.00</span> ₪</p>
+                        <p>Итого с НДС: <span id="total">0.00</span> ₪</p>
                     </div>
                 </div>
 
                 <div class="form-section">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="paymentType">סוג תשלום:</label>
+                            <label for="paymentType">Тип оплаты:</label>
                             <select id="paymentType">
-                                <option value="cash">מזומן</option>
-                                <option value="credit">אשראי</option>
-                                <option value="check">צ'ק</option>
-                                <option value="transfer">העברה</option>
+                                <option value="cash">Наличные</option>
+                                <option value="credit">Кредитная карта</option>
+                                <option value="check">Чек</option>
+                                <option value="transfer">Банковский перевод</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="date">תאריך:</label>
+                            <label for="date">Дата:</label>
                             <input type="date" id="date" required>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" onclick="previewCheck()" class="primary-btn">תצוגה מקדימה</button>
-                    <button type="button" onclick="saveCheck()" class="primary-btn">שמור קבלה</button>
-                    <button type="button" onclick="printCheck()" class="primary-btn">הדפס</button>
+                    <button type="button" onclick="saveCheck()" class="primary-btn">Сохранить чек</button>
+                    <button type="button" onclick="saveCheck(true)" class="primary-btn">Сохранить и создать PDF</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        // בדיקת התחברות
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'index.html';
         }
 
-        // טעינת מספר קבלה נוכחי
         document.addEventListener('DOMContentLoaded', function() {
             const currentNumber = localStorage.getItem('currentReceiptNumber') || '1';
-            document.getElementById('receiptNumber').textContent = currentNumber;
+            document.getElementById('receiptNumber').value = currentNumber;
             document.getElementById('date').valueAsDate = new Date();
-            
-            // חישוב אוטומטי
             setupCalculations();
+            loadCustomers();
         });
-
-        function setupCalculations() {
-            const inputs = document.querySelectorAll('.item-amount, .item-quantity');
-            inputs.forEach(input => {
-                input.addEventListener('input', calculateTotals);
-            });
-        }
 
         function calculateTotals() {
             let subtotal = 0;
@@ -135,7 +137,7 @@
                 subtotal += amount * quantity;
             });
 
-            const vat = subtotal * 0.18;
+            const vat = subtotal * 0.18; // 18% НДС
             const total = subtotal + vat;
 
             document.getElementById('subtotal').textContent = subtotal.toFixed(2);
@@ -143,14 +145,22 @@
             document.getElementById('total').textContent = total.toFixed(2);
         }
 
+        function setupCalculations() {
+            const inputs = document.querySelectorAll('.item-amount, .item-quantity');
+            inputs.forEach(input => {
+                input.addEventListener('input', calculateTotals);
+            });
+            calculateTotals();
+        }
+
         function addItem() {
             const container = document.getElementById('itemsContainer');
             const newItem = document.createElement('div');
             newItem.className = 'item-row';
             newItem.innerHTML = `
-                <input type="text" placeholder="פרטים" class="item-details">
-                <input type="number" placeholder="סכום" class="item-amount" step="0.01">
-                <input type="number" placeholder="כמות" class="item-quantity" value="1">
+                <input type="text" placeholder="Описание" class="item-details">
+                <input type="number" placeholder="Цена" class="item-amount" step="0.01">
+                <input type="number" placeholder="Количество" class="item-quantity" value="1">
                 <button type="button" onclick="removeItem(this)" class="remove-btn">×</button>
             `;
             container.appendChild(newItem);
@@ -164,45 +174,137 @@
             }
         }
 
-        function saveCheck() {
+        function loadCustomers() {
+            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            const select = document.getElementById('customerSelect');
+            
+            select.innerHTML = '<option value="">-- Новый клиент --</option>';
+            customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = `${customer.name} ${customer.phone ? '(' + customer.phone + ')' : ''}`;
+                select.appendChild(option);
+            });
+        }
+
+        function fillCustomerData() {
+            const select = document.getElementById('customerSelect');
+            const customerId = select.value;
+            if (!customerId) return;
+
+            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            const customer = customers.find(c => c.id == customerId);
+            
+            if (customer) {
+                document.getElementById('customerName').value = customer.name;
+                document.getElementById('customerId').value = customer.taxId || '';
+                document.getElementById('customerAddress').value = customer.address || '';
+                document.getElementById('customerPhone').value = customer.phone || '';
+            }
+        }
+
+        function saveCustomer() {
+            const name = document.getElementById('customerName').value;
+            const taxId = document.getElementById('customerId').value;
+            const address = document.getElementById('customerAddress').value;
+            const phone = document.getElementById('customerPhone').value;
+
+            if (!name) {
+                alert('Введите имя клиента');
+                return;
+            }
+
+            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            const newCustomer = {
+                id: Date.now().toString(),
+                name: name,
+                taxId: taxId,
+                address: address,
+                phone: phone,
+                createdAt: new Date().toISOString()
+            };
+
+            customers.push(newCustomer);
+            localStorage.setItem('customers', JSON.stringify(customers));
+            loadCustomers();
+            alert('Клиент сохранен!');
+        }
+
+        function saveCheck(createPDF = false) {
             const checkData = {
-                receiptNumber: document.getElementById('receiptNumber').textContent,
+                receiptNumber: document.getElementById('receiptNumber').value,
                 customerName: document.getElementById('customerName').value,
                 customerId: document.getElementById('customerId').value,
                 customerAddress: document.getElementById('customerAddress').value,
                 customerPhone: document.getElementById('customerPhone').value,
                 items: Array.from(document.querySelectorAll('.item-row')).map(row => ({
                     details: row.querySelector('.item-details').value,
-                    amount: row.querySelector('.item-amount').value,
-                    quantity: row.querySelector('.item-quantity').value
+                    amount: parseFloat(row.querySelector('.item-amount').value) || 0,
+                    quantity: parseFloat(row.querySelector('.item-quantity').value) || 1
                 })),
-                subtotal: document.getElementById('subtotal').textContent,
-                vat: document.getElementById('vat').textContent,
-                total: document.getElementById('total').textContent,
+                subtotal: parseFloat(document.getElementById('subtotal').textContent),
+                vat: parseFloat(document.getElementById('vat').textContent),
+                total: parseFloat(document.getElementById('total').textContent),
                 paymentType: document.getElementById('paymentType').value,
-                date: document.getElementById('date').value
+                date: document.getElementById('date').value,
+                timestamp: new Date().toISOString()
             };
 
-            // שמירה ב-localStorage
+            if (!validateCheck(checkData)) {
+                return;
+            }
+
+            saveCheckToSystem(checkData);
+
+            if (createPDF) {
+                generatePDF(checkData);
+            }
+
+            alert('Чек сохранен успешно!');
+            window.location.href = 'main.html';
+        }
+
+        function validateCheck(checkData) {
+            if (!checkData.customerName.trim()) {
+                alert('Введите имя клиента');
+                return false;
+            }
+            
+            if (checkData.items.length === 0 || checkData.items.some(item => !item.details.trim())) {
+                alert('Введите детали услуг/товаров');
+                return false;
+            }
+            
+            if (checkData.total <= 0) {
+                alert('Сумма чека должна быть больше 0');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function saveCheckToSystem(checkData) {
             const checks = JSON.parse(localStorage.getItem('checks') || '[]');
             checks.push(checkData);
             localStorage.setItem('checks', JSON.stringify(checks));
 
-            // עדכון מספר קבלה
-            const nextNumber = parseInt(checkData.receiptNumber) + 1;
+            const nextNumber = Math.max(parseInt(checkData.receiptNumber) + 1, 
+                                       parseInt(localStorage.getItem('currentReceiptNumber') || '1'));
             localStorage.setItem('currentReceiptNumber', nextNumber.toString());
-
-            alert('הקבלה נשמרה בהצלחה!');
-            window.location.href = 'main.html';
         }
 
-        function previewCheck() {
-            // כאן ניתן להוסיף תצוגה מקדימה
-            alert('תצוגה מקדימה - ניתן להוסיף פונקציונליות זו בהמשך');
-        }
+        function generatePDF(checkData) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a5'
+            });
 
-        function printCheck() {
-            window.print();
+            // Здесь будет код генерации PDF на иврите
+            // (потребуется дополнительная настройка для поддержки иврита)
+            
+            doc.save(`check_${checkData.receiptNumber}.pdf`);
         }
 
         function logout() {
