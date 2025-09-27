@@ -9,7 +9,19 @@ const CONFIG = {
         taxId: "346776909"
     }
 };
-
+// Глобальная функция для исправления текста
+window.fixHebrewText = function(text) {
+    if (!text) return text;
+    
+    return text
+        .replace(/×/g, '')
+        .replace(//g, "'")
+        .replace(//g, '"')
+        .replace(//g, '"')
+        .replace(//g, '...')
+        .normalize('NFC')
+        .trim();
+};
 // Функции для работы с клиентами
 function loadAllClients() {
     return JSON.parse(localStorage.getItem('customers') || '[]');
