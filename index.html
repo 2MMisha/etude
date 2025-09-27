@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etude - מערכת ניהול קבלות</title>
+    <title>Etude - Система управления чеками</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
@@ -11,7 +11,6 @@
             margin: 0;
             padding: 0;
             background-color: #f5f5f5;
-            direction: rtl;
         }
         
         .login-container {
@@ -30,6 +29,7 @@
         label {
             display: block;
             margin-bottom: 5px;
+            font-weight: bold;
         }
         
         input {
@@ -58,15 +58,15 @@
 </head>
 <body>
     <div class="login-container">
-        <h2 style="text-align: center;">כניסה למערכת</h2>
+        <h2 style="text-align: center;">Вход в систему</h2>
         <form id="loginForm">
             <div class="form-group">
-                <label for="password">סיסמה:</label>
+                <label for="password">Пароль:</label>
                 <input type="password" id="password" required>
             </div>
-            <button type="submit">כניסה</button>
+            <button type="submit">Войти</button>
         </form>
-        <div id="error" class="error" style="display: none;">סיסמה לא נכונה</div>
+        <div id="error" class="error" style="display: none;">Неверный пароль</div>
     </div>
 
     <script>
@@ -74,7 +74,6 @@
             e.preventDefault();
             const password = document.getElementById('password').value;
             
-            // סיסמה פשוטה - ניתן לשנות
             if (password === '1234') {
                 localStorage.setItem('loggedIn', 'true');
                 window.location.href = 'main.html';
