@@ -237,40 +237,45 @@
         }
 
         async function saveClient() {
-            const name = document.getElementById('clientName').value.trim();
-            const taxId = document.getElementById('clientTaxId').value.trim();
-            const phone = document.getElementById('clientPhone').value.trim();
-            const address = document.getElementById('clientAddress').value.trim();
-            const notes = document.getElementById('clientNotes').value.trim();
+    const name = document.getElementById('clientName').value.trim();
+    const taxId = document.getElementById('clientTaxId').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    const address = document.getElementById('clientAddress').value.trim();
+    const notes = document.getElementById('clientNotes').value.trim();
 
-            if (!name) {
-                alert('Введите имя клиента');
-                return;
-            }
+    // Проверяем и исправляем кодировку перед сохранением
+    const fixedName = fixHebrewText(name);
+    const fixedAddress = fixHebrewText(address);
+    const fixedNotes = fixHebrewText(notes);
 
-            try {
-                const clients = await window.githubStorage.loadCustomers();
-                const newClient = {
-                    id: Date.now().toString(),
-                    name: name,
-                    taxId: taxId,
-                    phone: phone,
-                    address: address,
-                    notes: notes,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
+    if (!fixedName) {
+        alert('Введите имя клиента');
+        return;
+    }
 
-                clients.push(newClient);
-                await window.githubStorage.saveCustomers(clients);
-                
-                clearForm();
-                await loadClients();
-                alert('✅ Клиент сохранен!');
-            } catch (error) {
-                alert('❌ Ошибка сохранения клиента: ' + error.message);
-            }
-        }
+    try {
+        const clients = await window.githubStorage.loadCustomers();
+        const newClient = {
+            id: Date.now().toString(),
+            name: fixedName,  // Используем исправленное имя
+            taxId: taxId,
+            phone: phone,
+            address: fixedAddress,  // Исправленный адрес
+            notes: fixedNotes,      // Исправленные заметки
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        clients.push(newClient);
+        await window.githubStorage.saveCustomers(clients);
+        
+        clearForm();
+        await loadClients();
+        alert('✅ Клиент сохранен!');
+    } catch (error) {
+        alert('❌ Ошибка сохранения клиента: ' + error.message);
+    }
+}
 
         function clearForm() {
             document.getElementById('clientForm').reset();
