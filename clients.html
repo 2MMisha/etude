@@ -193,34 +193,41 @@
         }
 
         function displayClients(clients) {
-            const container = document.getElementById('clientsList');
-            
-            if (clients.length === 0) {
-                container.innerHTML = '<div class="empty-state">Клиенты не найдены</div>';
-                return;
-            }
+    const container = document.getElementById('clientsList');
+    
+    if (clients.length === 0) {
+        container.innerHTML = '<div class="empty-state">Клиенты не найдены</div>';
+        return;
+    }
 
-            container.innerHTML = clients.map(client => `
-                <div class="client-card">
-                    <div class="client-header">
-                        <div>
-                            <h4 class="client-name">${client.name}</h4>
-                            <div class="client-details">
-                                ${client.phone ? `<p>📞 ${client.phone}</p>` : ''}
-                                ${client.taxId ? `<p>🔢 Налоговый номер: ${client.taxId}</p>` : ''}
-                                ${client.address ? `<p>🏠 ${client.address}</p>` : ''}
-                                ${client.notes ? `<p>📝 ${client.notes}</p>` : ''}
-                                <p>📅 Добавлен: ${new Date(client.createdAt).toLocaleDateString('ru-RU')}</p>
-                            </div>
-                        </div>
-                        <div class="client-actions">
-                            <button onclick="editClient('${client.id}')" class="small-btn">✏️</button>
-                            <button onclick="deleteClient('${client.id}')" class="small-btn delete-btn">🗑️</button>
+    container.innerHTML = clients.map(client => {
+        // Исправляем кодировку при отображении
+        const fixedName = fixHebrewText(client.name);
+        const fixedAddress = fixHebrewText(client.address);
+        const fixedNotes = fixHebrewText(client.notes);
+        
+        return `
+            <div class="client-card">
+                <div class="client-header">
+                    <div>
+                        <h4 class="client-name">${fixedName}</h4>
+                        <div class="client-details">
+                            ${client.phone ? `<p>📞 ${client.phone}</p>` : ''}
+                            ${client.taxId ? `<p>🔢 Налоговый номер: ${client.taxId}</p>` : ''}
+                            ${fixedAddress ? `<p>🏠 ${fixedAddress}</p>` : ''}
+                            ${fixedNotes ? `<p>📝 ${fixedNotes}</p>` : ''}
+                            <p>📅 Добавлен: ${new Date(client.createdAt).toLocaleDateString('ru-RU')}</p>
                         </div>
                     </div>
+                    <div class="client-actions">
+                        <button onclick="editClient('${client.id}')" class="small-btn">✏️</button>
+                        <button onclick="deleteClient('${client.id}')" class="small-btn delete-btn">🗑️</button>
+                    </div>
                 </div>
-            `).join('');
-        }
+            </div>
+        `;
+    }).join('');
+}
 
         function filterClients(query) {
             const filtered = allClients.filter(client => 
