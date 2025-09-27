@@ -272,3 +272,114 @@ input, select {
     border-bottom: 1px solid #000;
     display: block;
 }
+/* Добавляем эти стили в конец файла */
+
+.view-all-container {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.check-info {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px 80px;
+    gap: 1rem;
+    flex: 1;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .check-info {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}
+
+.check-number {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.check-customer {
+    color: #34495e;
+}
+
+.check-date {
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.check-amount {
+    font-weight: bold;
+    color: #27ae60;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.pagination button.active {
+    background: #007bff;
+    color: white;
+}
+
+.check-item-detailed {
+    display: grid;
+    grid-template-columns: 100px 1fr 120px 100px 120px;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .check-item-detailed {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        text-align: center;
+    }
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stats-bar {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Стили для страницы просмотра чека */
+@media (max-width: 768px) {
+    .check-view {
+        width: 95%;
+        margin: 10px auto;
+        padding: 10px;
+        font-size: 12px;
+    }
+    
+    .items-table {
+        font-size: 10px;
+    }
+    
+    .items-table th, 
+    .items-table td {
+        padding: 4px;
+    }
+}
+
+.actions {
+    text-align: center;
+    margin: 20px 0;
+}
