@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etude - Управление Чеками</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="login-page" class="page active">
+        <div class="login-container">
+            <h1>Вход в систему</h1>
+            <p>Etude</p>
+            <input type="password" id="password" placeholder="Пароль">
+            <button id="login-button">Войти</button>
+            <p id="login-error" class="error-message"></p>
+        </div>
+    </div>
+
+    <div id="app" style="display: none;">
+        <header>
+            <div class="logo">Etude</div>
+            <nav>
+                <a href="#main" class="nav-link active">Главная</a>
+                <a href="#all-checks" class="nav-link">Все чеки</a>
+                <a href="#check" class="nav-link">Создать чек</a>
+                <a href="#clients" class="nav-link">Клиенты</a>
+            </nav>
+            <button id="logout-button">Выйти</button>
+        </header>
+
+        <main>
+            <section id="main-page" class="page">
+                <h2>Панель управления</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Всего чеков</h3>
+                        <p id="total-receipts-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Сумма за месяц</h3>
+                        <p id="monthly-revenue-stat">0.00 ₪</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Всего клиентов</h3>
+                        <p id="total-clients-stat">0</p>
+                    </div>
+                </div>
+                <h3>Последние 10 чеков</h3>
+                <div class="table-container">
+                    <table id="recent-checks-table">
+                        <thead>
+                            <tr>
+                                <th>Номер</th>
+                                <th>Дата</th>
+                                <th>Клиент</th>
+                                <th>Сумма</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="all-checks-page" class="page" style="display: none;">
+                <h2>Все чеки</h2>
+                <div class="filters">
+                    <input type="text" id="search-input" placeholder="Поиск по клиенту или номеру...">
+                    <input type="date" id="start-date-filter">
+                    <input type="date" id="end-date-filter">
+                    <button id="filter-btn">Применить</button>
+                    <button id="export-csv-btn">Экспорт в CSV</button>
+                </div>
+                <div class="table-container">
+                    <table id="all-checks-table">
+                        <thead>
+                            <tr>
+                                <th>Номер</th>
+                                <th>Дата</th>
+                                <th>Клиент</th>
+                                <th>Сумма</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    </div>
+            </section>
+
+            <section id="check-page" class="page" style="display: none;">
+                <h2 id="check-page-title">Создание нового чека</h2>
+                <form id="check-form">
+                    <div class="form-grid">
+                        <div>
+                            <label for="check-number">Номер чека</label>
+                            <input type="text" id="check-number" required>
+                        </div>
+                        <div>
+                            <label for="check-date">Дата</label>
+                            <input type="date" id="check-date" required>
+                        </div>
+                        <div>
+                            <label for="customer-select">Клиент</label>
+                            <select id="customer-select" required></select>
+                        </div>
+                        <button type="button" id="add-new-client-from-check">Добавить нового клиента</button>
+                    </div>
+
+                    <h4>Товары / Услуги</h4>
+                    <table id="items-table">
+                        <thead>
+                            <tr>
+                                <th>Описание</th>
+                                <th>Кол-во</th>
+                                <th>Цена (₪)</th>
+                                <th>Сумма</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                            </tbody>
+                    </table>
+                    <button type="button" id="add-item-btn">+ Добавить строку</button>
+
+                    <div class="totals-section">
+                        <div>Промежуточный итог: <span id="subtotal">0.00</span> ₪</div>
+                        <div>НДС (18%): <span id="vat">0.00</span> ₪</div>
+                        <div class="grand-total">Итого: <span id="total">0.00</span> ₪</div>
+                    </div>
+
+                    <div>
+                        <label for="payment-type">Способ оплаты</label>
+                        <select id="payment-type">
+                            <option value="cash">Наличные</option>
+                            <option value="credit_card">Кредитная карта</option>
+                            <option value="bank_transfer">Банковский перевод</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="save-check-btn">Сохранить чек</button>
+                    </div>
+                </form>
+            </section>
+            
+            <section id="view-check-page" class="page" style="display: none;">
+                 <div class="view-check-actions">
+                     <button id="print-check-btn">🖨️ Печать / Сохранить в PDF</button>
+                     <button id="back-to-all-checks-btn">Назад ко всем чекам</button>
+                 </div>
+                 <div id="check-preview-container">
+                     </div>
+            </section>
+
+
+            <section id="clients-page" class="page" style="display: none;">
+                <h2>Управление клиентами</h2>
+                <div class="client-form-container">
+                    <h3>Добавить/Редактировать клиента</h3>
+                    <form id="client-form">
+                        <input type="hidden" id="client-id">
+                        <input type="text" id="client-name" placeholder="Имя клиента (на иврите)" required dir="rtl">
+                        <input type="text" id="client-taxId" placeholder="ID / ע.מ.">
+                        <input type="text" id="client-phone" placeholder="Телефон">
+                        <input type="text" id="client-address" placeholder="Адрес" dir="rtl">
+                        <textarea id="client-notes" placeholder="Заметки"></textarea>
+                        <button type="submit">Сохранить клиента</button>
+                        <button type="button" id="cancel-edit-client-btn" style="display:none;">Отмена</button>
+                    </form>
+                </div>
+                <div class="table-container">
+                    <input type="text" id="search-client-input" placeholder="Поиск по клиентам...">
+                    <table id="clients-table">
+                        <thead>
+                            <tr>
+                                <th>Имя</th>
+                                <th>Телефон</th>
+                                <th>Адрес</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                           </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
