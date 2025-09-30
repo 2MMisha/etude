@@ -2,6 +2,7 @@
 const GITHUB_TOKEN = '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';
 const REPO_OWNER = '2mmisha';
 const REPO_NAME = 'etude';
+const DATA_PATH = 'deepseek/data/'; // Добавляем путь к папке
 
 let receipts = [];
 let clients = [];
@@ -127,7 +128,7 @@ async function loadDataFromGitHub() {
         
         // Загрузка чеков
         console.log('Fetching receipts from GitHub...');
-        const receiptsData = await fetchJSONFromGitHub('data/receipts.json');
+        const receiptsData = await fetchJSONFromGitHub('receipts.json');
         if (receiptsData !== null) {
             receipts = receiptsData;
             console.log('✅ Receipts loaded from GitHub:', receipts.length);
@@ -138,7 +139,7 @@ async function loadDataFromGitHub() {
         
         // Загрузка клиентов
         console.log('Fetching clients from GitHub...');
-        const clientsData = await fetchJSONFromGitHub('data/clients.json');
+        const clientsData = await fetchJSONFromGitHub('clients.json');
         if (clientsData !== null) {
             clients = clientsData;
             console.log('✅ Clients loaded from GitHub:', clients.length);
@@ -161,14 +162,16 @@ async function loadDataFromGitHub() {
 }
 
 // Универсальная функция загрузки JSON из GitHub
-async function fetchJSONFromGitHub(filePath) {
+async function fetchJSONFromGitHub(fileName) {
+    const filePath = DATA_PATH + fileName;
     const urlsToTry = [
         // Основной URL - raw.githubusercontent.com
-        `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/deepseek/${filePath}`,
-        // Альтернативный URL - если репозиторий public
+        `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filePath}`,
         `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/master/${filePath}`,
         // GitHub Pages URL
-        `https://${REPO_OWNER}.github.io/${REPO_NAME}/${filePath}`
+        `https://${REPO_OWNER}.github.io/${REPO_NAME}/${filePath}`,
+        // Прямой доступ к файлу
+        `https://github.com/${REPO_OWNER}/${REPO_NAME}/raw/main/${filePath}`
     ];
     
     for (const url of urlsToTry) {
@@ -178,12 +181,15 @@ async function fetchJSONFromGitHub(filePath) {
             
             if (response.ok) {
                 const text = await response.text();
-                console.log(`Response from ${url}:`, text.substring(0, 100) + '...');
+                console.log(`✅ Response received from ${url}`);
+                console.log(`Content preview:`, text.substring(0, 200) + '...');
                 
                 if (text.trim()) {
                     const data = JSON.parse(text);
-                    console.log(`✅ Successfully loaded from ${url}`);
+                    console.log(`✅ Successfully parsed JSON from ${url}`);
                     return data;
+                } else {
+                    console.log(`⚠️ Empty response from ${url}`);
                 }
             } else {
                 console.log(`❌ ${url} returned status: ${response.status}`);
@@ -211,6 +217,8 @@ async function fetchJSONFromGitHub(filePath) {
                 const parsedData = JSON.parse(content);
                 console.log('✅ Successfully loaded via GitHub API');
                 return parsedData;
+            } else {
+                console.log(`❌ GitHub API returned status: ${response.status}`);
             }
         } catch (error) {
             console.log('❌ GitHub API also failed:', error.message);
@@ -280,9 +288,9 @@ async function saveDataToGitHub() {
         console.log('🔄 Saving to GitHub...');
         
         // Сохраняем чеки
-        const receiptsSaved = await saveToGitHub('data/receipts.json', receipts);
+        const receiptsSaved = await saveToGitHub('receipts.json', receipts);
         // Сохраняем клиентов
-        const clientsSaved = await saveToGitHub('data/clients.json', clients);
+        const clientsSaved = await saveToGitHub('clients.json', clients);
         
         return receiptsSaved && clientsSaved;
         
@@ -293,7 +301,9 @@ async function saveDataToGitHub() {
 }
 
 // Сохранение одного файла в GitHub
-async function saveToGitHub(filePath, data) {
+async function saveToGitHub(fileName, data) {
+    const filePath = DATA_PATH + fileName;
+    
     try {
         let sha = null;
         
@@ -310,13 +320,14 @@ async function saveToGitHub(filePath, data) {
             if (response.ok) {
                 const fileData = await response.json();
                 sha = fileData.sha;
+                console.log(`📝 Found existing file with SHA: ${sha.substring(0, 8)}...`);
             }
         } catch (error) {
-            // Файл не существует, это нормально
+            console.log('📝 No existing file found, creating new one');
         }
         
         const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-        const message = `Update ${filePath} from web interface`;
+        const message = `Update ${fileName} from web interface`;
         
         const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`, {
             method: 'PUT',
@@ -345,6 +356,11 @@ async function saveToGitHub(filePath, data) {
         return false;
     }
 }
+
+// Остальные функции остаются без изменений...
+// [ВСТАВЬТЕ СЮДА ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ ИЗ ПРЕДЫДУЩЕГО СКРИПТА]
+// Функции для главной страницы, создания чеков, управления клиентами и т.д.
+// ... (все остальные функции из предыдущего скрипта)
 
 // Функции для главной страницы
 function initMainPage() {
@@ -1135,17 +1151,13 @@ function displayReceipt(receiptData) {
             </table>
         </div>
         
-        <div class="receipt-totals">
-            <p>סיכום ביניים: ${receiptData.subtotal.toFixed(2)} ₪</p>
-            <p>מע"מ (18%): ${receiptData.vat.toFixed(2)} ₪</p>
-            <p><strong>סך הכל: ${receiptData.total.toFixed(2)} ₪</strong></p>
-            <p>אמצעי תשלום: ${getPaymentTypeText(receiptData.paymentType)}</p>
-        </div>
-        
         <div class="receipt-footer">
             <p>תודה על העסקתך!</p>
-            <div style="margin-top: 2rem; text-align: left;">
-                <p>חתימה: _________________________</p>
+            <div style="margin-top: 2rem; text-align: center;">
+                <div style="border-top: 1px solid #000; width: 200px; margin: 20px auto; padding-top: 10px;">
+                    <img src="signature.png" alt="חתימה" style="max-width: 150px; height: auto;">
+                    <p style="margin-top: 5px; font-size: 14px;">חתימה</p>
+                </div>
             </div>
         </div>
     `;
