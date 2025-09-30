@@ -1,5 +1,5 @@
 // Основные переменные и функции
-const GITHUB_TOKEN = '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'; // Замените на ваш токен
+const GITHUB_TOKEN = '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';
 const REPO_OWNER = '2mmisha';
 const REPO_NAME = 'etude';
 
@@ -9,46 +9,105 @@ let currentReceipt = null;
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// Инициализация при загрузке страницы
+// Главная функция инициализации
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Page loaded:', window.location.pathname);
+    console.log('DOM loaded, current page:', window.location.pathname);
     
-    // Только для защищенных страниц проверяем авторизацию и загружаем данные
-    if (window.location.pathname !== '/index.html' && window.location.pathname !== '/' && !window.location.pathname.endsWith('/')) {
-        if (localStorage.getItem('authenticated') !== 'true') {
-            window.location.href = 'index.html';
-            return;
-        }
-        // Для защищенных страниц загружаем данные
-        loadData().then(() => {
-            initPage();
-        }).catch(error => {
-            console.error('Error loading data:', error);
-            initPage(); // Все равно инициализируем страницу даже при ошибке
-        });
-    } else {
-        // Для страницы входа просто инициализируем страницу
-        initPage();
+    // Определяем текущую страницу
+    const currentPage = getCurrentPage();
+    console.log('Current page identified as:', currentPage);
+    
+    // Для страницы входа - простая инициализация
+    if (currentPage === 'login') {
+        initLoginPage();
+        return;
     }
+    
+    // Для всех остальных страниц проверяем авторизацию
+    if (localStorage.getItem('authenticated') !== 'true') {
+        console.log('Not authenticated, redirecting to login');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    // Для защищенных страниц загружаем данные и инициализируем
+    loadData().then(() => {
+        initProtectedPage(currentPage);
+    }).catch(error => {
+        console.error('Error loading data:', error);
+        // Все равно инициализируем страницу с пустыми данными
+        initProtectedPage(currentPage);
+    });
 });
 
-// Инициализация конкретной страницы
-function initPage() {
+// Определение текущей страницы
+function getCurrentPage() {
     const path = window.location.pathname;
-    console.log('Initializing page:', path);
+    console.log('Path analysis:', path);
     
-    if (path.includes('index.html') || path === '/' || path.endsWith('/')) {
-        initLoginPage();
+    if (path.includes('index.html') || path === '/' || path === '' || path.endsWith('/')) {
+        return 'login';
     } else if (path.includes('main.html')) {
-        initMainPage();
+        return 'main';
     } else if (path.includes('check.html')) {
-        initCheckPage();
+        return 'check';
     } else if (path.includes('all-checks.html')) {
-        initAllChecksPage();
+        return 'all-checks';
     } else if (path.includes('clients.html')) {
-        initClientsPage();
+        return 'clients';
     } else if (path.includes('view-check.html')) {
-        initViewCheckPage();
+        return 'view-check';
+    }
+    
+    return 'login'; // По умолчанию
+}
+
+// Инициализация страницы входа
+function initLoginPage() {
+    console.log('Initializing login page');
+    
+    const loginForm = document.getElementById('login-form');
+    if (!loginForm) {
+        console.error('Login form not found!');
+        return;
+    }
+    
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const password = document.getElementById('password').value;
+        
+        if (password === '1234') {
+            console.log('Login successful');
+            localStorage.setItem('authenticated', 'true');
+            window.location.href = 'main.html';
+        } else {
+            alert('סיסמה לא נכונה!');
+        }
+    });
+    
+    console.log('Login page initialized successfully');
+}
+
+// Инициализация защищенных страниц
+function initProtectedPage(pageType) {
+    console.log('Initializing protected page:', pageType);
+    
+    switch (pageType) {
+        case 'main':
+            initMainPage();
+            break;
+        case 'check':
+            initCheckPage();
+            break;
+        case 'all-checks':
+            initAllChecksPage();
+            break;
+        case 'clients':
+            initClientsPage();
+            break;
+        case 'view-check':
+            initViewCheckPage();
+            break;
     }
 }
 
@@ -92,24 +151,6 @@ async function fetchFromGitHub(filePath) {
             }
         }
         
-        // Если не получилось через raw, пробуем через API (требует токен)
-        if (GITHUB_TOKEN && GITHUB_TOKEN !== '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') {
-            console.log('Trying GitHub API with token...');
-            const apiResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`, {
-                headers: {
-                    'Authorization': `token ${GITHUB_TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            if (apiResponse.ok) {
-                const data = await apiResponse.json();
-                const content = atob(data.content);
-                console.log(`Successfully loaded ${filePath} from GitHub API`);
-                return JSON.parse(content);
-            }
-        }
-        
         console.log(`File ${filePath} not found, returning empty array`);
         return [];
         
@@ -122,7 +163,7 @@ async function fetchFromGitHub(filePath) {
 async function saveToGitHub(filePath, data) {
     try {
         // Если токен не настроен, просто сохраняем в localStorage
-        if (!GITHUB_TOKEN || GITHUB_TOKEN === 'your_github_token_here') {
+        if (!GITHUB_TOKEN || GITHUB_TOKEN === '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') {
             console.log('GitHub token not configured, skipping GitHub save');
             return;
         }
@@ -172,28 +213,6 @@ async function saveToGitHub(filePath, data) {
     } catch (error) {
         console.error('Error saving to GitHub:', error);
         throw error;
-    }
-}
-
-// Функции для страницы входа
-function initLoginPage() {
-    console.log('Initializing login page');
-    
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = document.getElementById('password').value;
-            
-            if (password === '1234') {
-                localStorage.setItem('authenticated', 'true');
-                window.location.href = 'main.html';
-            } else {
-                alert('סיסמה לא נכונה!');
-            }
-        });
-    } else {
-        console.error('Login form not found!');
     }
 }
 
@@ -491,7 +510,7 @@ async function saveClientFromReceipt(receiptData) {
         };
         
         clients.push(newClient);
-        await saveData(); // Сохраняем нового клиента
+        await saveData();
     }
 }
 
@@ -597,11 +616,6 @@ async function deleteReceipt(receiptNumber) {
         receipts = receipts.filter(r => r.receiptNumber !== receiptNumber);
         await saveData();
         filterReceipts();
-        
-        // Обновление главной страницы если она открыта
-        if (window.opener && !window.opener.closed) {
-            window.opener.location.reload();
-        }
     }
 }
 
@@ -822,13 +836,20 @@ function initViewCheckPage() {
     }
     
     // Обработчики событий
-    document.getElementById('print-receipt')?.addEventListener('click', function() {
-        window.print();
-    });
+    const printBtn = document.getElementById('print-receipt');
+    const savePdfBtn = document.getElementById('save-pdf');
     
-    document.getElementById('save-pdf')?.addEventListener('click', function() {
-        alert('פונקציית שמירה כ-PDF תיושם בגרסה המלאה');
-    });
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+    
+    if (savePdfBtn) {
+        savePdfBtn.addEventListener('click', function() {
+            alert('פונקציית שמירה כ-PDF תיושם בגרסה המלאה');
+        });
+    }
 }
 
 function displayReceipt(receiptData) {
@@ -899,6 +920,32 @@ function displayReceipt(receiptData) {
     `;
 }
 
+// Функция сохранения данных
+async function saveData() {
+    try {
+        console.log('Saving data...');
+        
+        // Всегда сохраняем в localStorage
+        localStorage.setItem('receipts', JSON.stringify(receipts));
+        localStorage.setItem('clients', JSON.stringify(clients));
+        
+        console.log('Data saved to localStorage');
+        
+        // Пробуем сохранить в GitHub если токен настроен
+        if (GITHUB_TOKEN && GITHUB_TOKEN !== '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') {
+            try {
+                await saveToGitHub('data/receipts.json', receipts);
+                await saveToGitHub('data/clients.json', clients);
+                console.log('Data saved to GitHub');
+            } catch (githubError) {
+                console.error('Failed to save to GitHub, but localStorage is updated:', githubError);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving data:', error);
+    }
+}
+
 // Вспомогательные функции
 function formatDate(dateString) {
     const date = new Date(dateString);
@@ -912,32 +959,6 @@ function getPaymentTypeText(paymentType) {
         'transfer': 'העברה בנקאית'
     };
     return types[paymentType] || paymentType;
-}
-
-// Функция сохранения данных
-async function saveData() {
-    try {
-        console.log('Saving data...');
-        
-        // Всегда сохраняем в localStorage
-        localStorage.setItem('receipts', JSON.stringify(receipts));
-        localStorage.setItem('clients', JSON.stringify(clients));
-        
-        console.log('Data saved to localStorage');
-        
-        // Пробуем сохранить в GitHub если токен настроен
-        if (GITHUB_TOKEN && GITHUB_TOKEN !== 'your_github_token_here') {
-            try {
-                await saveToGitHub('data/receipts.json', receipts);
-                await saveToGitHub('data/clients.json', clients);
-                console.log('Data saved to GitHub');
-            } catch (githubError) {
-                console.error('Failed to save to GitHub, but localStorage is updated:', githubError);
-            }
-        }
-    } catch (error) {
-        console.error('Error saving data:', error);
-    }
 }
 
 function logout() {
