@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etude - עמוד ראשי</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav>
+        <div class="container nav-container">
+            <div class="logo">Etude</div>
+            <ul class="nav-links">
+                <li><a href="main.html" class="nav-link active">עמוד ראשי</a></li>
+                <li><a href="check.html" class="nav-link">יצירת חשבונית</a></li>
+                <li><a href="all-checks.html" class="nav-link">כל החשבוניות</a></li>
+                <li><a href="clients.html" class="nav-link">ניהול לקוחות</a></li>
+            </ul>
+            <button class="logout-btn" onclick="logout()">יציאה</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1 class="mb-2">עמוד ראשי</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>סך הכל חשבוניות</h3>
+                <div class="stat-value" id="total-receipts">0</div>
+                <p>לכל התקופה</p>
+            </div>
+            <div class="stat-card">
+                <h3>חשבוניות החודש</h3>
+                <div class="stat-value" id="month-receipts">0</div>
+                <p>חודש נוכחי</p>
+            </div>
+            <div class="stat-card">
+                <h3>סכום כולל</h3>
+                <div class="stat-value" id="total-amount">0 ₪</div>
+                <p>לכל התקופה</p>
+            </div>
+            <div class="stat-card">
+                <h3>לקוחות</h3>
+                <div class="stat-value" id="total-clients">0</div>
+                <p>בבסיס הנתונים</p>
+            </div>
+        </div>
+        
+        <div class="quick-actions">
+            <a href="check.html" class="btn">יצירת חשבונית</a>
+            <a href="all-checks.html" class="btn">צפייה בכל החשבוניות</a>
+            <a href="clients.html" class="btn">ניהול לקוחות</a>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2>חשבוניות אחרונות</h2>
+            </div>
+            <table id="recent-receipts">
+                <thead>
+                    <tr>
+                        <th>מספר</th>
+                        <th>לקוח</th>
+                        <th>תאריך</th>
+                        <th>סכום</th>
+                        <th>פעולות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- ימולא אוטומטית -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
