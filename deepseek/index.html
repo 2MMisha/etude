@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etude - Система управления чеками</title>
+    <style>
+        /* Общие стили */
+        :root {
+            --primary-color: #333;
+            --secondary-color: #666;
+            --accent-color: #007bff;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        /* Навигация */
+        nav {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-right: 1rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .logout-btn {
+            background-color: var(--danger-color);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* Основной контент */
+        main {
+            padding: 2rem 0;
+            min-height: calc(100vh - 140px);
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        /* Карточки */
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* Формы */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button.secondary {
+            background-color: var(--secondary-color);
+        }
+        
+        button.danger {
+            background-color: var(--danger-color);
+        }
+        
+        /* Таблицы */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background-color: var(--light-color);
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        /* Страница входа */
+        .login-container {
+            max-width: 400px;
+            margin: 5rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .login-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Главная страница */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* Создание чека */
+        .items-table {
+            margin-bottom: 1.5rem;
+        }
+        
+        .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: end;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Просмотр чека */
+        .receipt-preview {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .receipt-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .receipt-items {
+            margin-bottom: 2rem;
+        }
+        
+        .receipt-totals {
+            text-align: left;
+            margin-left: auto;
+            width: 50%;
+        }
+        
+        .receipt-footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Фильтры */
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Пагинация */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+        
+        .pagination li {
+            margin: 0 0.25rem;
+        }
+        
+        .pagination a {
+            display: block;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            text-decoration: none;
+            color: var(--dark-color);
+        }
+        
+        .pagination a.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        /* Утилиты */
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .mb-1 {
+            margin-bottom: 1rem;
+        }
+        
+        .mb-2 {
+            margin-bottom: 2rem;
+        }
+        
+        .mt-1 {
+            margin-top: 1rem;
+        }
+        
+        .mt-2 {
+            margin-top: 2rem;
+        }
+        
+        .d-none {
+            display: none;
+        }
+        
+        .d-flex {
+            display: flex;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .align-center {
+            align-items: center;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+            }
+            
+            .nav-links {
+                margin-top: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .item-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .receipt-details {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Стили для печати */
+        @media print {
+            nav, .no-print {
+                display: none !important;
+            }
+            
+            .receipt-preview {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            body {
+                background-color: white;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="no-print">
+        <div class="container nav-container">
+            <div class="logo">Etude</div>
+            <ul class="nav-links">
+                <li><a href="#" class="nav-link active" data-page="main">Главная</a></li>
+                <li><a href="#" class="nav-link" data-page="check">Создать чек</a></li>
+                <li><a href="#" class="nav-link" data-page="all-checks">Все чеки</a></li>
+                <li><a href="#" class="nav-link" data-page="clients">Клиенты</a></li>
+            </ul>
+            <button class="logout-btn">Выйти</button>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="container">
+        <!-- Страница входа -->
+        <div id="login" class="page active">
+            <div class="login-container">
+                <h2 class="login-title">Вход в систему</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="password">Пароль</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Войти</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Главная страница -->
+        <div id="main" class="page">
+            <h1 class="mb-2">Главная страница</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Всего чеков</h3>
+                    <div class="stat-value" id="total-receipts">0</div>
+                    <p>За все время</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Чеки за месяц</h3>
+                    <div class="stat-value" id="month-receipts">0</div>
+                    <p>Текущий месяц</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Общая сумма</h3>
+                    <div class="stat-value" id="total-amount">0 ₪</div>
+                    <p>За все время</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Клиенты</h3>
+                    <div class="stat-value" id="total-clients">0</div>
+                    <p>В базе данных</p>
+                </div>
+            </div>
+            
+            <div class="quick-actions">
+                <button class="btn" data-page="check">Создать чек</button>
+                <button class="btn" data-page="all-checks">Просмотреть все чеки</button>
+                <button class="btn" data-page="clients">Управление клиентами</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Последние чеки</h2>
+                </div>
+                <table id="recent-receipts">
+                    <thead>
+                        <tr>
+                            <th>Номер</th>
+                            <th>Клиент</th>
+                            <th>Дата</th>
+                            <th>Сумма</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Данные будут заполнены через JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Создание чека -->
+        <div id="check" class="page">
+            <h1 class="mb-2">Создание чека</h1>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Информация о чеке</h2>
+                </div>
+                <form id="receipt-form">
+                    <div class="form-group">
+                        <label for="receipt-number">Номер чека</label>
+                        <input type="text" id="receipt-number" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customer-select">Клиент</label>
+                        <select id="customer-select">
+                            <option value="">Выберите клиента</option>
+                        </select>
+                        <button type="button" id="add-customer-btn" class="btn secondary mt-1">Добавить нового клиента</button>
+                    </div>
+                    
+                    <div id="customer-info" class="d-none">
+                        <div class="form-group">
+                            <label for="customer-name">Имя клиента</label>
+                            <input type="text" id="customer-name">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer-id">ID клиента</label>
+                            <input type="text" id="customer-id">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer-address">Адрес</label>
+                            <input type="text" id="customer-address">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer-phone">Телефон</label>
+                            <input type="text" id="customer-phone">
+                        </div>
+                    </div>
+                    
+                    <div class="card-header mt-2">
+                        <h2>Товары/услуги</h2>
+                    </div>
+                    
+                    <div class="items-table">
+                        <div class="item-row">
+                            <div>Описание</div>
+                            <div>Количество</div>
+                            <div>Цена</div>
+                            <div>Сумма</div>
+                            <div></div>
+                        </div>
+                        <div id="items-container">
+                            <!-- Элементы будут добавлены через JavaScript -->
+                        </div>
+                        <button type="button" id="add-item-btn" class="btn secondary">Добавить позицию</button>
+                    </div>
+                    
+                    <div class="summary-row">
+                        <div>Промежуточный итог:</div>
+                        <div id="subtotal">0.00 ₪</div>
+                    </div>
+                    <div class="summary-row">
+                        <div>НДС (18%):</div>
+                        <div id="vat">0.00 ₪</div>
+                    </div>
+                    <div class="summary-row">
+                        <div><strong>Итого:</strong></div>
+                        <div id="total"><strong>0.00 ₪</strong></div>
+                    </div>
+                    
+                    <div class="form-group mt-2">
+                        <label for="payment-type">Способ оплаты</label>
+                        <select id="payment-type">
+                            <option value="cash">Наличные</option>
+                            <option value="card">Кредитная карта</option>
+                            <option value="transfer">Банковский перевод</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-flex justify-between mt-2">
+                        <button type="button" id="preview-btn" class="btn secondary">Предпросмотр</button>
+                        <button type="submit" class="btn">Сохранить и распечатать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Просмотр чека -->
+        <div id="view-check" class="page">
+            <div class="d-flex justify-between align-center mb-2">
+                <h1>Просмотр чека</h1>
+                <div>
+                    <button id="print-receipt" class="btn">Печать</button>
+                    <button id="save-pdf" class="btn secondary">Сохранить как PDF</button>
+                    <button id="back-to-checks" class="btn">Назад к чекам</button>
+                </div>
+            </div>
+            
+            <div class="receipt-preview" id="receipt-preview">
+                <!-- Содержимое чека будет заполнено через JavaScript -->
+            </div>
+        </div>
+
+        <!-- Все чеки -->
+        <div id="all-checks" class="page">
+            <h1 class="mb-2">Все чеки</h1>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-between align-center">
+                    <h2>Фильтры</h2>
+                    <button id="export-csv" class="btn secondary">Экспорт в CSV</button>
+                </div>
+                
+                <div class="filters">
+                    <div class="form-group">
+                        <label for="search-receipts">Поиск</label>
+                        <input type="text" id="search-receipts" placeholder="По номеру, клиенту...">
+                    </div>
+                    <div class="form-group">
+                        <label for="date-from">Дата с</label>
+                        <input type="date" id="date-from">
+                    </div>
+                    <div class="form-group">
+                        <label for="date-to">Дата по</label>
+                        <input type="date" id="date-to">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-customer">Клиент</label>
+                        <select id="filter-customer">
+                            <option value="">Все клиенты</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-payment">Способ оплаты</label>
+                        <select id="filter-payment">
+                            <option value="">Все способы</option>
+                            <option value="cash">Наличные</option>
+                            <option value="card">Кредитная карта</option>
+                            <option value="transfer">Банковский перевод</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table id="all-receipts-table">
+                    <thead>
+                        <tr>
+                            <th>Номер</th>
+                            <th>Клиент</th>
+                            <th>Дата</th>
+                            <th>Сумма</th>
+                            <th>Способ оплаты</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Данные будут заполнены через JavaScript -->
+                    </tbody>
+                </table>
+                
+                <div class="pagination" id="pagination">
+                    <!-- Пагинация будет создана через JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Управление клиентами -->
+        <div id="clients" class="page">
+            <h1 class="mb-2">Управление клиентами</h1>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-between align-center">
+                    <h2>Клиенты</h2>
+                    <button id="add-client-btn" class="btn">Добавить клиента</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="search-clients">Поиск клиентов</label>
+                    <input type="text" id="search-clients" placeholder="По имени, ID, телефону...">
+                </div>
+                
+                <table id="clients-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Телефон</th>
+                            <th>Адрес</th>
+                            <th>Дата создания</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Данные будут заполнены через JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Модальное окно для добавления/редактирования клиента -->
+            <div id="client-modal" class="modal d-none">
+                <div class="modal-content">
+                    <div class="card">
+                        <div class="card-header d-flex justify-between align-center">
+                            <h2 id="client-modal-title">Добавить клиента</h2>
+                            <button id="close-client-modal" class="btn danger">&times;</button>
+                        </div>
+                        <form id="client-form">
+                            <input type="hidden" id="client-id">
+                            <div class="form-group">
+                                <label for="client-name">Имя клиента</label>
+                                <input type="text" id="client-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="client-tax-id">Налоговый ID</label>
+                                <input type="text" id="client-tax-id">
+                            </div>
+                            <div class="form-group">
+                                <label for="client-phone">Телефон</label>
+                                <input type="text" id="client-phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="client-address">Адрес</label>
+                                <input type="text" id="client-address">
+                            </div>
+                            <div class="form-group">
+                                <label for="client-notes">Примечания</label>
+                                <textarea id="client-notes" rows="3"></textarea>
+                            </div>
+                            <div class="d-flex justify-between mt-2">
+                                <button type="button" id="cancel-client" class="btn secondary">Отмена</button>
+                                <button type="submit" class="btn">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Основные переменные
+        let currentUser = null;
+        let receipts = JSON.parse(localStorage.getItem('receipts')) || [];
+        let clients = JSON.parse(localStorage.getItem('clients')) || [];
+        let currentReceipt = null;
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверка авторизации
+            if (localStorage.getItem('authenticated') === 'true') {
+                showPage('main');
+                loadMainPage();
+            } else {
+                showPage('login');
+            }
+
+            // Обработчики событий
+            setupEventListeners();
+        });
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            // Навигация
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.getAttribute('data-page');
+                    showPage(page);
+                    
+                    // Загрузка данных для страницы
+                    if (page === 'main') loadMainPage();
+                    if (page === 'all-checks') loadAllChecks();
+                    if (page === 'clients') loadClients();
+                });
+            });
+
+            // Выход из системы
+            document.querySelector('.logout-btn').addEventListener('click', function() {
+                localStorage.removeItem('authenticated');
+                showPage('login');
+            });
+
+            // Форма входа
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const password = document.getElementById('password').value;
+                
+                if (password === '1234') {
+                    localStorage.setItem('authenticated', 'true');
+                    showPage('main');
+                    loadMainPage();
+                } else {
+                    alert('Неверный пароль!');
+                }
+            });
+
+            // Быстрые действия на главной странице
+            document.querySelectorAll('.quick-actions button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const page = this.getAttribute('data-page');
+                    showPage(page);
+                    
+                    if (page === 'check') setupCheckPage();
+                    if (page === 'all-checks') loadAllChecks();
+                    if (page === 'clients') loadClients();
+                });
+            });
+
+            // Создание чека
+            document.getElementById('add-item-btn').addEventListener('click', addItemRow);
+            document.getElementById('preview-btn').addEventListener('click', previewReceipt);
+            document.getElementById('receipt-form').addEventListener('submit', saveReceipt);
+            document.getElementById('customer-select').addEventListener('change', handleCustomerSelect);
+            document.getElementById('add-customer-btn').addEventListener('click', showClientModal);
+
+            // Просмотр чека
+            document.getElementById('print-receipt').addEventListener('click', printReceipt);
+            document.getElementById('save-pdf').addEventListener('click', saveAsPDF);
+            document.getElementById('back-to-checks').addEventListener('click', function() {
+                showPage('all-checks');
+                loadAllChecks();
+            });
+
+            // Все чеки
+            document.getElementById('export-csv').addEventListener('click', exportToCSV);
+            document.getElementById('search-receipts').addEventListener('input', filterReceipts);
+            document.getElementById('date-from').addEventListener('change', filterReceipts);
+            document.getElementById('date-to').addEventListener('change', filterReceipts);
+            document.getElementById('filter-customer').addEventListener('change', filterReceipts);
+            document.getElementById('filter-payment').addEventListener('change', filterReceipts);
+
+            // Управление клиентами
+            document.getElementById('add-client-btn').addEventListener('click', showClientModal);
+            document.getElementById('search-clients').addEventListener('input', filterClients);
+            document.getElementById('close-client-modal').addEventListener('click', hideClientModal);
+            document.getElementById('cancel-client').addEventListener('click', hideClientModal);
+            document.getElementById('client-form').addEventListener('submit', saveClient);
+        }
+
+        // Функции для работы со страницами
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            // Обновление активной ссылки в навигации
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.nav-link[data-page="${pageId}"]`).classList.add('active');
+        }
+
+        // Загрузка главной страницы
+        function loadMainPage() {
+            // Обновление статистики
+            document.getElementById('total-receipts').textContent = receipts.length;
+            document.getElementById('total-clients').textContent = clients.length;
+            
+            // Расчет суммы всех чеков
+            const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.total, 0);
+            document.getElementById('total-amount').textContent = totalAmount.toFixed(2) + ' ₪';
+            
+            // Расчет чеков за текущий месяц
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            const monthReceipts = receipts.filter(receipt => {
+                const receiptDate = new Date(receipt.date);
+                return receiptDate.getMonth() === currentMonth && receiptDate.getFullYear() === currentYear;
+            });
+            document.getElementById('month-receipts').textContent = monthReceipts.length;
+            
+            // Отображение последних чеков
+            const recentReceipts = receipts.slice(-10).reverse();
+            const tbody = document.querySelector('#recent-receipts tbody');
+            tbody.innerHTML = '';
+            
+            recentReceipts.forEach(receipt => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${receipt.receiptNumber}</td>
+                    <td>${receipt.customerName}</td>
+                    <td>${formatDate(receipt.date)}</td>
+                    <td>${receipt.total.toFixed(2)} ₪</td>
+                    <td>
+                        <button class="btn view-receipt" data-id="${receipt.receiptNumber}">Просмотр</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Обработчики для кнопок просмотра
+            document.querySelectorAll('.view-receipt').forEach(button => {
+                button.addEventListener('click', function() {
+                    const receiptId = this.getAttribute('data-id');
+                    viewReceipt(receiptId);
+                });
+            });
+        }
+
+        // Настройка страницы создания чека
+        function setupCheckPage() {
+            // Генерация номера чека
+            const nextReceiptNumber = receipts.length > 0 ? 
+                Math.max(...receipts.map(r => parseInt(r.receiptNumber))) + 1 : 1;
+            document.getElementById('receipt-number').value = nextReceiptNumber;
+            
+            // Загрузка клиентов в выпадающий список
+            const customerSelect = document.getElementById('customer-select');
+            customerSelect.innerHTML = '<option value="">Выберите клиента</option>';
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                customerSelect.appendChild(option);
+            });
+            
+            // Очистка формы
+            document.getElementById('customer-info').classList.add('d-none');
+            document.getElementById('items-container').innerHTML = '';
+            addItemRow();
+            
+            // Сброс итогов
+            updateTotals();
+        }
+
+        // Добавление строки товара
+        function addItemRow() {
+            const container = document.getElementById('items-container');
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <div>
+                    <input type="text" class="item-details" placeholder="Описание товара/услуги">
+                </div>
+                <div>
+                    <input type="number" class="item-quantity" value="1" min="1">
+                </div>
+                <div>
+                    <input type="number" class="item-amount" placeholder="Цена" step="0.01">
+                </div>
+                <div class="item-total">0.00</div>
+                <div>
+                    <button type="button" class="btn danger remove-item">&times;</button>
+                </div>
+            `;
+            container.appendChild(row);
+            
+            // Обработчики для новой строки
+            const quantityInput = row.querySelector('.item-quantity');
+            const amountInput = row.querySelector('.item-amount');
+            
+            quantityInput.addEventListener('input', updateItemTotal);
+            amountInput.addEventListener('input', updateItemTotal);
+            
+            row.querySelector('.remove-item').addEventListener('click', function() {
+                row.remove();
+                updateTotals();
+            });
+        }
+
+        // Обновление итога для строки товара
+        function updateItemTotal() {
+            const row = this.closest('.item-row');
+            const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+            const amount = parseFloat(row.querySelector('.item-amount').value) || 0;
+            const total = quantity * amount;
+            
+            row.querySelector('.item-total').textContent = total.toFixed(2);
+            updateTotals();
+        }
+
+        // Обновление общих итогов
+        function updateTotals() {
+            let subtotal = 0;
+            
+            document.querySelectorAll('.item-row').forEach(row => {
+                const total = parseFloat(row.querySelector('.item-total').textContent) || 0;
+                subtotal += total;
+            });
+            
+            const vat = subtotal * 0.18;
+            const total = subtotal + vat;
+            
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2) + ' ₪';
+            document.getElementById('vat').textContent = vat.toFixed(2) + ' ₪';
+            document.getElementById('total').innerHTML = '<strong>' + total.toFixed(2) + ' ₪</strong>';
+        }
+
+        // Обработка выбора клиента
+        function handleCustomerSelect() {
+            const clientId = this.value;
+            const clientInfo = document.getElementById('customer-info');
+            
+            if (clientId) {
+                const client = clients.find(c => c.id === clientId);
+                if (client) {
+                    document.getElementById('customer-name').value = client.name;
+                    document.getElementById('customer-id').value = client.taxId || '';
+                    document.getElementById('customer-address').value = client.address || '';
+                    document.getElementById('customer-phone').value = client.phone || '';
+                    clientInfo.classList.remove('d-none');
+                }
+            } else {
+                clientInfo.classList.add('d-none');
+            }
+        }
+
+        // Предпросмотр чека
+        function previewReceipt() {
+            if (!validateReceiptForm()) return;
+            
+            const receiptData = collectReceiptData();
+            displayReceiptPreview(receiptData);
+            showPage('view-check');
+        }
+
+        // Сбор данных чека
+        function collectReceiptData() {
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const details = row.querySelector('.item-details').value;
+                const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+                const amount = parseFloat(row.querySelector('.item-amount').value) || 0;
+                
+                if (details && quantity > 0 && amount > 0) {
+                    items.push({
+                        details: details,
+                        quantity: quantity,
+                        amount: amount
+                    });
+                }
+            });
+            
+            const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.amount), 0);
+            const vat = subtotal * 0.18;
+            const total = subtotal + vat;
+            
+            return {
+                receiptNumber: document.getElementById('receipt-number').value,
+                customerName: document.getElementById('customer-name').value,
+                customerId: document.getElementById('customer-id').value,
+                customerAddress: document.getElementById('customer-address').value,
+                customerPhone: document.getElementById('customer-phone').value,
+                items: items,
+                subtotal: subtotal,
+                vat: vat,
+                total: total,
+                paymentType: document.getElementById('payment-type').value,
+                date: new Date().toISOString().split('T')[0],
+                timestamp: new Date().toISOString(),
+                businessInfo: {
+                    name: "Etude",
+                    owner: "יבגניה גרומובה",
+                    address: "הבה״דים 4, ראשל״צ",
+                    phone: "0534726469",
+                    taxId: "346776909"
+                }
+            };
+        }
+
+        // Валидация формы чека
+        function validateReceiptForm() {
+            const receiptNumber = document.getElementById('receipt-number').value;
+            const customerName = document.getElementById('customer-name').value;
+            
+            if (!receiptNumber) {
+                alert('Введите номер чека');
+                return false;
+            }
+            
+            if (!customerName) {
+                alert('Введите имя клиента');
+                return false;
+            }
+            
+            let hasValidItems = false;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const details = row.querySelector('.item-details').value;
+                const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+                const amount = parseFloat(row.querySelector('.item-amount').value) || 0;
+                
+                if (details && quantity > 0 && amount > 0) {
+                    hasValidItems = true;
+                }
+            });
+            
+            if (!hasValidItems) {
+                alert('Добавьте хотя бы один товар или услугу');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Сохранение чека
+        function saveReceipt(e) {
+            e.preventDefault();
+            
+            if (!validateReceiptForm()) return;
+            
+            const receiptData = collectReceiptData();
+            
+            // Проверка на дублирование номера чека
+            const existingReceipt = receipts.find(r => r.receiptNumber === receiptData.receiptNumber);
+            if (existingReceipt) {
+                if (!confirm('Чек с таким номером уже существует. Перезаписать?')) {
+                    return;
+                }
+                // Удаление существующего чека
+                receipts = receipts.filter(r => r.receiptNumber !== receiptData.receiptNumber);
+            }
+            
+            receipts.push(receiptData);
+            localStorage.setItem('receipts', JSON.stringify(receipts));
+            
+            // Сохранение клиента, если его нет в базе
+            saveClientFromReceipt(receiptData);
+            
+            alert('Чек успешно сохранен!');
+            displayReceiptPreview(receiptData);
+            showPage('view-check');
+        }
+
+        // Сохранение клиента из данных чека
+        function saveClientFromReceipt(receiptData) {
+            // Проверяем, есть ли клиент уже в базе
+            const existingClient = clients.find(c => 
+                c.taxId === receiptData.customerId || 
+                c.name === receiptData.customerName
+            );
+            
+            if (!existingClient && receiptData.customerName) {
+                const newClient = {
+                    id: Date.now().toString(),
+                    name: receiptData.customerName,
+                    taxId: receiptData.customerId || '',
+                    phone: receiptData.customerPhone || '',
+                    address: receiptData.customerAddress || '',
+                    notes: '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                clients.push(newClient);
+                localStorage.setItem('clients', JSON.stringify(clients));
+            }
+        }
+
+        // Отображение предпросмотра чека
+        function displayReceiptPreview(receiptData) {
+            const preview = document.getElementById('receipt-preview');
+            
+            let itemsHTML = '';
+            receiptData.items.forEach(item => {
+                itemsHTML += `
+                    <tr>
+                        <td>${item.details}</td>
+                        <td>${item.quantity}</td>
+                        <td>${item.amount.toFixed(2)} ₪</td>
+                        <td>${(item.quantity * item.amount).toFixed(2)} ₪</td>
+                    </tr>
+                `;
+            });
+            
+            preview.innerHTML = `
+                <div class="receipt-header">
+                    <h1>${receiptData.businessInfo.name}</h1>
+                    <p>${receiptData.businessInfo.owner}</p>
+                    <p>${receiptData.businessInfo.address}</p>
+                    <p>Тел: ${receiptData.businessInfo.phone} | Налоговый ID: ${receiptData.businessInfo.taxId}</p>
+                </div>
+                
+                <div class="receipt-details">
+                    <div>
+                        <p><strong>Номер чека:</strong> ${receiptData.receiptNumber}</p>
+                        <p><strong>Дата:</strong> ${formatDate(receiptData.date)}</p>
+                    </div>
+                    <div>
+                        <p><strong>Клиент:</strong> ${receiptData.customerName}</p>
+                        <p><strong>ID клиента:</strong> ${receiptData.customerId}</p>
+                        <p><strong>Адрес:</strong> ${receiptData.customerAddress}</p>
+                        <p><strong>Телефон:</strong> ${receiptData.customerPhone}</p>
+                    </div>
+                </div>
+                
+                <div class="receipt-items">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Описание</th>
+                                <th>Кол-во</th>
+                                <th>Цена</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHTML}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="receipt-totals">
+                    <p>Промежуточный итог: ${receiptData.subtotal.toFixed(2)} ₪</p>
+                    <p>НДС (18%): ${receiptData.vat.toFixed(2)} ₪</p>
+                    <p><strong>Итого: ${receiptData.total.toFixed(2)} ₪</strong></p>
+                    <p>Способ оплаты: ${getPaymentTypeText(receiptData.paymentType)}</p>
+                </div>
+                
+                <div class="receipt-footer">
+                    <p>Спасибо за ваш бизнес!</p>
+                    <img src="signature.png" alt="Подпись" style="max-width: 200px; margin-top: 1rem;">
+                </div>
+            `;
+            
+            currentReceipt = receiptData;
+        }
+
+        // Печать чека
+        function printReceipt() {
+            window.print();
+        }
+
+        // Сохранение как PDF
+        function saveAsPDF() {
+            alert('Функция сохранения как PDF будет реализована в полной версии');
+            // В реальном приложении здесь будет код для генерации PDF
+        }
+
+        // Просмотр конкретного чека
+        function viewReceipt(receiptNumber) {
+            const receipt = receipts.find(r => r.receiptNumber === receiptNumber);
+            if (receipt) {
+                displayReceiptPreview(receipt);
+                showPage('view-check');
+            }
+        }
+
+        // Загрузка всех чеков
+        function loadAllChecks() {
+            // Загрузка клиентов в фильтр
+            const customerFilter = document.getElementById('filter-customer');
+            customerFilter.innerHTML = '<option value="">Все клиенты</option>';
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                customerFilter.appendChild(option);
+            });
+            
+            filterReceipts();
+        }
+
+        // Фильтрация чеков
+        function filterReceipts() {
+            const searchTerm = document.getElementById('search-receipts').value.toLowerCase();
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const customerFilter = document.getElementById('filter-customer').value;
+            const paymentFilter = document.getElementById('filter-payment').value;
+            
+            let filteredReceipts = receipts.filter(receipt => {
+                // Поиск по номеру чека и имени клиента
+                const matchesSearch = !searchTerm || 
+                    receipt.receiptNumber.toLowerCase().includes(searchTerm) ||
+                    receipt.customerName.toLowerCase().includes(searchTerm);
+                
+                // Фильтрация по дате
+                const matchesDateFrom = !dateFrom || receipt.date >= dateFrom;
+                const matchesDateTo = !dateTo || receipt.date <= dateTo;
+                
+                // Фильтрация по клиенту
+                let matchesCustomer = true;
+                if (customerFilter) {
+                    const client = clients.find(c => c.id === customerFilter);
+                    matchesCustomer = client && receipt.customerName === client.name;
+                }
+                
+                // Фильтрация по способу оплаты
+                const matchesPayment = !paymentFilter || receipt.paymentType === paymentFilter;
+                
+                return matchesSearch && matchesDateFrom && matchesDateTo && matchesCustomer && matchesPayment;
+            });
+            
+            // Сортировка по дате (сначала новые)
+            filteredReceipts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            displayFilteredReceipts(filteredReceipts);
+        }
+
+        // Отображение отфильтрованных чеков
+        function displayFilteredReceipts(filteredReceipts) {
+            const tbody = document.querySelector('#all-receipts-table tbody');
+            tbody.innerHTML = '';
+            
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredReceipts.length);
+            const pageReceipts = filteredReceipts.slice(startIndex, endIndex);
+            
+            pageReceipts.forEach(receipt => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${receipt.receiptNumber}</td>
+                    <td>${receipt.customerName}</td>
+                    <td>${formatDate(receipt.date)}</td>
+                    <td>${receipt.total.toFixed(2)} ₪</td>
+                    <td>${getPaymentTypeText(receipt.paymentType)}</td>
+                    <td>
+                        <button class="btn view-receipt" data-id="${receipt.receiptNumber}">Просмотр</button>
+                        <button class="btn danger delete-receipt" data-id="${receipt.receiptNumber}">Удалить</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Обработчики для кнопок
+            document.querySelectorAll('.view-receipt').forEach(button => {
+                button.addEventListener('click', function() {
+                    const receiptId = this.getAttribute('data-id');
+                    viewReceipt(receiptId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-receipt').forEach(button => {
+                button.addEventListener('click', function() {
+                    const receiptId = this.getAttribute('data-id');
+                    deleteReceipt(receiptId);
+                });
+            });
+            
+            // Пагинация
+            setupPagination(filteredReceipts.length);
+        }
+
+        // Удаление чека
+        function deleteReceipt(receiptNumber) {
+            if (confirm('Вы уверены, что хотите удалить этот чек?')) {
+                receipts = receipts.filter(r => r.receiptNumber !== receiptNumber);
+                localStorage.setItem('receipts', JSON.stringify(receipts));
+                filterReceipts();
+                loadMainPage(); // Обновление статистики на главной странице
+            }
+        }
+
+        // Настройка пагинации
+        function setupPagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#';
+                a.textContent = i;
+                if (i === currentPage) {
+                    a.classList.add('active');
+                }
+                
+                a.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    currentPage = i;
+                    filterReceipts();
+                });
+                
+                li.appendChild(a);
+                pagination.appendChild(li);
+            }
+        }
+
+        // Экспорт в CSV
+        function exportToCSV() {
+            let csvContent = "Номер,Клиент,Дата,Промежуточный итог,НДС,Итого,Способ оплаты\n";
+            
+            receipts.forEach(receipt => {
+                csvContent += `"${receipt.receiptNumber}","${receipt.customerName}","${receipt.date}",${receipt.subtotal},${receipt.vat},${receipt.total},"${getPaymentTypeText(receipt.paymentType)}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'чеки.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Загрузка клиентов
+        function loadClients() {
+            filterClients();
+        }
+
+        // Фильтрация клиентов
+        function filterClients() {
+            const searchTerm = document.getElementById('search-clients').value.toLowerCase();
+            
+            const filteredClients = clients.filter(client => {
+                return !searchTerm || 
+                    client.name.toLowerCase().includes(searchTerm) ||
+                    (client.taxId && client.taxId.toLowerCase().includes(searchTerm)) ||
+                    (client.phone && client.phone.toLowerCase().includes(searchTerm)) ||
+                    (client.address && client.address.toLowerCase().includes(searchTerm));
+            });
+            
+            displayClients(filteredClients);
+        }
+
+        // Отображение клиентов
+        function displayClients(clientsToDisplay) {
+            const tbody = document.querySelector('#clients-table tbody');
+            tbody.innerHTML = '';
+            
+            clientsToDisplay.forEach(client => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${client.taxId || '-'}</td>
+                    <td>${client.name}</td>
+                    <td>${client.phone || '-'}</td>
+                    <td>${client.address || '-'}</td>
+                    <td>${formatDate(client.createdAt)}</td>
+                    <td>
+                        <button class="btn edit-client" data-id="${client.id}">Редактировать</button>
+                        <button class="btn danger delete-client" data-id="${client.id}">Удалить</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Обработчики для кнопок
+            document.querySelectorAll('.edit-client').forEach(button => {
+                button.addEventListener('click', function() {
+                    const clientId = this.getAttribute('data-id');
+                    editClient(clientId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-client').forEach(button => {
+                button.addEventListener('click', function() {
+                    const clientId = this.getAttribute('data-id');
+                    deleteClient(clientId);
+                });
+            });
+        }
+
+        // Показать модальное окно клиента
+        function showClientModal() {
+            document.getElementById('client-modal-title').textContent = 'Добавить клиента';
+            document.getElementById('client-form').reset();
+            document.getElementById('client-id').value = '';
+            document.getElementById('client-modal').classList.remove('d-none');
+        }
+
+        // Скрыть модальное окно клиента
+        function hideClientModal() {
+            document.getElementById('client-modal').classList.add('d-none');
+        }
+
+        // Редактирование клиента
+        function editClient(clientId) {
+            const client = clients.find(c => c.id === clientId);
+            if (client) {
+                document.getElementById('client-modal-title').textContent = 'Редактировать клиента';
+                document.getElementById('client-id').value = client.id;
+                document.getElementById('client-name').value = client.name;
+                document.getElementById('client-tax-id').value = client.taxId || '';
+                document.getElementById('client-phone').value = client.phone || '';
+                document.getElementById('client-address').value = client.address || '';
+                document.getElementById('client-notes').value = client.notes || '';
+                
+                document.getElementById('client-modal').classList.remove('d-none');
+            }
+        }
+
+        // Сохранение клиента
+        function saveClient(e) {
+            e.preventDefault();
+            
+            const clientId = document.getElementById('client-id').value;
+            const clientData = {
+                name: document.getElementById('client-name').value,
+                taxId: document.getElementById('client-tax-id').value,
+                phone: document.getElementById('client-phone').value,
+                address: document.getElementById('client-address').value,
+                notes: document.getElementById('client-notes').value,
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (clientId) {
+                // Редактирование существующего клиента
+                const index = clients.findIndex(c => c.id === clientId);
+                if (index !== -1) {
+                    clients[index] = { ...clients[index], ...clientData };
+                }
+            } else {
+                // Добавление нового клиента
+                clientData.id = Date.now().toString();
+                clientData.createdAt = new Date().toISOString();
+                clients.push(clientData);
+            }
+            
+            localStorage.setItem('clients', JSON.stringify(clients));
+            hideClientModal();
+            filterClients();
+            
+            // Обновление выпадающего списка клиентов на странице создания чека
+            if (document.getElementById('check').classList.contains('active')) {
+                setupCheckPage();
+            }
+        }
+
+        // Удаление клиента
+        function deleteClient(clientId) {
+            if (confirm('Вы уверены, что хотите удалить этого клиента?')) {
+                // Проверка, есть ли чеки у этого клиента
+                const client = clients.find(c => c.id === clientId);
+                const clientReceipts = receipts.filter(r => r.customerName === client.name);
+                
+                if (clientReceipts.length > 0) {
+                    if (!confirm(`У этого клиента есть ${clientReceipts.length} чек(ов). Удаление клиента не удалит связанные чеки. Продолжить?`)) {
+                        return;
+                    }
+                }
+                
+                clients = clients.filter(c => c.id !== clientId);
+                localStorage.setItem('clients', JSON.stringify(clients));
+                filterClients();
+                
+                // Обновление выпадающего списка клиентов на странице создания чека
+                if (document.getElementById('check').classList.contains('active')) {
+                    setupCheckPage();
+                }
+            }
+        }
+
+        // Вспомогательные функции
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('he-IL');
+        }
+
+        function getPaymentTypeText(paymentType) {
+            const types = {
+                'cash': 'Наличные',
+                'card': 'Кредитная карта',
+                'transfer': 'Банковский перевод'
+            };
+            return types[paymentType] || paymentType;
+        }
+    </script>
+</body>
+</html>
