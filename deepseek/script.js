@@ -11,26 +11,33 @@ const itemsPerPage = 10;
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    // Проверка авторизации для защищенных страниц
-    if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
+    console.log('Page loaded:', window.location.pathname);
+    
+    // Только для защищенных страниц проверяем авторизацию и загружаем данные
+    if (window.location.pathname !== '/index.html' && window.location.pathname !== '/' && !window.location.pathname.endsWith('/')) {
         if (localStorage.getItem('authenticated') !== 'true') {
             window.location.href = 'index.html';
             return;
         }
+        // Для защищенных страниц загружаем данные
+        loadData().then(() => {
+            initPage();
+        }).catch(error => {
+            console.error('Error loading data:', error);
+            initPage(); // Все равно инициализируем страницу даже при ошибке
+        });
+    } else {
+        // Для страницы входа просто инициализируем страницу
+        initPage();
     }
-
-    // Загрузка данных
-    loadData();
-    
-    // Инициализация страниц
-    initPage();
 });
 
 // Инициализация конкретной страницы
 function initPage() {
     const path = window.location.pathname;
+    console.log('Initializing page:', path);
     
-    if (path.includes('index.html') || path === '/') {
+    if (path.includes('index.html') || path === '/' || path.endsWith('/')) {
         initLoginPage();
     } else if (path.includes('main.html')) {
         initMainPage();
@@ -48,6 +55,8 @@ function initPage() {
 // Загрузка данных из GitHub
 async function loadData() {
     try {
+        console.log('Loading data from GitHub...');
+        
         // Загрузка чеков
         const receiptsResponse = await fetchFromGitHub('data/receipts.json');
         receipts = receiptsResponse || [];
@@ -55,58 +64,69 @@ async function loadData() {
         // Загрузка клиентов
         const clientsResponse = await fetchFromGitHub('data/clients.json');
         clients = clientsResponse || [];
+        
+        console.log('Data loaded successfully - receipts:', receipts.length, 'clients:', clients.length);
     } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading data from GitHub:', error);
         // Используем локальные данные как fallback
         receipts = JSON.parse(localStorage.getItem('receipts')) || [];
         clients = JSON.parse(localStorage.getItem('clients')) || [];
-    }
-}
-
-// Сохранение данных в GitHub
-async function saveData() {
-    try {
-        // Сохранение в localStorage как fallback
-        localStorage.setItem('receipts', JSON.stringify(receipts));
-        localStorage.setItem('clients', JSON.stringify(clients));
-        
-        // Сохранение в GitHub
-        await saveToGitHub('data/receipts.json', receipts);
-        await saveToGitHub('data/clients.json', clients);
-    } catch (error) {
-        console.error('Error saving data:', error);
+        console.log('Using local data - receipts:', receipts.length, 'clients:', clients.length);
     }
 }
 
 // API функции для GitHub
 async function fetchFromGitHub(filePath) {
     try {
-        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`, {
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json'
+        console.log(`Fetching ${filePath} from GitHub...`);
+        
+        // Сначала пробуем получить напрямую через raw content (не требует токен)
+        const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filePath}`;
+        const response = await fetch(rawUrl);
+        
+        if (response.ok) {
+            const content = await response.text();
+            if (content.trim()) {
+                console.log(`Successfully loaded ${filePath} from raw GitHub`);
+                return JSON.parse(content);
             }
-        });
-        
-        if (response.status === 404) {
-            return null; // Файл не существует
         }
         
-        if (!response.ok) {
-            throw new Error(`GitHub API error: ${response.status}`);
+        // Если не получилось через raw, пробуем через API (требует токен)
+        if (GITHUB_TOKEN && GITHUB_TOKEN !== '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') {
+            console.log('Trying GitHub API with token...');
+            const apiResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`, {
+                headers: {
+                    'Authorization': `token ${GITHUB_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (apiResponse.ok) {
+                const data = await apiResponse.json();
+                const content = atob(data.content);
+                console.log(`Successfully loaded ${filePath} from GitHub API`);
+                return JSON.parse(content);
+            }
         }
         
-        const data = await response.json();
-        const content = atob(data.content); // Декодирование base64
-        return JSON.parse(content);
+        console.log(`File ${filePath} not found, returning empty array`);
+        return [];
+        
     } catch (error) {
-        console.error('Error fetching from GitHub:', error);
-        throw error;
+        console.error(`Error fetching ${filePath} from GitHub:`, error);
+        return [];
     }
 }
 
 async function saveToGitHub(filePath, data) {
     try {
+        // Если токен не настроен, просто сохраняем в localStorage
+        if (!GITHUB_TOKEN || GITHUB_TOKEN === 'your_github_token_here') {
+            console.log('GitHub token not configured, skipping GitHub save');
+            return;
+        }
+        
         let sha = null;
         
         // Попытка получить текущий файл для получения SHA
@@ -147,6 +167,7 @@ async function saveToGitHub(filePath, data) {
             throw new Error(`GitHub API error: ${response.status}`);
         }
         
+        console.log(`Successfully saved ${filePath} to GitHub`);
         return await response.json();
     } catch (error) {
         console.error('Error saving to GitHub:', error);
@@ -156,21 +177,29 @@ async function saveToGitHub(filePath, data) {
 
 // Функции для страницы входа
 function initLoginPage() {
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const password = document.getElementById('password').value;
-        
-        if (password === '1234') {
-            localStorage.setItem('authenticated', 'true');
-            window.location.href = 'main.html';
-        } else {
-            alert('סיסמה לא נכונה!');
-        }
-    });
+    console.log('Initializing login page');
+    
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            
+            if (password === '1234') {
+                localStorage.setItem('authenticated', 'true');
+                window.location.href = 'main.html';
+            } else {
+                alert('סיסמה לא נכונה!');
+            }
+        });
+    } else {
+        console.error('Login form not found!');
+    }
 }
 
 // Функции для главной страницы
 function initMainPage() {
+    console.log('Initializing main page');
     updateStatistics();
     loadRecentReceipts();
 }
@@ -213,6 +242,7 @@ function loadRecentReceipts() {
 
 // Функции для страницы создания чека
 function initCheckPage() {
+    console.log('Initializing check page');
     setupReceiptForm();
 }
 
@@ -461,11 +491,13 @@ async function saveClientFromReceipt(receiptData) {
         };
         
         clients.push(newClient);
+        await saveData(); // Сохраняем нового клиента
     }
 }
 
 // Функции для страницы всех чеков
 function initAllChecksPage() {
+    console.log('Initializing all checks page');
     loadAllChecks();
     setupFilters();
 }
@@ -618,6 +650,7 @@ function exportToCSV() {
 
 // Функции для страницы клиентов
 function initClientsPage() {
+    console.log('Initializing clients page');
     loadClientsTable();
     setupClientModal();
 }
@@ -760,6 +793,8 @@ async function deleteClient(clientId) {
 
 // Функции для страницы просмотра чека
 function initViewCheckPage() {
+    console.log('Initializing view check page');
+    
     const urlParams = new URLSearchParams(window.location.search);
     const receiptNumber = urlParams.get('receipt');
     const isPreview = urlParams.get('preview') === 'true';
@@ -781,14 +816,17 @@ function initViewCheckPage() {
                 window.print();
             }, 500);
         }
+    } else {
+        console.error('Receipt data not found');
+        document.getElementById('receipt-preview').innerHTML = '<p>חשבונית לא נמצאה</p>';
     }
     
     // Обработчики событий
-    document.getElementById('print-receipt').addEventListener('click', function() {
+    document.getElementById('print-receipt')?.addEventListener('click', function() {
         window.print();
     });
     
-    document.getElementById('save-pdf').addEventListener('click', function() {
+    document.getElementById('save-pdf')?.addEventListener('click', function() {
         alert('פונקציית שמירה כ-PDF תיושם בגרסה המלאה');
     });
 }
@@ -854,7 +892,9 @@ function displayReceipt(receiptData) {
         
         <div class="receipt-footer">
             <p>תודה על העסקתך!</p>
-            <img src="signature.png" alt="חתימה" style="max-width: 200px; margin-top: 1rem;">
+            <div style="margin-top: 2rem; text-align: left;">
+                <p>חתימה: _________________________</p>
+            </div>
         </div>
     `;
 }
@@ -874,7 +914,34 @@ function getPaymentTypeText(paymentType) {
     return types[paymentType] || paymentType;
 }
 
+// Функция сохранения данных
+async function saveData() {
+    try {
+        console.log('Saving data...');
+        
+        // Всегда сохраняем в localStorage
+        localStorage.setItem('receipts', JSON.stringify(receipts));
+        localStorage.setItem('clients', JSON.stringify(clients));
+        
+        console.log('Data saved to localStorage');
+        
+        // Пробуем сохранить в GitHub если токен настроен
+        if (GITHUB_TOKEN && GITHUB_TOKEN !== 'your_github_token_here') {
+            try {
+                await saveToGitHub('data/receipts.json', receipts);
+                await saveToGitHub('data/clients.json', clients);
+                console.log('Data saved to GitHub');
+            } catch (githubError) {
+                console.error('Failed to save to GitHub, but localStorage is updated:', githubError);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving data:', error);
+    }
+}
+
 function logout() {
     localStorage.removeItem('authenticated');
+    localStorage.removeItem('currentReceipt');
     window.location.href = 'index.html';
 }
