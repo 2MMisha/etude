@@ -30,12 +30,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Для защищенных страниц загружаем данные и инициализируем
-    loadData().then(() => {
+    // Для защищенных страниц инициализируем данные и страницу
+    initializeData().then(() => {
         initProtectedPage(currentPage);
     }).catch(error => {
-        console.error('Error loading data:', error);
-        // Все равно инициализируем страницу с пустыми данными
+        console.error('Error during initialization:', error);
+        // Все равно инициализируем страницу
         initProtectedPage(currentPage);
     });
 });
@@ -111,6 +111,34 @@ function initProtectedPage(pageType) {
     }
 }
 
+// Инициализация данных
+async function initializeData() {
+    console.log('Initializing data...');
+    
+    try {
+        // Пробуем загрузить из GitHub
+        await loadData();
+    } catch (error) {
+        console.error('Error loading from GitHub:', error);
+    }
+    
+    // Всегда загружаем из localStorage как резерв
+    const localReceipts = JSON.parse(localStorage.getItem('receipts'));
+    const localClients = JSON.parse(localStorage.getItem('clients'));
+    
+    if (localReceipts) receipts = localReceipts;
+    if (localClients) clients = localClients;
+    
+    // Если данных нет, создаем пустые массивы
+    if (receipts.length === 0 && clients.length === 0) {
+        console.log('No data found, creating empty arrays');
+        receipts = [];
+        clients = [];
+    }
+    
+    console.log('Data initialization complete - receipts:', receipts.length, 'clients:', clients.length);
+}
+
 // Загрузка данных из GitHub
 async function loadData() {
     try {
@@ -118,19 +146,20 @@ async function loadData() {
         
         // Загрузка чеков
         const receiptsResponse = await fetchFromGitHub('data/receipts.json');
-        receipts = receiptsResponse || [];
+        if (receiptsResponse && receiptsResponse.length > 0) {
+            receipts = receiptsResponse;
+        }
         
         // Загрузка клиентов
         const clientsResponse = await fetchFromGitHub('data/clients.json');
-        clients = clientsResponse || [];
+        if (clientsResponse && clientsResponse.length > 0) {
+            clients = clientsResponse;
+        }
         
-        console.log('Data loaded successfully - receipts:', receipts.length, 'clients:', clients.length);
+        console.log('Data loaded from GitHub - receipts:', receipts.length, 'clients:', clients.length);
     } catch (error) {
         console.error('Error loading data from GitHub:', error);
-        // Используем локальные данные как fallback
-        receipts = JSON.parse(localStorage.getItem('receipts')) || [];
-        clients = JSON.parse(localStorage.getItem('clients')) || [];
-        console.log('Using local data - receipts:', receipts.length, 'clients:', clients.length);
+        throw error;
     }
 }
 
@@ -139,30 +168,32 @@ async function fetchFromGitHub(filePath) {
     try {
         console.log(`Fetching ${filePath} from GitHub...`);
         
-        // Сначала пробуем получить напрямую через raw content (не требует токен)
+        // Способ 1: Через raw.githubusercontent.com
         const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filePath}`;
-        const response = await fetch(rawUrl);
+        console.log('Trying raw URL:', rawUrl);
         
+        const response = await fetch(rawUrl);
         if (response.ok) {
             const content = await response.text();
             if (content.trim()) {
-                console.log(`Successfully loaded ${filePath} from raw GitHub`);
-                return JSON.parse(content);
+                const parsedData = JSON.parse(content);
+                console.log(`Successfully loaded ${filePath} from raw GitHub, items:`, parsedData.length);
+                return parsedData;
             }
         }
         
-        console.log(`File ${filePath} not found, returning empty array`);
-        return [];
+        console.log(`File ${filePath} not found on GitHub`);
+        return null;
         
     } catch (error) {
         console.error(`Error fetching ${filePath} from GitHub:`, error);
-        return [];
+        return null;
     }
 }
 
 async function saveToGitHub(filePath, data) {
     try {
-        // Если токен не настроен, просто сохраняем в localStorage
+        // Если токен не настроен, пропускаем сохранение в GitHub
         if (!GITHUB_TOKEN || GITHUB_TOKEN === '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') {
             console.log('GitHub token not configured, skipping GitHub save');
             return;
@@ -244,6 +275,15 @@ function loadRecentReceipts() {
     const tbody = document.querySelector('#recent-receipts tbody');
     tbody.innerHTML = '';
     
+    if (recentReceipts.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center;">אין חשבוניות עדיין</td>
+            </tr>
+        `;
+        return;
+    }
+    
     recentReceipts.forEach(receipt => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -271,8 +311,11 @@ function setupReceiptForm() {
         Math.max(...receipts.map(r => parseInt(r.receiptNumber))) + 1 : 1;
     document.getElementById('receipt-number').value = nextReceiptNumber;
     
-    // Загрузка клиентов
+    // Загрузка клиентов в выпадающий список
     loadCustomers();
+    
+    // Показываем форму ввода клиента по умолчанию
+    document.getElementById('customer-info').classList.remove('d-none');
     
     // Добавление первой строки товара
     addItemRow();
@@ -282,20 +325,100 @@ function setupReceiptForm() {
     document.getElementById('preview-btn').addEventListener('click', previewReceipt);
     document.getElementById('receipt-form').addEventListener('submit', saveReceipt);
     document.getElementById('customer-select').addEventListener('change', handleCustomerSelect);
-    document.getElementById('add-customer-btn').addEventListener('click', function() {
-        window.location.href = 'clients.html';
-    });
+    document.getElementById('add-customer-btn').addEventListener('click', showClientModalFromCheck);
+    
+    // Обработчики для ручного ввода клиента
+    setupManualCustomerInput();
 }
 
 function loadCustomers() {
     const customerSelect = document.getElementById('customer-select');
-    customerSelect.innerHTML = '<option value="">בחר לקוח</option>';
+    customerSelect.innerHTML = '<option value="">בחר לקוח מהרשימה</option>';
+    
     clients.forEach(client => {
         const option = document.createElement('option');
         option.value = client.id;
         option.textContent = client.name;
         customerSelect.appendChild(option);
     });
+    
+    // Добавляем опцию для ручного ввода
+    const manualOption = document.createElement('option');
+    manualOption.value = 'manual';
+    manualOption.textContent = 'הזן פרטי לקוח ידנית';
+    customerSelect.appendChild(manualOption);
+}
+
+function setupManualCustomerInput() {
+    const customerNameInput = document.getElementById('customer-name');
+    const customerIdInput = document.getElementById('customer-id');
+    const customerAddressInput = document.getElementById('customer-address');
+    const customerPhoneInput = document.getElementById('customer-phone');
+    
+    // Очистка полей при выборе ручного ввода
+    customerNameInput.addEventListener('focus', function() {
+        document.getElementById('customer-select').value = 'manual';
+    });
+    
+    customerIdInput.addEventListener('focus', function() {
+        document.getElementById('customer-select').value = 'manual';
+    });
+    
+    customerAddressInput.addEventListener('focus', function() {
+        document.getElementById('customer-select').value = 'manual';
+    });
+    
+    customerPhoneInput.addEventListener('focus', function() {
+        document.getElementById('customer-select').value = 'manual';
+    });
+}
+
+function handleCustomerSelect() {
+    const clientId = this.value;
+    const customerInfo = document.getElementById('customer-info');
+    
+    if (clientId === 'manual') {
+        // Ручной ввод - очищаем поля
+        document.getElementById('customer-name').value = '';
+        document.getElementById('customer-id').value = '';
+        document.getElementById('customer-address').value = '';
+        document.getElementById('customer-phone').value = '';
+        customerInfo.classList.remove('d-none');
+    } else if (clientId) {
+        // Выбран существующий клиент - заполняем поля
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+            document.getElementById('customer-name').value = client.name;
+            document.getElementById('customer-id').value = client.taxId || '';
+            document.getElementById('customer-address').value = client.address || '';
+            document.getElementById('customer-phone').value = client.phone || '';
+            customerInfo.classList.remove('d-none');
+        }
+    } else {
+        // Ничего не выбрано - скрываем поля
+        customerInfo.classList.add('d-none');
+    }
+}
+
+function showClientModalFromCheck() {
+    // Сохраняем текущие введенные данные
+    const currentName = document.getElementById('customer-name').value;
+    const currentTaxId = document.getElementById('customer-id').value;
+    const currentPhone = document.getElementById('customer-phone').value;
+    const currentAddress = document.getElementById('customer-address').value;
+    
+    // Показываем модальное окно
+    document.getElementById('client-modal-title').textContent = 'הוסף לקוח חדש';
+    document.getElementById('client-form').reset();
+    document.getElementById('client-id').value = '';
+    
+    // Заполняем поля текущими данными если они есть
+    if (currentName) document.getElementById('client-name').value = currentName;
+    if (currentTaxId) document.getElementById('client-tax-id').value = currentTaxId;
+    if (currentPhone) document.getElementById('client-phone').value = currentPhone;
+    if (currentAddress) document.getElementById('client-address').value = currentAddress;
+    
+    document.getElementById('client-modal').classList.remove('d-none');
 }
 
 function addItemRow() {
@@ -304,15 +427,15 @@ function addItemRow() {
     row.className = 'item-row';
     row.innerHTML = `
         <div>
-            <input type="text" class="item-details" placeholder="תיאור הפריט/שירות">
+            <input type="text" class="item-details" placeholder="תיאור הפריט/שירות" required>
         </div>
         <div>
-            <input type="number" class="item-quantity" value="1" min="1">
+            <input type="number" class="item-quantity" value="1" min="1" step="1" required>
         </div>
         <div>
-            <input type="number" class="item-amount" placeholder="מחיר" step="0.01">
+            <input type="number" class="item-amount" placeholder="מחיר" step="0.01" min="0" required>
         </div>
-        <div class="item-total">0.00</div>
+        <div class="item-total">0.00 ₪</div>
         <div>
             <button type="button" class="btn danger remove-item">&times;</button>
         </div>
@@ -338,7 +461,7 @@ function updateItemTotal() {
     const amount = parseFloat(row.querySelector('.item-amount').value) || 0;
     const total = quantity * amount;
     
-    row.querySelector('.item-total').textContent = total.toFixed(2);
+    row.querySelector('.item-total').textContent = total.toFixed(2) + ' ₪';
     updateTotals();
 }
 
@@ -356,24 +479,6 @@ function updateTotals() {
     document.getElementById('subtotal').textContent = subtotal.toFixed(2) + ' ₪';
     document.getElementById('vat').textContent = vat.toFixed(2) + ' ₪';
     document.getElementById('total').innerHTML = '<strong>' + total.toFixed(2) + ' ₪</strong>';
-}
-
-function handleCustomerSelect() {
-    const clientId = this.value;
-    const clientInfo = document.getElementById('customer-info');
-    
-    if (clientId) {
-        const client = clients.find(c => c.id === clientId);
-        if (client) {
-            document.getElementById('customer-name').value = client.name;
-            document.getElementById('customer-id').value = client.taxId || '';
-            document.getElementById('customer-address').value = client.address || '';
-            document.getElementById('customer-phone').value = client.phone || '';
-            clientInfo.classList.remove('d-none');
-        }
-    } else {
-        clientInfo.classList.add('d-none');
-    }
 }
 
 function previewReceipt() {
@@ -478,7 +583,7 @@ async function saveReceipt(e) {
         receipts.push(receiptData);
     }
     
-    // Сохранение клиента
+    // Автоматическое сохранение клиента если его нет в базе
     await saveClientFromReceipt(receiptData);
     
     // Сохранение данных
@@ -492,6 +597,7 @@ async function saveReceipt(e) {
 async function saveClientFromReceipt(receiptData) {
     if (!receiptData.customerName) return;
     
+    // Проверяем, есть ли клиент уже в базе
     const existingClient = clients.find(c => 
         c.taxId === receiptData.customerId || 
         c.name === receiptData.customerName
@@ -504,13 +610,18 @@ async function saveClientFromReceipt(receiptData) {
             taxId: receiptData.customerId || '',
             phone: receiptData.customerPhone || '',
             address: receiptData.customerAddress || '',
-            notes: '',
+            notes: 'נוצר אוטומטית מחשבונית',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
         
         clients.push(newClient);
         await saveData();
+        
+        // Обновляем выпадающий список клиентов
+        loadCustomers();
+        
+        console.log('New client automatically saved:', newClient.name);
     }
 }
 
@@ -580,6 +691,15 @@ function displayFilteredReceipts(filteredReceipts) {
     const tbody = document.querySelector('#all-receipts-table tbody');
     tbody.innerHTML = '';
     
+    if (filteredReceipts.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center;">לא נמצאו חשבוניות</td>
+            </tr>
+        `;
+        return;
+    }
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, filteredReceipts.length);
     const pageReceipts = filteredReceipts.slice(startIndex, endIndex);
@@ -645,6 +765,11 @@ function setupPagination(totalItems) {
 }
 
 function exportToCSV() {
+    if (receipts.length === 0) {
+        alert('אין חשבוניות לייצוא');
+        return;
+    }
+    
     let csvContent = "מספר,לקוח,תאריך,סיכום ביניים,מע\"מ,סך הכל,אמצעי תשלום\n";
     
     receipts.forEach(receipt => {
@@ -691,6 +816,15 @@ function filterClients() {
 function displayClients(clientsToDisplay) {
     const tbody = document.querySelector('#clients-table tbody');
     tbody.innerHTML = '';
+    
+    if (clientsToDisplay.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center;">לא נמצאו לקוחות</td>
+            </tr>
+        `;
+        return;
+    }
     
     clientsToDisplay.forEach(client => {
         const row = document.createElement('tr');
@@ -786,6 +920,11 @@ async function saveClient(e) {
     await saveData();
     hideClientModal();
     loadClientsTable();
+    
+    // Если мы на странице создания чека, обновляем выпадающий список
+    if (window.location.pathname.includes('check.html')) {
+        loadCustomers();
+    }
 }
 
 async function deleteClient(clientId) {
@@ -802,6 +941,11 @@ async function deleteClient(clientId) {
         clients = clients.filter(c => c.id !== clientId);
         await saveData();
         loadClientsTable();
+        
+        // Если мы на странице создания чека, обновляем выпадающий список
+        if (window.location.pathname.includes('check.html')) {
+            loadCustomers();
+        }
     }
 }
 
@@ -882,9 +1026,9 @@ function displayReceipt(receiptData) {
             </div>
             <div>
                 <p><strong>לקוח:</strong> ${receiptData.customerName}</p>
-                <p><strong>ת.ז./ח.פ.:</strong> ${receiptData.customerId}</p>
-                <p><strong>כתובת:</strong> ${receiptData.customerAddress}</p>
-                <p><strong>טלפון:</strong> ${receiptData.customerPhone}</p>
+                <p><strong>ת.ז./ח.פ.:</strong> ${receiptData.customerId || '-'}</p>
+                <p><strong>כתובת:</strong> ${receiptData.customerAddress || '-'}</p>
+                <p><strong>טלפון:</strong> ${receiptData.customerPhone || '-'}</p>
             </div>
         </div>
         
