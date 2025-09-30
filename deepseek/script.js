@@ -164,7 +164,7 @@ async function loadDataFromGitHub() {
 async function fetchJSONFromGitHub(filePath) {
     const urlsToTry = [
         // Основной URL - raw.githubusercontent.com
-        `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filePath}`,
+        `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/deepseek/${filePath}`,
         // Альтернативный URL - если репозиторий public
         `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/master/${filePath}`,
         // GitHub Pages URL
