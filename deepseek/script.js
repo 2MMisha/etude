@@ -2,7 +2,7 @@
 const GITHUB_TOKEN = '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';
 const REPO_OWNER = '2mmisha';
 const REPO_NAME = 'etude';
-const DATA_PATH = 'deepseek/data/'; // Добавляем путь к папке
+const DATA_PATH = 'deepseek/data/';
 
 let receipts = [];
 let clients = [];
@@ -14,24 +14,20 @@ const itemsPerPage = 10;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, current page:', window.location.pathname);
     
-    // Определяем текущую страницу
     const currentPage = getCurrentPage();
     console.log('Current page identified as:', currentPage);
     
-    // Для страницы входа - простая инициализация
     if (currentPage === 'login') {
         initLoginPage();
         return;
     }
     
-    // Для всех остальных страниц проверяем авторизацию
     if (localStorage.getItem('authenticated') !== 'true') {
         console.log('Not authenticated, redirecting to login');
         window.location.href = 'index.html';
         return;
     }
     
-    // Для защищенных страниц загружаем данные и инициализируем
     initializeData().then(() => {
         initProtectedPage(currentPage);
     }).catch(error => {
@@ -40,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Определение текущей страницы
 function getCurrentPage() {
     const path = window.location.pathname;
     
@@ -61,7 +56,6 @@ function getCurrentPage() {
     return 'login';
 }
 
-// Инициализация страницы входа
 function initLoginPage() {
     const loginForm = document.getElementById('login-form');
     if (!loginForm) {
@@ -82,7 +76,6 @@ function initLoginPage() {
     });
 }
 
-// Инициализация защищенных страниц
 function initProtectedPage(pageType) {
     console.log('Initializing protected page:', pageType);
     
@@ -105,29 +98,23 @@ function initProtectedPage(pageType) {
     }
 }
 
-// Инициализация данных с приоритетом GitHub
 async function initializeData() {
     console.log('=== INITIALIZING DATA FROM GITHUB ===');
     
-    // Пробуем загрузить из GitHub
     const githubDataLoaded = await loadDataFromGitHub();
     
     if (!githubDataLoaded) {
         console.log('GitHub load failed, trying localStorage...');
-        // Если GitHub не загрузился, пробуем localStorage
         loadDataFromLocalStorage();
     }
     
     console.log('Data initialization complete - receipts:', receipts.length, 'clients:', clients.length);
 }
 
-// Загрузка данных из GitHub - ОСНОВНОЙ МЕТОД
 async function loadDataFromGitHub() {
     try {
         console.log('🔄 Loading data from GitHub...');
         
-        // Загрузка чеков
-        console.log('Fetching receipts from GitHub...');
         const receiptsData = await fetchJSONFromGitHub('receipts.json');
         if (receiptsData !== null) {
             receipts = receiptsData;
@@ -137,8 +124,6 @@ async function loadDataFromGitHub() {
             return false;
         }
         
-        // Загрузка клиентов
-        console.log('Fetching clients from GitHub...');
         const clientsData = await fetchJSONFromGitHub('clients.json');
         if (clientsData !== null) {
             clients = clientsData;
@@ -148,7 +133,6 @@ async function loadDataFromGitHub() {
             return false;
         }
         
-        // Сохраняем загруженные данные в localStorage как кэш
         localStorage.setItem('receipts', JSON.stringify(receipts));
         localStorage.setItem('clients', JSON.stringify(clients));
         console.log('✅ Data cached to localStorage');
@@ -161,16 +145,12 @@ async function loadDataFromGitHub() {
     }
 }
 
-// Универсальная функция загрузки JSON из GitHub
 async function fetchJSONFromGitHub(fileName) {
     const filePath = DATA_PATH + fileName;
     const urlsToTry = [
-        // Основной URL - raw.githubusercontent.com
         `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filePath}`,
         `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/master/${filePath}`,
-        // GitHub Pages URL
         `https://${REPO_OWNER}.github.io/${REPO_NAME}/${filePath}`,
-        // Прямой доступ к файлу
         `https://github.com/${REPO_OWNER}/${REPO_NAME}/raw/main/${filePath}`
     ];
     
@@ -182,7 +162,6 @@ async function fetchJSONFromGitHub(fileName) {
             if (response.ok) {
                 const text = await response.text();
                 console.log(`✅ Response received from ${url}`);
-                console.log(`Content preview:`, text.substring(0, 200) + '...');
                 
                 if (text.trim()) {
                     const data = JSON.parse(text);
@@ -199,7 +178,6 @@ async function fetchJSONFromGitHub(fileName) {
         }
     }
     
-    // Если все URL не сработали, пробуем через GitHub API с токеном
     if (GITHUB_TOKEN && GITHUB_TOKEN !== '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') {
         try {
             console.log('Trying GitHub API with token...');
@@ -229,7 +207,6 @@ async function fetchJSONFromGitHub(fileName) {
     return null;
 }
 
-// Загрузка из localStorage (резервный метод)
 function loadDataFromLocalStorage() {
     console.log('Loading data from localStorage...');
     
@@ -253,22 +230,24 @@ function loadDataFromLocalStorage() {
     }
 }
 
-// Сохранение данных в GitHub и localStorage
 async function saveData() {
     console.log('💾 Saving data...');
     
     try {
-        // Всегда сохраняем в localStorage
         localStorage.setItem('receipts', JSON.stringify(receipts));
         localStorage.setItem('clients', JSON.stringify(clients));
         console.log('✅ Data saved to localStorage');
         
-        // Пробуем сохранить в GitHub
-        const githubSaved = await saveDataToGitHub();
-        if (githubSaved) {
-            console.log('✅ Data saved to GitHub');
-        } else {
-            console.log('⚠️ Data saved only to localStorage (GitHub failed)');
+        try {
+            const githubSaved = await saveDataToGitHub();
+            if (githubSaved) {
+                console.log('✅ Data saved to GitHub');
+            } else {
+                console.log('⚠️ Data saved only to localStorage (GitHub failed)');
+            }
+        } catch (githubError) {
+            console.error('❌ GitHub save error:', githubError);
+            console.log('⚠️ Data saved only to localStorage');
         }
         
     } catch (error) {
@@ -276,9 +255,7 @@ async function saveData() {
     }
 }
 
-// Сохранение данных в GitHub
 async function saveDataToGitHub() {
-    // Если токен не настроен, пропускаем
     if (!GITHUB_TOKEN || GITHUB_TOKEN === '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') {
         console.log('⚠️ GitHub token not configured, skipping GitHub save');
         return false;
@@ -287,9 +264,7 @@ async function saveDataToGitHub() {
     try {
         console.log('🔄 Saving to GitHub...');
         
-        // Сохраняем чеки
         const receiptsSaved = await saveToGitHub('receipts.json', receipts);
-        // Сохраняем клиентов
         const clientsSaved = await saveToGitHub('clients.json', clients);
         
         return receiptsSaved && clientsSaved;
@@ -300,14 +275,12 @@ async function saveDataToGitHub() {
     }
 }
 
-// Сохранение одного файла в GitHub
 async function saveToGitHub(fileName, data) {
     const filePath = DATA_PATH + fileName;
     
     try {
         let sha = null;
         
-        // Пробуем получить SHA существующего файла
         try {
             const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
             const response = await fetch(apiUrl, {
@@ -357,12 +330,6 @@ async function saveToGitHub(fileName, data) {
     }
 }
 
-// Остальные функции остаются без изменений...
-// [ВСТАВЬТЕ СЮДА ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ ИЗ ПРЕДЫДУЩЕГО СКРИПТА]
-// Функции для главной страницы, создания чеков, управления клиентами и т.д.
-// ... (все остальные функции из предыдущего скрипта)
-
-// Функции для главной страницы
 function initMainPage() {
     updateStatistics();
     loadRecentReceipts();
@@ -413,34 +380,27 @@ function loadRecentReceipts() {
     });
 }
 
-// Функции для страницы создания чека
 function initCheckPage() {
     setupReceiptForm();
 }
 
 function setupReceiptForm() {
-    // Генерация номера чека
     const nextReceiptNumber = receipts.length > 0 ? 
         Math.max(...receipts.map(r => parseInt(r.receiptNumber))) + 1 : 1;
     document.getElementById('receipt-number').value = nextReceiptNumber;
     
-    // Загрузка клиентов в выпадающий список
     loadCustomers();
     
-    // Показываем форму ввода клиента по умолчанию
     document.getElementById('customer-info').classList.remove('d-none');
     
-    // Добавление первой строки товара
     addItemRow();
     
-    // Обработчики событий
     document.getElementById('add-item-btn').addEventListener('click', addItemRow);
     document.getElementById('preview-btn').addEventListener('click', previewReceipt);
     document.getElementById('receipt-form').addEventListener('submit', saveReceipt);
     document.getElementById('customer-select').addEventListener('change', handleCustomerSelect);
     document.getElementById('add-customer-btn').addEventListener('click', showClientModalFromCheck);
     
-    // Обработчики для ручного ввода клиента
     setupManualCustomerInput();
 }
 
@@ -455,7 +415,6 @@ function loadCustomers() {
         customerSelect.appendChild(option);
     });
     
-    // Добавляем опцию для ручного ввода
     const manualOption = document.createElement('option');
     manualOption.value = 'manual';
     manualOption.textContent = 'הזן פרטי לקוח ידנית';
@@ -468,7 +427,6 @@ function setupManualCustomerInput() {
     const customerAddressInput = document.getElementById('customer-address');
     const customerPhoneInput = document.getElementById('customer-phone');
     
-    // Очистка полей при выборе ручного ввода
     customerNameInput.addEventListener('focus', function() {
         document.getElementById('customer-select').value = 'manual';
     });
@@ -491,14 +449,12 @@ function handleCustomerSelect() {
     const customerInfo = document.getElementById('customer-info');
     
     if (clientId === 'manual') {
-        // Ручной ввод - очищаем поля
         document.getElementById('customer-name').value = '';
         document.getElementById('customer-id').value = '';
         document.getElementById('customer-address').value = '';
         document.getElementById('customer-phone').value = '';
         customerInfo.classList.remove('d-none');
     } else if (clientId) {
-        // Выбран существующий клиент - заполняем поля
         const client = clients.find(c => c.id === clientId);
         if (client) {
             document.getElementById('customer-name').value = client.name;
@@ -508,24 +464,20 @@ function handleCustomerSelect() {
             customerInfo.classList.remove('d-none');
         }
     } else {
-        // Ничего не выбрано - скрываем поля
         customerInfo.classList.add('d-none');
     }
 }
 
 function showClientModalFromCheck() {
-    // Сохраняем текущие введенные данные
     const currentName = document.getElementById('customer-name').value;
     const currentTaxId = document.getElementById('customer-id').value;
     const currentPhone = document.getElementById('customer-phone').value;
     const currentAddress = document.getElementById('customer-address').value;
     
-    // Показываем модальное окно
     document.getElementById('client-modal-title').textContent = 'הוסף לקוח חדש';
     document.getElementById('client-form').reset();
     document.getElementById('client-id').value = '';
     
-    // Заполняем поля текущими данными если они есть
     if (currentName) document.getElementById('client-name').value = currentName;
     if (currentTaxId) document.getElementById('client-tax-id').value = currentTaxId;
     if (currentPhone) document.getElementById('client-phone').value = currentPhone;
@@ -555,7 +507,6 @@ function addItemRow() {
     `;
     container.appendChild(row);
     
-    // Обработчики событий
     const quantityInput = row.querySelector('.item-quantity');
     const amountInput = row.querySelector('.item-amount');
     
@@ -582,7 +533,8 @@ function updateTotals() {
     let subtotal = 0;
     
     document.querySelectorAll('.item-row').forEach(row => {
-        const total = parseFloat(row.querySelector('.item-total').textContent) || 0;
+        const totalText = row.querySelector('.item-total').textContent;
+        const total = parseFloat(totalText.replace(' ₪', '')) || 0;
         subtotal += total;
     });
     
@@ -680,12 +632,13 @@ function collectReceiptData() {
 
 async function saveReceipt(e) {
     e.preventDefault();
+    console.log('Save receipt started...');
     
     if (!validateReceiptForm()) return;
     
     const receiptData = collectReceiptData();
+    console.log('Collected receipt data:', receiptData);
     
-    // Проверка на дублирование номера
     const existingIndex = receipts.findIndex(r => r.receiptNumber === receiptData.receiptNumber);
     if (existingIndex !== -1) {
         if (!confirm('חשבונית עם מספר זה כבר קיימת. האם להחליף?')) {
@@ -696,10 +649,8 @@ async function saveReceipt(e) {
         receipts.push(receiptData);
     }
     
-    // Автоматическое сохранение клиента если его нет в базе
     await saveClientFromReceipt(receiptData);
     
-    // Сохранение данных
     await saveData();
     
     alert('חשבונית נשמרה בהצלחה!');
@@ -710,7 +661,6 @@ async function saveReceipt(e) {
 async function saveClientFromReceipt(receiptData) {
     if (!receiptData.customerName) return;
     
-    // Проверяем, есть ли клиент уже в базе
     const existingClient = clients.find(c => 
         c.taxId === receiptData.customerId || 
         c.name === receiptData.customerName
@@ -733,10 +683,18 @@ async function saveClientFromReceipt(receiptData) {
     }
 }
 
-// Функции для страницы всех чеков
 function initAllChecksPage() {
     loadAllChecks();
     setupFilters();
+    
+    document.getElementById('force-save')?.addEventListener('click', async function() {
+        try {
+            await saveData();
+            alert('הנתונים נשמרו בהצלחה!');
+        } catch (error) {
+            alert('שגיאה בשמירת הנתונים: ' + error.message);
+        }
+    });
 }
 
 function loadAllChecks() {
@@ -827,7 +785,6 @@ function displayFilteredReceipts(filteredReceipts) {
         tbody.appendChild(row);
     });
     
-    // Обработчики для кнопок удаления
     document.querySelectorAll('.delete-receipt').forEach(button => {
         button.addEventListener('click', function() {
             const receiptNumber = this.getAttribute('data-id');
@@ -894,7 +851,6 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
-// Функции для страницы клиентов
 function initClientsPage() {
     loadClientsTable();
     setupClientModal();
@@ -948,7 +904,6 @@ function displayClients(clientsToDisplay) {
         tbody.appendChild(row);
     });
     
-    // Обработчики для кнопок
     document.querySelectorAll('.edit-client').forEach(button => {
         button.addEventListener('click', function() {
             const clientId = this.getAttribute('data-id');
@@ -1011,13 +966,11 @@ async function saveClient(e) {
     };
     
     if (clientId) {
-        // Редактирование
         const index = clients.findIndex(c => c.id === clientId);
         if (index !== -1) {
             clients[index] = { ...clients[index], ...clientData };
         }
     } else {
-        // Добавление
         clientData.id = Date.now().toString();
         clientData.createdAt = new Date().toISOString();
         clients.push(clientData);
@@ -1027,7 +980,6 @@ async function saveClient(e) {
     hideClientModal();
     loadClientsTable();
     
-    // Если мы на странице создания чека, обновляем выпадающий список
     if (window.location.pathname.includes('check.html')) {
         loadCustomers();
     }
@@ -1048,15 +1000,15 @@ async function deleteClient(clientId) {
         await saveData();
         loadClientsTable();
         
-        // Если мы на странице создания чека, обновляем выпадающий список
         if (window.location.pathname.includes('check.html')) {
             loadCustomers();
         }
     }
 }
 
-// Функции для страницы просмотра чека
 function initViewCheckPage() {
+    console.log('Initializing view check page');
+    
     const urlParams = new URLSearchParams(window.location.search);
     const receiptNumber = urlParams.get('receipt');
     const isPreview = urlParams.get('preview') === 'true';
@@ -1066,8 +1018,10 @@ function initViewCheckPage() {
     
     if (isPreview) {
         receiptData = JSON.parse(localStorage.getItem('currentReceipt'));
+        console.log('Preview mode, receipt data:', receiptData);
     } else if (receiptNumber) {
         receiptData = receipts.find(r => r.receiptNumber === receiptNumber);
+        console.log('View mode, found receipt:', receiptData);
     }
     
     if (receiptData) {
@@ -1075,26 +1029,51 @@ function initViewCheckPage() {
         
         if (shouldPrint) {
             setTimeout(() => {
+                console.log('Auto-printing receipt...');
                 window.print();
-            }, 500);
+            }, 1000);
         }
     } else {
-        document.getElementById('receipt-preview').innerHTML = '<p>חשבונית לא נמצאה</p>';
+        console.error('Receipt data not found');
+        document.getElementById('receipt-preview').innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <h2>חשבונית לא נמצאה</h2>
+                <a href="all-checks.html" class="btn">חזרה לחשבוניות</a>
+            </div>
+        `;
     }
     
-    // Обработчики событий
     const printBtn = document.getElementById('print-receipt');
     const savePdfBtn = document.getElementById('save-pdf');
     
     if (printBtn) {
         printBtn.addEventListener('click', function() {
+            console.log('Print button clicked');
             window.print();
         });
     }
     
     if (savePdfBtn) {
         savePdfBtn.addEventListener('click', function() {
-            alert('פונקציית שמירה כ-PDF תיושם בגרסה המלאה');
+            console.log('Save PDF button clicked');
+            const receiptElement = document.getElementById('receipt-preview');
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>חשבונית ${receiptData?.receiptNumber || ''}</title>
+                        <style>
+                            body { font-family: Arial; direction: rtl; }
+                            .receipt-preview { max-width: 800px; margin: 0 auto; padding: 20px; }
+                        </style>
+                    </head>
+                    <body>
+                        ${receiptElement.innerHTML}
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
         });
     }
 }
@@ -1151,19 +1130,24 @@ function displayReceipt(receiptData) {
             </table>
         </div>
         
+        <div class="receipt-totals">
+            <p>סיכום ביניים: ${receiptData.subtotal.toFixed(2)} ₪</p>
+            <p>מע"מ (18%): ${receiptData.vat.toFixed(2)} ₪</p>
+            <p><strong>סך הכל: ${receiptData.total.toFixed(2)} ₪</strong></p>
+            <p>אמצעי תשלום: ${getPaymentTypeText(receiptData.paymentType)}</p>
+        </div>
+        
         <div class="receipt-footer">
             <p>תודה על העסקתך!</p>
             <div style="margin-top: 2rem; text-align: center;">
                 <div style="border-top: 1px solid #000; width: 200px; margin: 20px auto; padding-top: 10px;">
-                    <img src="signature.png" alt="חתימה" style="max-width: 150px; height: auto;">
-                    <p style="margin-top: 5px; font-size: 14px;">חתימה</p>
+                    <p style="margin-top: 5px; font-size: 14px;">חתימה _________________________</p>
                 </div>
             </div>
         </div>
     `;
 }
 
-// Вспомогательные функции
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('he-IL');
@@ -1172,8 +1156,9 @@ function formatDate(dateString) {
 function getPaymentTypeText(paymentType) {
     const types = {
         'cash': 'מזומן',
-        'card': 'כרטיס אשראי',
-        'transfer': 'העברה בנקאית'
+        'transfer': 'העברה בנקאית',
+        'check': 'צ\'ק',
+        'bit': 'BIT'
     };
     return types[paymentType] || paymentType;
 }

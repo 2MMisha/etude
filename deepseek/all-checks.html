@@ -26,7 +26,10 @@
         <div class="card">
             <div class="card-header d-flex justify-between align-center">
                 <h2>סינון</h2>
-                <button id="export-csv" class="btn secondary">ייצא ל-CSV</button>
+                <div>
+                    <button id="force-save" class="btn secondary" style="margin-right: 10px;">שמור ל-GitHub</button>
+                    <button id="export-csv" class="btn secondary">ייצא ל-CSV</button>
+                </div>
             </div>
             
             <div class="filters">
@@ -53,8 +56,9 @@
                     <select id="filter-payment">
                         <option value="">כל האמצעים</option>
                         <option value="cash">מזומן</option>
-                        <option value="card">כרטיס אשראי</option>
                         <option value="transfer">העברה בנקאית</option>
+                        <option value="check">צ'ק</option>
+                        <option value="bit">BIT</option>
                     </select>
                 </div>
             </div>
