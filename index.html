@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETUDE - מערכת ניהול קבלות</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            direction: rtl;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0;
+        }
+        .nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .nav button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .nav button:hover {
+            background-color: #45a049;
+        }
+        .page {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+        }
+        .total-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .total-label {
+            font-weight: bold;
+        }
+        .payment-details {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .payment-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .payment-field {
+            flex: 1;
+            margin-left: 10px;
+        }
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            width: 200px;
+            height: 100px;
+            border: 1px solid #ddd;
+            text-align: center;
+            padding-top: 40px;
+        }
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        .check-fields {
+            margin-top: 10px;
+        }
+        .receipts-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .receipts-list th, .receipts-list td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        .receipts-list th {
+            background-color: #f2f2f2;
+        }
+        .receipt-preview {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: white;
+        }
+        .receipt-preview .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+        }
+        .receipt-preview .items-table {
+            margin-bottom: 20px;
+        }
+        .receipt-preview .total-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .receipt-preview .signature-section {
+            margin-top: 30px;
+        }
+        .action-buttons {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .action-buttons button {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        #receiptForPrint {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .signature-img {
+            max-width: 150px;
+            max-height: 50px;
+        }
+        .empty-history {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+        .remove-item {
+            background-color: #f44336 !important;
+            padding: 5px 10px !important;
+            font-size: 12px !important;
+        }
+        .remove-item:hover {
+            background-color: #d32f2f !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ETUDE</h1>
+            <p>גרומוב יבגניה</p>
+            <p>הבה''דים 4, ראשון-לציון, נייד: 0534726469</p>
+            <p>עוסק מורשה: 346776909</p>
+        </div>
+
+        <div class="nav">
+            <button id="createReceiptBtn">יצירת קבלה</button>
+            <button id="historyBtn">היסטוריית קבלות</button>
+        </div>
+
+        <!-- Страница создания чека -->
+        <div id="createPage" class="page">
+            <h2>יצירת קבלה חדשה</h2>
+
+            <form id="receiptForm">
+                <div class="form-group">
+                    <label for="receiptNumber">חשבונית/קבלה מס':</label>
+                    <input type="text" id="receiptNumber" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerName">לכבוד:</label>
+                    <input type="text" id="customerName">
+                </div>
+
+                <div class="form-group">
+                    <label for="customerId">ח.פ./ע.מ.:</label>
+                    <input type="text" id="customerId">
+                </div>
+
+                <div class="form-group">
+                    <label for="customerAddress">כתובת:</label>
+                    <input type="text" id="customerAddress">
+                </div>
+
+                <div class="form-group">
+                    <label for="customerPhone">טלפון:</label>
+                    <input type="text" id="customerPhone">
+                </div>
+
+                <h3>פרטים:</h3>
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>פרטים</th>
+                            <th>כמות</th>
+                            <th>מחיר ליחידה</th>
+                            <th>סכום בש"ח</th>
+                            <th>פעולות</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        <tr>
+                            <td><input type="text" class="item-details" required></td>
+                            <td><input type="number" class="item-quantity" min="1" value="1" required></td>
+                            <td><input type="number" class="item-price" min="0" step="0.01" required></td>
+                            <td class="item-total">0.00</td>
+                            <td><button type="button" class="remove-item">הסר</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" id="addItem">הוסף פריט</button>
+
+                <div class="total-section">
+                    <div class="total-row">
+                        <span class="total-label">סה"כ לפני מע"מ:</span>
+                        <span id="subtotal">0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="total-label">מע"מ 18%:</span>
+                        <span id="vat">0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="total-label">סה"כ כולל מע"מ:</span>
+                        <span id="total">0.00</span>
+                    </div>
+                </div>
+
+                <div class="payment-details">
+                    <div class="form-group">
+                        <label for="paymentType">סוג תשלום:</label>
+                        <select id="paymentType" required>
+                            <option value="">בחר סוג תשלום</option>
+                            <option value="העברה בנקאית">העברה בנקאית</option>
+                            <option value="BIT">BIT</option>
+                            <option value="מזומן">מזומן</option>
+                            <option value="צ'ק">צ'ק</option>
+                        </select>
+                    </div>
+
+                    <div id="checkFields" class="check-fields hidden">
+                        <div class="payment-row">
+                            <div class="payment-field">
+                                <label for="checkNumber">שיק מס':</label>
+                                <input type="text" id="checkNumber">
+                            </div>
+                            <div class="payment-field">
+                                <label for="bank">בנק:</label>
+                                <input type="text" id="bank">
+                            </div>
+                        </div>
+                        <div class="payment-row">
+                            <div class="payment-field">
+                                <label for="checkDate">ז''פ:</label>
+                                <input type="date" id="checkDate">
+                            </div>
+                            <div class="payment-field">
+                                <label for="checkAmount">ע''ס:</label>
+                                <input type="number" id="checkAmount" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="signature-section">
+                    <div>
+                        <label for="receiptDate">תאריך:</label>
+                        <input type="date" id="receiptDate" required>
+                    </div>
+                    <div>
+                        <div class="signature-box">
+                            חתימה
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" id="saveTemplate">שמור תבנית</button>
+                    <button type="submit">שמור קבלה</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Страница истории чеков -->
+        <div id="historyPage" class="page active">
+            <h2>היסטוריית קבלות</h2>
+            
+            <div id="receiptsListContainer">
+                <div id="emptyHistoryMessage" class="empty-history hidden">
+                    <p>לא נמצאו קבלות</p>
+                    <p>לחץ על "יצירת קבלה" כדי ליצור קבלה ראשונה</p>
+                </div>
+                <table class="receipts-list" id="receiptsTable">
+                    <thead>
+                        <tr>
+                            <th>מספר קבלה</th>
+                            <th>לכבוד</th>
+                            <th>תאריך</th>
+                            <th>סה"כ</th>
+                            <th>פעולות</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receiptsTableBody">
+                        <!-- Данные будут заполнены через JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="receiptPreview" class="receipt-preview hidden">
+                <h3>תצוגה מקדימה של הקבלה</h3>
+                <div id="receiptPreviewContent">
+                    <!-- Содержимое предпросмотра будет заполнено через JavaScript -->
+                </div>
+                <div class="action-buttons">
+                    <button id="closePreview">סגור תצוגה מקדימה</button>
+                    <button id="exportPdf">ייצא ל-PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Контейнер для печати (скрыт) -->
+    <div id="receiptForPrint" class="hidden"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация переменных
+            const { jsPDF } = window.jspdf;
+            let receiptCounter = localStorage.getItem('receiptCounter') || 1;
+            let receipts = JSON.parse(localStorage.getItem('receipts')) || [];
+            let currentReceiptId = null;
+            
+            // Элементы страниц
+            const createPage = document.getElementById('createPage');
+            const historyPage = document.getElementById('historyPage');
+            const createReceiptBtn = document.getElementById('createReceiptBtn');
+            const historyBtn = document.getElementById('historyBtn');
+            const emptyHistoryMessage = document.getElementById('emptyHistoryMessage');
+            const receiptsTable = document.getElementById('receiptsTable');
+            
+            // Навигация между страницами
+            createReceiptBtn.addEventListener('click', function() {
+                createPage.classList.add('active');
+                historyPage.classList.remove('active');
+                initializeCreatePage();
+            });
+            
+            historyBtn.addEventListener('click', function() {
+                createPage.classList.remove('active');
+                historyPage.classList.add('active');
+                loadReceiptsHistory();
+            });
+            
+            // Инициализация страницы создания чека
+            function initializeCreatePage() {
+                // Установка сегодняшней даты по умолчанию
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('receiptDate').value = today;
+                
+                // Автоматическая нумерация чеков
+                document.getElementById('receiptNumber').value = receiptCounter;
+                
+                // Загрузка сохраненного шаблона
+                const savedTemplate = localStorage.getItem('receiptTemplate');
+                if (savedTemplate) {
+                    const templateData = JSON.parse(savedTemplate);
+                    document.getElementById('customerName').value = templateData.customerName || '';
+                    document.getElementById('customerId').value = templateData.customerId || '';
+                    document.getElementById('customerAddress').value = templateData.customerAddress || '';
+                    document.getElementById('customerPhone').value = templateData.customerPhone || '';
+                }
+                
+                // Инициализация обработчиков для элементов
+                initializeItemHandlers();
+            }
+            
+            // Инициализация обработчиков для элементов товаров
+            function initializeItemHandlers() {
+                // Обработчик для добавления нового элемента
+                document.getElementById('addItem').addEventListener('click', function() {
+                    addNewItemRow();
+                });
+                
+                // Обработчик для изменения типа оплаты
+                document.getElementById('paymentType').addEventListener('change', function() {
+                    const checkFields = document.getElementById('checkFields');
+                    if (this.value === 'צ\'ק') {
+                        checkFields.classList.remove('hidden');
+                        // Устанавливаем сумму чека равной общей сумме
+                        document.getElementById('checkAmount').value = document.getElementById('total').textContent;
+                    } else {
+                        checkFields.classList.add('hidden');
+                    }
+                });
+                
+                // Обработчик для сохранения шаблона
+                document.getElementById('saveTemplate').addEventListener('click', function() {
+                    const templateData = {
+                        customerName: document.getElementById('customerName').value,
+                        customerId: document.getElementById('customerId').value,
+                        customerAddress: document.getElementById('customerAddress').value,
+                        customerPhone: document.getElementById('customerPhone').value
+                    };
+                    
+                    localStorage.setItem('receiptTemplate', JSON.stringify(templateData));
+                    alert('התבנית נשמרה בהצלחה!');
+                });
+                
+                // Добавляем обработчики событий к существующим элементам
+                document.querySelectorAll('#itemsBody tr').forEach(row => {
+                    addItemEventListeners(row);
+                });
+            }
+            
+            // Функция для добавления новой строки товара
+            function addNewItemRow() {
+                const itemsBody = document.getElementById('itemsBody');
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td><input type="text" class="item-details" required></td>
+                    <td><input type="number" class="item-quantity" min="1" value="1" required></td>
+                    <td><input type="number" class="item-price" min="0" step="0.01" required></td>
+                    <td class="item-total">0.00</td>
+                    <td><button type="button" class="remove-item">הסר</button></td>
+                `;
+                itemsBody.appendChild(newRow);
+                
+                // Добавляем обработчики событий для нового элемента
+                addItemEventListeners(newRow);
+            }
+            
+            // Функция для добавления обработчиков событий к элементу
+            function addItemEventListeners(row) {
+                const quantityInput = row.querySelector('.item-quantity');
+                const priceInput = row.querySelector('.item-price');
+                const totalCell = row.querySelector('.item-total');
+                const removeButton = row.querySelector('.remove-item');
+                
+                // Функция для обновления итоговой суммы элемента
+                function updateItemTotal() {
+                    const quantity = parseFloat(quantityInput.value) || 0;
+                    const price = parseFloat(priceInput.value) || 0;
+                    const total = quantity * price;
+                    totalCell.textContent = total.toFixed(2);
+                    updateTotals();
+                }
+                
+                quantityInput.addEventListener('input', updateItemTotal);
+                priceInput.addEventListener('input', updateItemTotal);
+                
+                // Обработчик для удаления элемента
+                removeButton.addEventListener('click', function() {
+                    row.remove();
+                    updateTotals();
+                });
+                
+                // Инициализация суммы при создании
+                updateItemTotal();
+            }
+            
+            // Обработчик для обновления итоговых сумм
+            function updateTotals() {
+                let subtotal = 0;
+                document.querySelectorAll('.item-total').forEach(cell => {
+                    subtotal += parseFloat(cell.textContent) || 0;
+                });
+                
+                const vat = subtotal * 0.18;
+                const total = subtotal + vat;
+                
+                document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+                document.getElementById('vat').textContent = vat.toFixed(2);
+                document.getElementById('total').textContent = total.toFixed(2);
+                
+                // Обновляем сумму чека, если выбран тип оплаты "чек"
+                if (document.getElementById('paymentType').value === 'צ\'ק') {
+                    document.getElementById('checkAmount').value = total.toFixed(2);
+                }
+            }
+            
+            // Обработчик для отправки формы
+            document.getElementById('receiptForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Собираем данные формы
+                const formData = {
+                    id: Date.now().toString(),
+                    receiptNumber: document.getElementById('receiptNumber').value,
+                    customerName: document.getElementById('customerName').value,
+                    customerId: document.getElementById('customerId').value,
+                    customerAddress: document.getElementById('customerAddress').value,
+                    customerPhone: document.getElementById('customerPhone').value,
+                    receiptDate: document.getElementById('receiptDate').value,
+                    paymentType: document.getElementById('paymentType').value,
+                    items: [],
+                    subtotal: document.getElementById('subtotal').textContent,
+                    vat: document.getElementById('vat').textContent,
+                    total: document.getElementById('total').textContent
+                };
+                
+                // Собираем данные о товарах
+                document.querySelectorAll('#itemsBody tr').forEach(row => {
+                    const details = row.querySelector('.item-details').value;
+                    const quantity = row.querySelector('.item-quantity').value;
+                    const price = row.querySelector('.item-price').value;
+                    const total = row.querySelector('.item-total').textContent;
+                    
+                    formData.items.push({
+                        details,
+                        quantity,
+                        price,
+                        total
+                    });
+                });
+                
+                // Добавляем данные о чеке, если выбран этот тип оплаты
+                if (formData.paymentType === 'צ\'ק') {
+                    formData.checkDetails = {
+                        checkNumber: document.getElementById('checkNumber').value,
+                        bank: document.getElementById('bank').value,
+                        checkDate: document.getElementById('checkDate').value,
+                        checkAmount: document.getElementById('checkAmount').value
+                    };
+                }
+                
+                // Сохраняем чек
+                receipts.push(formData);
+                localStorage.setItem('receipts', JSON.stringify(receipts));
+                
+                // Увеличиваем счетчик чеков
+                receiptCounter = parseInt(receiptCounter) + 1;
+                localStorage.setItem('receiptCounter', receiptCounter);
+                
+                alert('הקבלה נשמרה בהצלחה!');
+                
+                // Переходим на страницу истории
+                createPage.classList.remove('active');
+                historyPage.classList.add('active');
+                loadReceiptsHistory();
+            });
+            
+            // Функция для загрузки истории чеков
+            function loadReceiptsHistory() {
+                const receiptsTableBody = document.getElementById('receiptsTableBody');
+                receiptsTableBody.innerHTML = '';
+                
+                if (receipts.length === 0) {
+                    emptyHistoryMessage.classList.remove('hidden');
+                    receiptsTable.classList.add('hidden');
+                } else {
+                    emptyHistoryMessage.classList.add('hidden');
+                    receiptsTable.classList.remove('hidden');
+                    
+                    receipts.forEach(receipt => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${receipt.receiptNumber}</td>
+                            <td>${receipt.customerName || '-'}</td>
+                            <td>${receipt.receiptDate}</td>
+                            <td>${receipt.total} ₪</td>
+                            <td>
+                                <button class="view-receipt" data-id="${receipt.id}">צפה</button>
+                                <button class="delete-receipt" data-id="${receipt.id}">מחק</button>
+                            </td>
+                        `;
+                        receiptsTableBody.appendChild(row);
+                    });
+                    
+                    // Добавляем обработчики событий для кнопок просмотра
+                    document.querySelectorAll('.view-receipt').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const receiptId = this.getAttribute('data-id');
+                            showReceiptPreview(receiptId);
+                        });
+                    });
+                    
+                    // Добавляем обработчики событий для кнопок удаления
+                    document.querySelectorAll('.delete-receipt').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const receiptId = this.getAttribute('data-id');
+                            deleteReceipt(receiptId);
+                        });
+                    });
+                }
+                
+                // Инициализация обработчиков для кнопок предпросмотра
+                document.getElementById('closePreview').addEventListener('click', function() {
+                    document.getElementById('receiptPreview').classList.add('hidden');
+                });
+                
+                document.getElementById('exportPdf').addEventListener('click', function() {
+                    exportToPdf();
+                });
+            }
+            
+            // Функция для показа предпросмотра чека
+            function showReceiptPreview(receiptId) {
+                const receipt = receipts.find(r => r.id === receiptId);
+                if (!receipt) return;
+                
+                currentReceiptId = receiptId;
+                const previewContent = document.getElementById('receiptPreviewContent');
+                
+                // Создаем HTML для предпросмотра чека
+                let itemsHtml = '';
+                receipt.items.forEach(item => {
+                    itemsHtml += `
+                        <tr>
+                            <td>${item.details}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.price}</td>
+                            <td>${item.total}</td>
+                        </tr>
+                    `;
+                });
+                
+                let checkDetailsHtml = '';
+                if (receipt.paymentType === 'צ\'ק' && receipt.checkDetails) {
+                    checkDetailsHtml = `
+                        <div class="payment-details">
+                            <p><strong>שיק מס':</strong> ${receipt.checkDetails.checkNumber}</p>
+                            <p><strong>בנק:</strong> ${receipt.checkDetails.bank}</p>
+                            <p><strong>ז''פ:</strong> ${receipt.checkDetails.checkDate}</p>
+                            <p><strong>ע''ס:</strong> ${receipt.checkDetails.checkAmount}</p>
+                        </div>
+                    `;
+                }
+                
+                // Создаем HTML для клиентских данных (только если они есть)
+                let customerHtml = '';
+                if (receipt.customerName || receipt.customerId || receipt.customerAddress || receipt.customerPhone) {
+                    customerHtml = `
+                        ${receipt.customerName ? `<p><strong>לכבוד:</strong> ${receipt.customerName}</p>` : ''}
+                        ${receipt.customerId ? `<p><strong>ח.פ./ע.מ.:</strong> ${receipt.customerId}</p>` : ''}
+                        ${receipt.customerAddress ? `<p><strong>כתובת:</strong> ${receipt.customerAddress}</p>` : ''}
+                        ${receipt.customerPhone ? `<p><strong>טלפון:</strong> ${receipt.customerPhone}</p>` : ''}
+                    `;
+                }
+                
+                previewContent.innerHTML = `
+                    <div class="header">
+                        <h1>ETUDE</h1>
+                        <p>גרומוב יבגניה</p>
+                        <p>הבה''דים 4, ראשון-לציון, נייד: 0534726469</p>
+                        <p>עוסק מורשה: 346776909</p>
+                    </div>
+                    
+                    <p><strong>חשבונית/קבלה מס':</strong> ${receipt.receiptNumber}</p>
+                    ${customerHtml}
+                    
+                    <h3>פרטים:</h3>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>פרטים</th>
+                                <th>כמות</th>
+                                <th>מחיר ליחידה</th>
+                                <th>סכום בש"ח</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+                    
+                    <div class="total-section">
+                        <div class="total-row">
+                            <span class="total-label">סה"כ לפני מע"מ:</span>
+                            <span>${receipt.subtotal}</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-label">מע"מ 18%:</span>
+                            <span>${receipt.vat}</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-label">סה"כ כולל מע"מ:</span>
+                            <span>${receipt.total}</span>
+                        </div>
+                    </div>
+                    
+                    <p><strong>סוג תשלום:</strong> ${receipt.paymentType}</p>
+                    ${checkDetailsHtml}
+                    
+                    <div class="signature-section">
+                        <div>
+                            <p><strong>תאריך:</strong> ${receipt.receiptDate}</p>
+                        </div>
+                        <div>
+                            <div class="signature-box">
+                                <img src="signature.png" alt="חתימה" class="signature-img" onerror="this.style.display='none'">
+                                חתימה
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('receiptPreview').classList.remove('hidden');
+            }
+            
+            // Функция для удаления чека
+            function deleteReceipt(receiptId) {
+                if (confirm('האם אתה בטוח שברצונך למחוק קבלה זו?')) {
+                    receipts = receipts.filter(r => r.id !== receiptId);
+                    localStorage.setItem('receipts', JSON.stringify(receipts));
+                    loadReceiptsHistory();
+                    
+                    if (currentReceiptId === receiptId) {
+                        document.getElementById('receiptPreview').classList.add('hidden');
+                        currentReceiptId = null;
+                    }
+                }
+            }
+            
+            // Функция для экспорта в PDF
+            function exportToPdf() {
+                if (!currentReceiptId) return;
+                
+                const receipt = receipts.find(r => r.id === currentReceiptId);
+                if (!receipt) return;
+                
+                // Создаем HTML для печати
+                let itemsHtml = '';
+                receipt.items.forEach(item => {
+                    itemsHtml += `
+                        <tr>
+                            <td>${item.details}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.price}</td>
+                            <td>${item.total}</td>
+                        </tr>
+                    `;
+                });
+                
+                let checkDetailsHtml = '';
+                if (receipt.paymentType === 'צ\'ק' && receipt.checkDetails) {
+                    checkDetailsHtml = `
+                        <div class="payment-details">
+                            <p><strong>שיק מס':</strong> ${receipt.checkDetails.checkNumber}</p>
+                            <p><strong>בנק:</strong> ${receipt.checkDetails.bank}</p>
+                            <p><strong>ז''פ:</strong> ${receipt.checkDetails.checkDate}</p>
+                            <p><strong>ע''ס:</strong> ${receipt.checkDetails.checkAmount}</p>
+                        </div>
+                    `;
+                }
+                
+                // Создаем HTML для клиентских данных (только если они есть)
+                let customerHtml = '';
+                if (receipt.customerName || receipt.customerId || receipt.customerAddress || receipt.customerPhone) {
+                    customerHtml = `
+                        ${receipt.customerName ? `<p><strong>לכבוד:</strong> ${receipt.customerName}</p>` : ''}
+                        ${receipt.customerId ? `<p><strong>ח.פ./ע.מ.:</strong> ${receipt.customerId}</p>` : ''}
+                        ${receipt.customerAddress ? `<p><strong>כתובת:</strong> ${receipt.customerAddress}</p>` : ''}
+                        ${receipt.customerPhone ? `<p><strong>טלפון:</strong> ${receipt.customerPhone}</p>` : ''}
+                    `;
+                }
+                
+                const printContainer = document.getElementById('receiptForPrint');
+                printContainer.innerHTML = `
+                    <div class="header">
+                        <h1>ETUDE</h1>
+                        <p>גרומוב יבגניה</p>
+                        <p>הבה''דים 4, ראשון-לציון, נייד: 0534726469</p>
+                        <p>עוסק מורשה: 346776909</p>
+                    </div>
+                    
+                    <p><strong>חשבונית/קבלה מס':</strong> ${receipt.receiptNumber}</p>
+                    ${customerHtml}
+                    
+                    <h3>פרטים:</h3>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>פרטים</th>
+                                <th>כמות</th>
+                                <th>מחיר ליחידה</th>
+                                <th>סכום בש"ח</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+                    
+                    <div class="total-section">
+                        <div class="total-row">
+                            <span class="total-label">סה"כ לפני מע"מ:</span>
+                            <span>${receipt.subtotal}</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-label">מע"מ 18%:</span>
+                            <span>${receipt.vat}</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-label">סה"כ כולל מע"מ:</span>
+                            <span>${receipt.total}</span>
+                        </div>
+                    </div>
+                    
+                    <p><strong>סוג תשלום:</strong> ${receipt.paymentType}</p>
+                    ${checkDetailsHtml}
+                    
+                    <div class="signature-section">
+                        <div>
+                            <p><strong>תאריך:</strong> ${receipt.receiptDate}</p>
+                        </div>
+                        <div>
+                            <div class="signature-box">
+                                <img src="signature.png" alt="חתימה" class="signature-img" onerror="this.style.display='none'">
+                                חתימה
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Показываем контейнер для печати
+                printContainer.classList.remove('hidden');
+                
+                // Создаем PDF
+                html2canvas(printContainer).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210;
+                    const pageHeight = 295;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    
+                    pdf.save(`receipt_${receipt.receiptNumber}.pdf`);
+                    
+                    // Скрываем контейнер для печати
+                    printContainer.classList.add('hidden');
+                });
+            }
+            
+            // Инициализация при загрузке
+            loadReceiptsHistory();
+        });
+    </script>
+</body>
+</html>
