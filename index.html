@@ -214,6 +214,14 @@
             font-size: 18px;
             color: #666;
         }
+        .remove-item {
+            background-color: #f44336 !important;
+            padding: 5px 10px !important;
+            font-size: 12px !important;
+        }
+        .remove-item:hover {
+            background-color: #d32f2f !important;
+        }
     </style>
 </head>
 <body>
@@ -441,10 +449,51 @@
                     document.getElementById('customerAddress').value = templateData.customerAddress || '';
                     document.getElementById('customerPhone').value = templateData.customerPhone || '';
                 }
+                
+                // Инициализация обработчиков для элементов
+                initializeItemHandlers();
             }
             
-            // Обработчик для добавления нового элемента
-            document.getElementById('addItem').addEventListener('click', function() {
+            // Инициализация обработчиков для элементов товаров
+            function initializeItemHandlers() {
+                // Обработчик для добавления нового элемента
+                document.getElementById('addItem').addEventListener('click', function() {
+                    addNewItemRow();
+                });
+                
+                // Обработчик для изменения типа оплаты
+                document.getElementById('paymentType').addEventListener('change', function() {
+                    const checkFields = document.getElementById('checkFields');
+                    if (this.value === 'צ\'ק') {
+                        checkFields.classList.remove('hidden');
+                        // Устанавливаем сумму чека равной общей сумме
+                        document.getElementById('checkAmount').value = document.getElementById('total').textContent;
+                    } else {
+                        checkFields.classList.add('hidden');
+                    }
+                });
+                
+                // Обработчик для сохранения шаблона
+                document.getElementById('saveTemplate').addEventListener('click', function() {
+                    const templateData = {
+                        customerName: document.getElementById('customerName').value,
+                        customerId: document.getElementById('customerId').value,
+                        customerAddress: document.getElementById('customerAddress').value,
+                        customerPhone: document.getElementById('customerPhone').value
+                    };
+                    
+                    localStorage.setItem('receiptTemplate', JSON.stringify(templateData));
+                    alert('התבנית נשמרה בהצלחה!');
+                });
+                
+                // Добавляем обработчики событий к существующим элементам
+                document.querySelectorAll('#itemsBody tr').forEach(row => {
+                    addItemEventListeners(row);
+                });
+            }
+            
+            // Функция для добавления новой строки товара
+            function addNewItemRow() {
                 const itemsBody = document.getElementById('itemsBody');
                 const newRow = document.createElement('tr');
                 newRow.innerHTML = `
@@ -458,7 +507,7 @@
                 
                 // Добавляем обработчики событий для нового элемента
                 addItemEventListeners(newRow);
-            });
+            }
             
             // Функция для добавления обработчиков событий к элементу
             function addItemEventListeners(row) {
@@ -489,11 +538,6 @@
                 updateItemTotal();
             }
             
-            // Добавляем обработчики событий к существующим элементам
-            document.querySelectorAll('#itemsBody tr').forEach(row => {
-                addItemEventListeners(row);
-            });
-            
             // Обработчик для обновления итоговых сумм
             function updateTotals() {
                 let subtotal = 0;
@@ -513,31 +557,6 @@
                     document.getElementById('checkAmount').value = total.toFixed(2);
                 }
             }
-            
-            // Обработчик для изменения типа оплаты
-            document.getElementById('paymentType').addEventListener('change', function() {
-                const checkFields = document.getElementById('checkFields');
-                if (this.value === 'צ\'ק') {
-                    checkFields.classList.remove('hidden');
-                    // Устанавливаем сумму чека равной общей сумме
-                    document.getElementById('checkAmount').value = document.getElementById('total').textContent;
-                } else {
-                    checkFields.classList.add('hidden');
-                }
-            });
-            
-            // Обработчик для сохранения шаблона
-            document.getElementById('saveTemplate').addEventListener('click', function() {
-                const templateData = {
-                    customerName: document.getElementById('customerName').value,
-                    customerId: document.getElementById('customerId').value,
-                    customerAddress: document.getElementById('customerAddress').value,
-                    customerPhone: document.getElementById('customerPhone').value
-                };
-                
-                localStorage.setItem('receiptTemplate', JSON.stringify(templateData));
-                alert('התבנית נשמרה בהצלחה!');
-            });
             
             // Обработчик для отправки формы
             document.getElementById('receiptForm').addEventListener('submit', function(e) {
@@ -643,6 +662,15 @@
                         });
                     });
                 }
+                
+                // Инициализация обработчиков для кнопок предпросмотра
+                document.getElementById('closePreview').addEventListener('click', function() {
+                    document.getElementById('receiptPreview').classList.add('hidden');
+                });
+                
+                document.getElementById('exportPdf').addEventListener('click', function() {
+                    exportToPdf();
+                });
             }
             
             // Функция для показа предпросмотра чека
@@ -763,13 +791,8 @@
                 }
             }
             
-            // Обработчик для закрытия предпросмотра
-            document.getElementById('closePreview').addEventListener('click', function() {
-                document.getElementById('receiptPreview').classList.add('hidden');
-            });
-            
-            // Обработчик для экспорта в PDF
-            document.getElementById('exportPdf').addEventListener('click', function() {
+            // Функция для экспорта в PDF
+            function exportToPdf() {
                 if (!currentReceiptId) return;
                 
                 const receipt = receipts.find(r => r.id === currentReceiptId);
