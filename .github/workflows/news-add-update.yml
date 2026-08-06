@@ -1,0 +1,83 @@
+name: "News: Add or Update Post"
+
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: "Post ID (lowercase-with-hyphens, used in the URL). Reuse an existing ID to update that post."
+        required: true
+        type: string
+      date:
+        description: "Date (YYYY-MM-DD)"
+        required: true
+        type: string
+      image:
+        description: "Image URL (leave blank to use a placeholder)"
+        required: false
+        type: string
+      title_he:
+        description: "Title — Hebrew"
+        required: true
+        type: string
+      title_en:
+        description: "Title — English"
+        required: true
+        type: string
+      title_ru:
+        description: "Title — Russian"
+        required: true
+        type: string
+      body_he:
+        description: "Body — Hebrew (one paragraph, no line breaks)"
+        required: true
+        type: string
+      body_en:
+        description: "Body — English (one paragraph, no line breaks)"
+        required: true
+        type: string
+      body_ru:
+        description: "Body — Russian (one paragraph, no line breaks)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Write news post
+        env:
+          INPUT_ID: ${{ inputs.id }}
+          INPUT_DATE: ${{ inputs.date }}
+          INPUT_IMAGE: ${{ inputs.image }}
+          INPUT_TITLE_HE: ${{ inputs.title_he }}
+          INPUT_TITLE_EN: ${{ inputs.title_en }}
+          INPUT_TITLE_RU: ${{ inputs.title_ru }}
+          INPUT_BODY_HE: ${{ inputs.body_he }}
+          INPUT_BODY_EN: ${{ inputs.body_en }}
+          INPUT_BODY_RU: ${{ inputs.body_ru }}
+        run: node .github/scripts/update-news.mjs
+
+      - name: Commit and push
+        env:
+          POST_ID: ${{ inputs.id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/content/news/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "News: add/update post '${POST_ID}' via workflow"
+            git push
+          fi
