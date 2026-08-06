@@ -1,0 +1,45 @@
+---
+import { ALL_LANGS, LANGUAGES, localizePath, type Lang } from '../lib/languages';
+import { SITE } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+  path: string; // unprefixed path, e.g. '/about'
+  title: string;
+  description: string;
+  ogImage?: string;
+  type?: 'website' | 'article';
+}
+
+const { lang, path, title, description, ogImage, type = 'website' } = Astro.props;
+
+const cleanPath = path === '/' ? '' : path;
+const canonicalUrl = `${SITE.siteUrl}${localizePath(lang, cleanPath || '/')}`;
+const ogImageUrl = ogImage ? `${SITE.siteUrl}${ogImage}` : `${SITE.siteUrl}/images/og-default.jpg`;
+const fullTitle = `${title} | ${SITE.brandNameLocalized[lang]}`;
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+
+{ALL_LANGS.map((l) => (
+  <link rel="alternate" hreflang={LANGUAGES[l].htmlLang} href={`${SITE.siteUrl}${localizePath(l, cleanPath || '/')}`} />
+))}
+<link rel="alternate" hreflang="x-default" href={`${SITE.siteUrl}${localizePath('he', cleanPath || '/')}`} />
+
+<meta property="og:type" content={type} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={ogImageUrl} />
+<meta property="og:locale" content={LANGUAGES[lang].locale} />
+{ALL_LANGS.filter((l) => l !== lang).map((l) => (
+  <meta property="og:locale:alternate" content={LANGUAGES[l].locale} />
+))}
+<meta property="og:site_name" content={SITE.brandNameLocalized[lang]} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageUrl} />

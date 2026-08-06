@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageIntro from '../../../components/PageIntro.astro';
+import NewsCard from '../../../components/NewsCard.astro';
+import { ALL_LANGS, type Lang } from '../../../lib/languages';
+import { translations } from '../../../lib/translations';
+import { getCollection } from 'astro:content';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+
+const allNews = (await getCollection('news')).sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+---
+
+<BaseLayout lang={lang} path="/news" title={copy.news.title} description={copy.news.intro}>
+  <PageIntro title={copy.news.title} intro={copy.news.intro} />
+
+  <section class="section">
+    <div class="container">
+      {allNews.length === 0 ? (
+        <p class="notice">{copy.news.empty}</p>
+      ) : (
+        <div class="grid grid--3">
+          {allNews.map((post) => (
+            <NewsCard
+              lang={lang}
+              id={post.id}
+              date={post.data.date}
+              image={post.data.image}
+              title={post.data.title[lang]}
+              excerpt={post.data.body[lang].slice(0, 110) + (post.data.body[lang].length > 110 ? '…' : '')}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>

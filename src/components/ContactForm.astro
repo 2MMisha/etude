@@ -1,0 +1,78 @@
+---
+import { translations } from '../lib/translations';
+import { SITE } from '../lib/site';
+import type { Lang } from '../lib/languages';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const copy = translations[lang];
+---
+
+<form class="contact-form" action={SITE.formSubmitEndpoint} method="POST">
+  <input type="hidden" name="_subject" value={`New website inquiry — ${SITE.brandNameLocalized[lang]}`} />
+  <input type="hidden" name="_template" value="table" />
+  <input type="hidden" name="_captcha" value="true" />
+  <input type="hidden" name="_language" value={lang} />
+  {/* Honeypot field for basic spam protection */}
+  <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off" />
+
+  <div class="field">
+    <label for="name">{copy.contact.formName}</label>
+    <input id="name" name="name" type="text" required autocomplete="name" />
+  </div>
+
+  <div class="field">
+    <label for="email">{copy.contact.formEmail}</label>
+    <input id="email" name="email" type="email" required autocomplete="email" />
+  </div>
+
+  <div class="field">
+    <label for="phone">{copy.contact.formPhone}</label>
+    <input id="phone" name="phone" type="tel" autocomplete="tel" />
+  </div>
+
+  <div class="field">
+    <label for="message">{copy.contact.formMessage}</label>
+    <textarea id="message" name="message" rows="5" required></textarea>
+  </div>
+
+  <button type="submit" class="btn btn--primary">{copy.contact.formSubmit}</button>
+</form>
+
+<style>
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-width: 520px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-navy-900);
+  }
+  input,
+  textarea {
+    font: inherit;
+    padding: 0.7em 0.85em;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+  input:focus,
+  textarea:focus {
+    border-color: var(--color-blue-500);
+  }
+  .contact-form .btn {
+    align-self: flex-start;
+    margin-block-start: 0.4rem;
+  }
+</style>

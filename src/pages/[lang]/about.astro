@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+---
+
+<BaseLayout lang={lang} path="/about" title={copy.about.title} description={copy.about.intro}>
+  <PageIntro title={copy.about.title} intro={copy.about.intro} />
+
+  <section class="section">
+    <div class="container about-body">
+      <p>{copy.about.body1}</p>
+      <p>{copy.about.body2}</p>
+    </div>
+  </section>
+
+  <section class="section section--surface">
+    <div class="container">
+      <h2>{copy.about.valuesTitle}</h2>
+      <div class="grid grid--3">
+        {copy.about.values.map((v) => (
+          <div class="card">
+            <h3>{v.title}</h3>
+            <p>{v.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .about-body {
+    max-width: 70ch;
+    font-size: 1.05rem;
+  }
+</style>

@@ -1,0 +1,51 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Seo from '../components/Seo.astro';
+import LocalBusinessSchema from '../components/LocalBusinessSchema.astro';
+import Analytics from '../components/Analytics.astro';
+import WhatsAppFloat from '../components/WhatsAppFloat.astro';
+import { LANGUAGES, type Lang } from '../lib/languages';
+import '../styles/global.css';
+
+interface Props {
+  lang: Lang;
+  path: string; // unprefixed path e.g. '/about'
+  title: string;
+  description: string;
+  ogImage?: string;
+  schemaType?: 'website' | 'article';
+}
+
+const { lang, path, title, description, ogImage, schemaType } = Astro.props;
+const { dir } = LANGUAGES[lang];
+---
+
+<!doctype html>
+<html lang={LANGUAGES[lang].htmlLang} dir={dir}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;600;700&family=Noto+Serif+Hebrew:wght@500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <Seo lang={lang} path={path} title={title} description={description} ogImage={ogImage} type={schemaType} />
+    <LocalBusinessSchema lang={lang} />
+    <Analytics />
+    <slot name="head" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <Header lang={lang} path={path} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer lang={lang} />
+    <WhatsAppFloat lang={lang} />
+  </body>
+</html>

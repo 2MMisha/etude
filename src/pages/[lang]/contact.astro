@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ContactForm from '../../components/ContactForm.astro';
+import MapEmbed from '../../components/MapEmbed.astro';
+import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { SITE } from '../../lib/site';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
+---
+
+<BaseLayout lang={lang} path="/contact" title={copy.contact.title} description={copy.contact.intro}>
+  <PageIntro title={copy.contact.title} intro={copy.contact.intro} />
+
+  <section class="section">
+    <div class="container contact-layout">
+      <div>
+        <h2>{copy.contact.formTitle}</h2>
+        <ContactForm lang={lang} />
+      </div>
+
+      <div class="contact-side">
+        <div class="card">
+          <h3>{copy.contact.detailsTitle}</h3>
+          <ul class="contact-list">
+            <li><a href={`tel:${SITE.phone}`}>{SITE.phoneDisplay}</a></li>
+            <li><a href={whatsappHref} target="_blank" rel="noopener noreferrer">{copy.common.whatsapp}</a></li>
+            <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
+            <li>{SITE.address.street}, {SITE.address.cityLocalized[lang]}</li>
+          </ul>
+          <h3>{copy.contact.hoursTitle}</h3>
+          <p dir="ltr">08:00 – 21:00</p>
+        </div>
+
+        <MapEmbed lang={lang} />
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .contact-layout { grid-template-columns: 1fr; }
+  }
+  .contact-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .contact-list {
+    list-style: none;
+    margin: 0 0 var(--space-md);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+</style>

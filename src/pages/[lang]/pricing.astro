@@ -1,0 +1,88 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { SITE } from '../../lib/site';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
+---
+
+<BaseLayout lang={lang} path="/pricing" title={copy.pricing.title} description={copy.pricing.intro}>
+  <PageIntro title={copy.pricing.title} intro={copy.pricing.intro} />
+
+  <section class="section">
+    <div class="container pricing-layout">
+      <div class="card pricing-contact-card">
+        <h2>{copy.pricing.title}</h2>
+        <p>{copy.pricing.contactForPricing}</p>
+        <div class="pricing-actions">
+          <a href={`tel:${SITE.phone}`} class="btn btn--secondary">{copy.common.call}</a>
+          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" class="btn btn--primary">{copy.common.whatsapp}</a>
+          <a href={`mailto:${SITE.email}`} class="btn btn--ghost">{copy.common.email}</a>
+        </div>
+      </div>
+
+      <div>
+        <h2>{copy.pricing.registrationStepsTitle}</h2>
+        <ol class="steps-list">
+          {copy.pricing.registrationSteps.map((step) => (
+            <li>{step}</li>
+          ))}
+        </ol>
+        <a href={localizePath(lang, '/contact')} class="btn btn--secondary">{copy.nav.contact}</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .pricing-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .pricing-layout { grid-template-columns: 1fr; }
+  }
+  .pricing-contact-card { background: var(--color-navy-900); }
+  .pricing-contact-card h2,
+  .pricing-contact-card p { color: #fff; }
+  .pricing-actions {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+    margin-block-start: var(--space-sm);
+  }
+  /* Buttons need on-dark variants inside this navy card — the default
+     btn--primary/--secondary styles assume a light background. */
+  .pricing-contact-card .btn--secondary {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  .pricing-contact-card .btn--secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .pricing-contact-card .btn--primary {
+    background: #fff;
+    color: var(--color-navy-900);
+  }
+  .pricing-contact-card .btn--primary:hover {
+    background: var(--color-silver-100);
+  }
+  .steps-list {
+    padding-inline-start: 1.3em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    color: var(--color-ink-soft);
+    margin-block-end: var(--space-md);
+  }
+</style>

@@ -1,0 +1,103 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { getCollection } from 'astro:content';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+
+const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+const DAY_LABELS: Record<(typeof DAY_ORDER)[number], Record<Lang, string>> = {
+  sunday: { he: 'ראשון', en: 'Sunday', ru: 'Воскресенье' },
+  monday: { he: 'שני', en: 'Monday', ru: 'Понедельник' },
+  tuesday: { he: 'שלישי', en: 'Tuesday', ru: 'Вторник' },
+  wednesday: { he: 'רביעי', en: 'Wednesday', ru: 'Среда' },
+  thursday: { he: 'חמישי', en: 'Thursday', ru: 'Четверг' },
+  friday: { he: 'שישי', en: 'Friday', ru: 'Пятница' },
+  saturday: { he: 'שבת', en: 'Saturday', ru: 'Суббота' },
+};
+const LEVEL_LABELS: Record<string, Record<Lang, string>> = {
+  beginner: { he: 'מתחילים', en: 'Beginner', ru: 'Начинающие' },
+  intermediate: { he: 'ממשיכים', en: 'Intermediate', ru: 'Продолжающие' },
+  advanced: { he: 'מתקדמים', en: 'Advanced', ru: 'Продвинутые' },
+  private: { he: 'פרטי', en: 'Private', ru: 'Индивидуальные' },
+};
+
+const allSlots = await getCollection('schedule');
+const byDay = DAY_ORDER.map((day) => ({
+  day,
+  slots: allSlots
+    .filter((s) => s.data.day === day)
+    .sort((a, b) => a.data.startTime.localeCompare(b.data.startTime)),
+})).filter((group) => group.slots.length > 0);
+---
+
+<BaseLayout lang={lang} path="/schedule" title={copy.schedule.title} description={copy.schedule.intro}>
+  <PageIntro title={copy.schedule.title} intro={copy.schedule.intro} />
+
+  <section class="section">
+    <div class="container">
+      {byDay.length === 0 ? (
+        <p class="notice">{copy.schedule.placeholderNotice}</p>
+      ) : (
+        <div class="schedule-grid">
+          {byDay.map((group) => (
+            <div class="schedule-day card">
+              <h3>{DAY_LABELS[group.day][lang]}</h3>
+              <ul class="schedule-slots">
+                {group.slots.map((slot) => (
+                  <li>
+                    <span class="schedule-time" dir="ltr">{slot.data.startTime}–{slot.data.endTime}</span>
+                    <span class="schedule-name">{slot.data.className[lang]}</span>
+                    <span class="badge">{LEVEL_LABELS[slot.data.level][lang]}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-md);
+  }
+  .schedule-day h3 {
+    border-block-end: 2px solid var(--color-accent);
+    padding-block-end: 0.5rem;
+    margin-block-end: 0.85rem;
+  }
+  .schedule-slots {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .schedule-slots li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .schedule-time {
+    font-size: 0.8rem;
+    color: var(--color-blue-600);
+    font-weight: 700;
+  }
+  .schedule-name {
+    font-weight: 600;
+    color: var(--color-navy-900);
+  }
+  .badge { width: fit-content; }
+</style>

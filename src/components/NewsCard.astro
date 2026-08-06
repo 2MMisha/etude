@@ -1,0 +1,94 @@
+---
+import { localizePath, type Lang } from '../lib/languages';
+import { translations } from '../lib/translations';
+
+interface Props {
+  lang: Lang;
+  id: string;
+  date: string;
+  image?: string;
+  title: string;
+  excerpt: string;
+}
+const { lang, id, date, image, title, excerpt } = Astro.props;
+const copy = translations[lang];
+const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<article class="news-card card">
+  <div class="news-card__image">
+    {image ? (
+      <img src={image} alt="" loading="lazy" />
+    ) : (
+      <div class="news-card__placeholder" aria-hidden="true">
+        <span>{copy.common.placeholderImage}</span>
+      </div>
+    )}
+  </div>
+  <div class="news-card__body">
+    <time datetime={date} class="news-card__date">{formattedDate}</time>
+    <h3><a href={localizePath(lang, `/news/${id}`)}>{title}</a></h3>
+    <p>{excerpt}</p>
+    <a href={localizePath(lang, `/news/${id}`)} class="news-card__link">{copy.common.readMore} &rarr;</a>
+  </div>
+</article>
+
+<style>
+  .news-card {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .news-card__image {
+    aspect-ratio: 16 / 9;
+    background: var(--color-silver-100);
+  }
+  .news-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .news-card__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    padding: var(--space-sm);
+    background: repeating-linear-gradient(
+      135deg,
+      var(--color-silver-100),
+      var(--color-silver-100) 10px,
+      var(--color-silver-200) 10px,
+      var(--color-silver-200) 20px
+    );
+  }
+  .news-card__body {
+    padding: var(--space-md);
+  }
+  .news-card__date {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-blue-600);
+    font-weight: 600;
+    margin-block-end: 0.4rem;
+  }
+  .news-card__body h3 { margin-block-end: 0.4rem; }
+  .news-card__body h3 a {
+    color: var(--color-navy-900);
+    text-decoration: none;
+  }
+  .news-card__body h3 a:hover { text-decoration: underline; }
+  .news-card__link {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+</style>

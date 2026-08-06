@@ -1,0 +1,116 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../../lib/languages';
+import { translations } from '../../../lib/translations';
+import { SITE } from '../../../lib/site';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const allNews = await getCollection('news');
+  return ALL_LANGS.flatMap((lang) =>
+    allNews.map((post) => ({
+      params: { lang, slug: post.id },
+      props: { post },
+    }))
+  );
+}
+
+const { lang } = Astro.params as { lang: Lang };
+const { post } = Astro.props as { post: Awaited<ReturnType<typeof getCollection<'news'>>>[number] };
+const copy = translations[lang];
+
+const title = post.data.title[lang];
+const body = post.data.body[lang];
+const formattedDate = new Date(post.data.date).toLocaleDateString(
+  lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US',
+  { year: 'numeric', month: 'long', day: 'numeric' }
+);
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'NewsArticle',
+  headline: title,
+  datePublished: post.data.date,
+  image: post.data.image || `${SITE.siteUrl}/images/og-default.jpg`,
+  author: { '@type': 'Organization', name: SITE.brandNameLocalized[lang] },
+  publisher: {
+    '@type': 'Organization',
+    name: SITE.brandNameLocalized[lang],
+    logo: { '@type': 'ImageObject', url: `${SITE.siteUrl}/images/logo-circular-512.png` },
+  },
+  mainEntityOfPage: `${SITE.siteUrl}${localizePath(lang, `/news/${post.id}`)}`,
+};
+---
+
+<BaseLayout
+  lang={lang}
+  path={`/news/${post.id}`}
+  title={title}
+  description={body.slice(0, 150)}
+  ogImage={post.data.image}
+  schemaType="article"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  </Fragment>
+
+  <article class="section news-article">
+    <div class="container news-article__inner">
+      <a href={localizePath(lang, '/news')} class="back-link">&larr; {copy.common.backToNews}</a>
+      <time datetime={post.data.date} class="news-article__date">{formattedDate}</time>
+      <h1>{title}</h1>
+      {post.data.image ? (
+        <img src={post.data.image} alt="" class="news-article__image" />
+      ) : (
+        <div class="news-article__placeholder" aria-hidden="true">
+          <span>{copy.common.placeholderImage}</span>
+        </div>
+      )}
+      <p class="news-article__body">{body}</p>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .news-article__inner {
+    max-width: 760px;
+  }
+  .back-link {
+    display: inline-block;
+    margin-block-end: var(--space-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .news-article__date {
+    display: block;
+    color: var(--color-blue-600);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-block-end: 0.4rem;
+  }
+  .news-article__image {
+    width: 100%;
+    border-radius: var(--radius-lg);
+    margin-block: var(--space-md);
+  }
+  .news-article__placeholder {
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-lg);
+    margin-block: var(--space-md);
+    background: repeating-linear-gradient(
+      135deg,
+      var(--color-silver-100),
+      var(--color-silver-100) 10px,
+      var(--color-silver-200) 10px,
+      var(--color-silver-200) 20px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-ink-soft);
+  }
+  .news-article__body {
+    font-size: 1.08rem;
+    white-space: pre-line;
+  }
+</style>

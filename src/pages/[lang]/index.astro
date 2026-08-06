@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { SITE } from '../../lib/site';
+import { getCollection } from 'astro:content';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+
+const allNews = await getCollection('news');
+const latestNews = allNews
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .slice(0, 3);
+---
+
+<BaseLayout lang={lang} path="/" title={copy.home.heroTitle} description={copy.home.heroSubtitle}>
+  <section class="hero">
+    <div class="container hero__inner">
+      <div class="hero__content">
+        <span class="eyebrow">{copy.home.heroEyebrow}</span>
+        <h1>{copy.home.heroTitle}</h1>
+        <p class="hero__subtitle">{copy.home.heroSubtitle}</p>
+        <div class="hero__ctas">
+          <a href={localizePath(lang, '/schedule')} class="btn btn--primary">{copy.home.heroCtaPrimary}</a>
+          <a href={localizePath(lang, '/contact')} class="btn btn--secondary">{copy.home.heroCtaSecondary}</a>
+        </div>
+      </div>
+      <div class="hero__mark" aria-hidden="true">
+        <img src="/images/logo-circular-512.png" alt="" width="320" height="320" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--surface">
+    <div class="container intro">
+      <div class="intro__text">
+        <h2>{copy.home.introTitle}</h2>
+        <p>{copy.home.introBody}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <h2>{copy.home.highlightsTitle}</h2>
+      <div class="grid grid--3">
+        {copy.home.highlights.map((h) => (
+          <div class="card">
+            <h3>{h.title}</h3>
+            <p>{h.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {latestNews.length > 0 && (
+    <section class="section section--surface">
+      <div class="container">
+        <h2>{copy.home.newsTitle}</h2>
+        <div class="grid grid--3">
+          {latestNews.map((post) => (
+            <NewsCard
+              lang={lang}
+              id={post.id}
+              date={post.data.date}
+              image={post.data.image}
+              title={post.data.title[lang]}
+              excerpt={post.data.body[lang].slice(0, 110) + (post.data.body[lang].length > 110 ? '…' : '')}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="section cta-band">
+    <div class="container cta-band__inner">
+      <div>
+        <h2>{copy.home.ctaBandTitle}</h2>
+        <p>{copy.home.ctaBandBody}</p>
+      </div>
+      <a href={localizePath(lang, '/contact')} class="btn btn--primary">{copy.home.heroCtaSecondary}</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    background: linear-gradient(180deg, var(--color-silver-100) 0%, var(--color-ground) 100%);
+    padding-block: var(--space-xl);
+  }
+  .hero__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+  }
+  .hero__content { max-width: 620px; }
+  .hero__subtitle {
+    font-size: 1.1rem;
+    max-width: 52ch;
+  }
+  .hero__ctas {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    margin-block-start: var(--space-sm);
+  }
+  .hero__mark img {
+    filter: drop-shadow(0 20px 45px rgba(11,31,77,0.25));
+  }
+  @media (max-width: 880px) {
+    .hero__inner { flex-direction: column; text-align: center; }
+    .hero__content { max-width: none; }
+    .hero__ctas { justify-content: center; }
+    .hero__mark img { width: 200px; height: 200px; }
+  }
+
+  .intro { text-align: center; }
+  .intro__text { max-width: 720px; margin-inline: auto; }
+
+  .cta-band {
+    background: var(--color-navy-900);
+    color: #fff;
+    border-radius: var(--radius-lg);
+    margin-inline: var(--space-sm);
+  }
+  .cta-band__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+  .cta-band h2 { color: #fff; }
+  .cta-band p { color: var(--color-silver-200); margin: 0; }
+</style>

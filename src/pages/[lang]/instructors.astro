@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+
+// Placeholder roster — swap in real names, photos, and bios once provided
+// (see README "Where to swap placeholder assets").
+const placeholderInstructors = [1, 2];
+---
+
+<BaseLayout lang={lang} path="/instructors" title={copy.instructors.title} description={copy.instructors.intro}>
+  <PageIntro title={copy.instructors.title} intro={copy.instructors.intro} />
+
+  <section class="section">
+    <div class="container">
+      <p class="notice">{copy.instructors.placeholderNotice}</p>
+
+      <div class="grid grid--2 instructor-grid">
+        {placeholderInstructors.map((n) => (
+          <div class="card instructor-card">
+            <div class="instructor-card__photo" aria-hidden="true">
+              <span>{copy.common.placeholderImage}</span>
+            </div>
+            <div>
+              <h3>{lang === 'he' ? `שם המדריך/ה ${n}` : lang === 'ru' ? `Имя преподавателя ${n}` : `Instructor name ${n}`}</h3>
+              <p>
+                {lang === 'he'
+                  ? 'פרטי הכשרה, ניסיון וסגנונות הוראה יתעדכנו כאן בקרוב.'
+                  : lang === 'ru'
+                    ? 'Информация об образовании, опыте и стилях преподавания будет добавлена в ближайшее время.'
+                    : 'Training background, experience, and teaching styles will be added here soon.'}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .instructor-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: 0;
+    overflow: hidden;
+  }
+  .instructor-card__photo {
+    aspect-ratio: 4 / 3;
+    background: repeating-linear-gradient(
+      135deg,
+      var(--color-silver-100),
+      var(--color-silver-100) 10px,
+      var(--color-silver-200) 10px,
+      var(--color-silver-200) 20px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    padding: var(--space-sm);
+  }
+  .instructor-card > div:last-child {
+    padding: 0 var(--space-md) var(--space-md);
+  }
+</style>

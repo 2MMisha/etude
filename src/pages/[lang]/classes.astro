@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang];
+---
+
+<BaseLayout lang={lang} path="/classes" title={copy.classes.title} description={copy.classes.intro}>
+  <PageIntro title={copy.classes.title} intro={copy.classes.intro} />
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid--3">
+        {copy.classes.categories.map((c) => (
+          <div class="card">
+            <h3>{c.title}</h3>
+            <p>{c.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--surface">
+    <div class="container">
+      <h2>{copy.classes.levelsTitle}</h2>
+      <div class="grid grid--2">
+        {copy.classes.levels.map((l) => (
+          <div class="card card--level">
+            <h3>{l.title}</h3>
+            <p>{l.body}</p>
+          </div>
+        ))}
+      </div>
+      <p class="classes-cta">
+        {copy.classes.cta}
+        {' '}
+        <a href={localizePath(lang, '/schedule')}>{copy.nav.schedule}</a>
+        {' · '}
+        <a href={localizePath(lang, '/contact')}>{copy.nav.contact}</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .card--level { background: var(--color-ground); }
+  .classes-cta {
+    margin-block-start: var(--space-md);
+    font-weight: 600;
+    color: var(--color-navy-900);
+  }
+</style>
