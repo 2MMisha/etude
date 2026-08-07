@@ -16,6 +16,8 @@ const STATIC_ROUTES = [
   '/pricing',
   '/news',
   '/contact',
+  '/privacy',
+  '/accessibility',
 ];
 
 export const GET: APIRoute = async () => {
@@ -32,6 +34,18 @@ export const GET: APIRoute = async () => {
       `Instagram: ${SITE.social.instagram}.`
   );
   lines.push('');
+  if (SITE.promo.active) {
+    const promoParts: string[] = [];
+    if (SITE.promo.freeTrialLesson) {
+      promoParts.push('the first group trial class is free');
+    }
+    promoParts.push(
+      `new immigrants (Olim) receive a subscription discount of ${SITE.promo.olimDiscount.year1}% in year 1, ` +
+        `${SITE.promo.olimDiscount.year2}% in year 2, and ${SITE.promo.olimDiscount.year3}% in year 3`
+    );
+    lines.push(`Current offers: ${promoParts.join('; ')}.`);
+    lines.push('');
+  }
   lines.push('The site is available in three languages: Hebrew (default), English, and Russian, at the paths below.');
   lines.push('');
 

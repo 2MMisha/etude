@@ -35,7 +35,10 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     <div class="footer-col">
       <h3>{copy.contact.hoursTitle}</h3>
       <p dir="ltr">08:00 – 21:00</p>
-      <a href={SITE.social.instagram} target="_blank" rel="noopener noreferrer" class="footer-social">Instagram</a>
+      <div class="footer-social-list">
+        <a href={SITE.social.instagram} target="_blank" rel="noopener noreferrer" class="footer-social">Instagram</a>
+        <a href={SITE.googleMapsUrl} target="_blank" rel="noopener noreferrer" class="footer-social">{copy.common.viewOnGoogleMaps}</a>
+      </div>
     </div>
 
     <div class="footer-col">
@@ -51,6 +54,10 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
 
   <div class="container footer-bottom">
     <p>&copy; {year} {SITE.brandNameLocalized[lang]}. {copy.common.allRightsReserved}.</p>
+    <div class="footer-legal">
+      <a href={localizePath(lang, '/privacy')}>{copy.common.privacy}</a>
+      <a href={localizePath(lang, '/accessibility')}>{copy.common.accessibility}</a>
+    </div>
   </div>
 </footer>
 
@@ -117,15 +124,37 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     color: #fff;
     text-decoration: underline;
   }
+  .footer-social-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-block-start: 0.75rem;
+  }
   .footer-social {
-    display: inline-block;
-    margin-block-start: 0.5rem;
+    display: block;
   }
   .footer-bottom {
     border-block-start: 1px solid rgba(255,255,255,0.12);
     padding-block: var(--space-sm);
     font-size: 0.82rem;
     color: var(--color-silver-300);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
   }
   .footer-bottom p { margin: 0; }
+  .footer-legal {
+    display: flex;
+    gap: var(--space-sm);
+  }
+  .footer-legal a {
+    color: var(--color-silver-300);
+    text-decoration: none;
+  }
+  .footer-legal a:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
 </style>

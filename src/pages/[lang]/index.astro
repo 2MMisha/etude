@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import NewsCard from '../../components/NewsCard.astro';
+import Testimonials from '../../components/Testimonials.astro';
+import PromoBanner from '../../components/PromoBanner.astro';
 import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 import { SITE } from '../../lib/site';
@@ -27,13 +29,19 @@ const latestNews = allNews
         <h1>{copy.home.heroTitle}</h1>
         <p class="hero__subtitle">{copy.home.heroSubtitle}</p>
         <div class="hero__ctas">
-          <a href={localizePath(lang, '/schedule')} class="btn btn--primary">{copy.home.heroCtaPrimary}</a>
-          <a href={localizePath(lang, '/contact')} class="btn btn--secondary">{copy.home.heroCtaSecondary}</a>
+          <a href={localizePath(lang, '/contact')} class="btn btn--primary">{copy.home.heroCtaPrimary}</a>
+          <a href={localizePath(lang, '/schedule')} class="btn btn--secondary">{copy.home.heroCtaSecondary}</a>
         </div>
       </div>
       <div class="hero__mark" aria-hidden="true">
         <img src="/images/logo-circular-512.png" alt="" width="320" height="320" />
       </div>
+    </div>
+  </section>
+
+  <section class="section--tight">
+    <div class="container">
+      <PromoBanner lang={lang} />
     </div>
   </section>
 
@@ -59,6 +67,8 @@ const latestNews = allNews
       </div>
     </div>
   </section>
+
+  <Testimonials lang={lang} />
 
   {latestNews.length > 0 && (
     <section class="section section--surface">
@@ -86,7 +96,7 @@ const latestNews = allNews
         <h2>{copy.home.ctaBandTitle}</h2>
         <p>{copy.home.ctaBandBody}</p>
       </div>
-      <a href={localizePath(lang, '/contact')} class="btn btn--primary">{copy.home.heroCtaSecondary}</a>
+      <a href={localizePath(lang, '/contact')} class="btn btn--primary">{copy.home.heroCtaPrimary}</a>
     </div>
   </section>
 </BaseLayout>
@@ -141,4 +151,13 @@ const latestNews = allNews
   }
   .cta-band h2 { color: #fff; }
   .cta-band p { color: var(--color-silver-200); margin: 0; }
+  /* Same fix as the Pricing page card: btn--primary defaults to a navy
+     background, which is invisible against this section's own navy bg. */
+  .cta-band .btn--primary {
+    background: #fff;
+    color: var(--color-navy-900);
+  }
+  .cta-band .btn--primary:hover {
+    background: var(--color-silver-100);
+  }
 </style>

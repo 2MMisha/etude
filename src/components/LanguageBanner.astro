@@ -1,0 +1,102 @@
+---
+import { ALL_LANGS, LANGUAGES, localizePath, type Lang } from '../lib/languages';
+import { translations } from '../lib/translations';
+
+interface Props {
+  lang: Lang;
+  path: string;
+}
+const { lang, path } = Astro.props;
+const copy = translations[lang].common;
+
+// Build a small lookup the client script can use: for each other supported
+// language, its label and localized URL for the current page.
+const alternatives = ALL_LANGS.filter((l) => l !== lang).map((l) => ({
+  code: l,
+  label: LANGUAGES[l].label,
+  href: localizePath(l, path),
+}));
+---
+
+<div
+  id="lang-banner"
+  class="lang-banner"
+  data-current={lang}
+  data-alternatives={JSON.stringify(alternatives)}
+  data-dismiss-label={copy.dismiss}
+  data-prefix={copy.availableInLangPrefix}
+  hidden
+>
+  <span class="lang-banner__text"></span>
+  <a class="lang-banner__link" href="#"></a>
+  <button type="button" class="lang-banner__dismiss" aria-label={copy.dismiss}>&times;</button>
+</div>
+
+<script>
+  (function () {
+    const el = document.getElementById('lang-banner');
+    if (!el) return;
+
+    const current = el.dataset.current;
+    const alternatives = JSON.parse(el.dataset.alternatives || '[]');
+    const storageKey = 'etude-lang-banner-dismissed';
+
+    if (localStorage.getItem(storageKey) === '1') return;
+
+    const browserLangs = navigator.languages || [navigator.language];
+    let match = null;
+    for (const bl of browserLangs) {
+      const code = bl.slice(0, 2).toLowerCase();
+      const found = alternatives.find((a) => a.code === code);
+      if (found) {
+        match = found;
+        break;
+      }
+    }
+    if (!match) return;
+
+    const textEl = el.querySelector('.lang-banner__text');
+    const linkEl = el.querySelector('.lang-banner__link');
+    const dismissBtn = el.querySelector('.lang-banner__dismiss');
+
+    textEl.textContent = el.dataset.prefix || '';
+    linkEl.textContent = match.label;
+    linkEl.href = match.href;
+
+    dismissBtn.addEventListener('click', () => {
+      localStorage.setItem(storageKey, '1');
+      el.hidden = true;
+    });
+
+    el.hidden = false;
+  })();
+</script>
+
+<style>
+  .lang-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--color-navy-900);
+    color: #fff;
+    font-size: 0.85rem;
+    padding: 0.55rem var(--space-sm);
+    text-align: center;
+  }
+  .lang-banner__link {
+    color: #fff;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  .lang-banner__dismiss {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.3rem;
+    margin-inline-start: 0.4rem;
+  }
+</style>

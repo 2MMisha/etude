@@ -1,0 +1,54 @@
+---
+import { translations } from '../lib/translations';
+import { SITE } from '../lib/site';
+import type { Lang } from '../lib/languages';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const copy = translations[lang].promo;
+---
+
+{SITE.promo.active && (
+  <div class="promo-banner">
+    <span class="badge promo-banner__badge">{copy.badge}</span>
+    <div class="grid grid--2 promo-banner__grid">
+      {SITE.promo.freeTrialLesson && (
+        <div class="promo-item">
+          <h3>{copy.trialTitle}</h3>
+          <p>{copy.trialBody}</p>
+        </div>
+      )}
+      <div class="promo-item">
+        <h3>{copy.olimTitle}</h3>
+        <p>{copy.olimBody}</p>
+      </div>
+    </div>
+  </div>
+)}
+
+<style>
+  .promo-banner {
+    background: linear-gradient(135deg, var(--color-navy-900), var(--color-blue-600));
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-md) var(--space-lg);
+    color: #fff;
+  }
+  .promo-banner__badge {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    margin-block-end: var(--space-sm);
+  }
+  .promo-banner__grid {
+    margin-block-start: var(--space-xs);
+  }
+  .promo-item h3 {
+    color: #fff;
+    margin-block-end: 0.4rem;
+  }
+  .promo-item p {
+    color: var(--color-silver-200);
+    margin: 0;
+  }
+</style>

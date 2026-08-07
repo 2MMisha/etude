@@ -12,7 +12,6 @@ const { lat, lng } = SITE.geo;
 const delta = 0.01;
 const bbox = `${lng - delta}%2C${lat - delta}%2C${lng + delta}%2C${lat + delta}`;
 const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
-const externalLink = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
 ---
 
 <div class="map-embed">
@@ -22,8 +21,8 @@ const externalLink = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map
     loading="lazy"
     referrerpolicy="no-referrer-when-downgrade"
   ></iframe>
-  <a href={externalLink} target="_blank" rel="noopener noreferrer" class="map-embed__link">
-    {copy.common.viewOnMap} &rarr;
+  <a href={SITE.googleMapsUrl} target="_blank" rel="noopener noreferrer" class="map-embed__link">
+    {copy.common.viewOnGoogleMaps} &rarr;
   </a>
 </div>
 

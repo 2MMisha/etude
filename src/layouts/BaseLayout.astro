@@ -4,6 +4,8 @@ import Footer from '../components/Footer.astro';
 import Seo from '../components/Seo.astro';
 import LocalBusinessSchema from '../components/LocalBusinessSchema.astro';
 import Analytics from '../components/Analytics.astro';
+import AccessibilityWidget from '../components/AccessibilityWidget.astro';
+import LanguageBanner from '../components/LanguageBanner.astro';
 import WhatsAppFloat from '../components/WhatsAppFloat.astro';
 import { LANGUAGES, type Lang } from '../lib/languages';
 import '../styles/global.css';
@@ -41,11 +43,13 @@ const { dir } = LANGUAGES[lang];
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
+    <LanguageBanner lang={lang} path={path} />
     <Header lang={lang} path={path} />
     <main id="main">
       <slot />
     </main>
     <Footer lang={lang} />
+    <AccessibilityWidget />
     <WhatsAppFloat lang={lang} />
   </body>
 </html>

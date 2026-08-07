@@ -1,8 +1,11 @@
 ---
 import { DEFAULT_LANG } from '../lib/languages';
-// This page exists only to route "/" to the right language.
-// No-JS clients get an instant meta-refresh to the Hebrew default;
-// JS clients get redirected based on their browser language first.
+// "/" itself carries no content — it always serves the Hebrew default via an
+// instant meta-refresh (works with and without JS). We deliberately do NOT
+// auto-redirect based on browser language here: a silent redirect on first
+// visit is bad practice for returning visitors and SEO crawling. Instead,
+// LanguageBanner.astro (shown on every real page) offers a one-click,
+// dismissible suggestion to switch language based on the visitor's browser.
 ---
 
 <!doctype html>
@@ -12,19 +15,6 @@ import { DEFAULT_LANG } from '../lib/languages';
     <meta http-equiv="refresh" content={`0; url=/${DEFAULT_LANG}/`} />
     <link rel="canonical" href={`/${DEFAULT_LANG}/`} />
     <title>ETUDE Dance School</title>
-    <script>
-      const supported = ['he', 'en', 'ru'];
-      const browserLangs = navigator.languages || [navigator.language];
-      let target = 'he';
-      for (const bl of browserLangs) {
-        const code = bl.slice(0, 2).toLowerCase();
-        if (supported.includes(code)) {
-          target = code;
-          break;
-        }
-      }
-      window.location.replace(`/${target}/`);
-    </script>
   </head>
   <body>
     <p>Redirecting… <a href="/he/">ETUDE Dance School</a></p>

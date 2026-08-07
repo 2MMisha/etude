@@ -118,7 +118,35 @@ Several things are placeholders until real content is ready:
 
 ---
 
-## 5. Activating Google Analytics (GA4)
+## 5. Activating the accessibility widget (Tabnav)
+
+The site includes an inert integration point for the Tabnav accessibility widget (the same provider used on law.ristar.co), plus a full Accessibility Statement page in all 3 languages describing it.
+
+1. Sign up at https://tabnav.com/get-free-widget (free plan is sufficient to start) with `etude.ristar.co` as the domain.
+2. Tabnav will email a ready-to-paste `<script>` embed snippet.
+3. Open `src/lib/site.ts` and paste it verbatim into `tabnavEmbedCode`:
+   ```ts
+   tabnavEmbedCode: '<script src="...">...</script>',
+   ```
+4. Commit and push — the widget will start loading sitewide on the next deploy, and the accessibility icon will appear for visitors.
+
+Until this is set, the integration renders nothing (same inert-until-configured pattern as GA4 below) — the Accessibility Statement page still works and describes the widget for when it's turned on.
+
+## 6. Promotions (free trial class + Olim discount)
+
+Both are configured in `src/lib/site.ts` under `promo`, and shown on the Home page and the Pricing page automatically:
+
+```ts
+promo: {
+  active: true,           // set to false to hide both promos sitewide
+  freeTrialLesson: true,  // set to false to hide just the free-trial line
+  olimDiscount: { year1: 90, year2: 50, year3: 15 },
+},
+```
+
+The discount percentages feed directly into the copy in `src/lib/translations.ts` (`promo.olimBody` per language) — if the numbers ever change, update both the `site.ts` values (used for future logic/consistency) and the wording in `translations.ts` (since the copy is static text, not auto-generated from the numbers).
+
+## 7. Activating Google Analytics (GA4)
 
 Analytics is wired in but inert (no tracking script loads) until a real Measurement ID is set.
 
@@ -131,7 +159,7 @@ Analytics is wired in but inert (no tracking script loads) until a real Measurem
 
 ---
 
-## 6. Activating / changing the contact form
+## 8. Activating / changing the contact form
 
 The contact form on the Contact page posts to FormSubmit (formsubmit.co) — no backend required, delivers straight to **2mmedia.il@gmail.com**.
 
@@ -141,7 +169,7 @@ To change the destination email or form behavior, edit `formSubmitEndpoint` in `
 
 ---
 
-## 7. SEO & AI-search files (auto-generated — nothing to maintain by hand)
+## 9. SEO & AI-search files (auto-generated — nothing to maintain by hand)
 
 These are regenerated on every build, always in sync with real content:
 
@@ -152,12 +180,13 @@ These are regenerated on every build, always in sync with real content:
 
 ---
 
-## 8. Project structure (for developers)
+## 10. Project structure (for developers)
 
 ```
 src/
   lib/
-    site.ts              — central business config: address, phone, hours, socials, GA4 ID, etc.
+    site.ts              — central business config: address, phone, hours, socials, GA4 ID,
+                            Google Maps link, promo settings, Tabnav embed code, etc.
     languages.ts          — supported languages, RTL/LTR, path helpers
     translations.ts        — all static UI copy in HE/EN/RU (first-pass draft — see note below)
   content.config.ts       — Zod schemas for the News and Schedule collections
@@ -165,12 +194,19 @@ src/
     news/*.json            — one file per news post (edit via GitHub Actions, not by hand)
     schedule/*.json         — one file per class slot (edit via GitHub Actions, not by hand)
   components/              — Header, Footer, SEO tags, JSON-LD, forms, cards, map, etc.
-  layouts/BaseLayout.astro  — shared page shell: <head>, header, footer, WhatsApp button
+    Testimonials.astro       — homepage testimonials (placeholder quotes — swap in real ones)
+    PromoBanner.astro         — free trial class + Olim discount banner (Home + Pricing)
+    Faq.astro                  — FAQ accordion with FAQPage schema (Pricing page)
+    LanguageBanner.astro        — dismissible "view this site in X" suggestion banner
+    AccessibilityWidget.astro    — Tabnav widget embed, inert until configured
+  layouts/BaseLayout.astro  — shared page shell: <head>, language banner, header, footer,
+                              accessibility widget, WhatsApp button
   pages/
-    index.astro             — redirects "/" to the right language
+    index.astro             — redirects "/" to the Hebrew default (no-JS meta refresh only)
     [lang]/                  — one folder, three languages generated via getStaticPaths
       index.astro, about.astro, classes.astro, schedule.astro, instructors.astro,
-      gallery.astro, pricing.astro, contact.astro, news/index.astro, news/[slug].astro
+      gallery.astro, pricing.astro, contact.astro, privacy.astro, accessibility.astro,
+      news/index.astro, news/[slug].astro
     llms.txt.ts               — generates /llms.txt at build time
 .github/
   workflows/
@@ -183,6 +219,10 @@ src/
     update-news.mjs                — validates & writes the news JSON file
     update-schedule.mjs             — validates & writes the schedule JSON file
 ```
+
+### A note on testimonials
+
+The 3 testimonials on the homepage (`src/components/Testimonials.astro` → `translations.ts`) are clearly-marked **placeholders** — generic roles, not real names — meant only to preview the design. Replace them with real student testimonials (with permission) before launch; don't leave placeholder quotes live on the public site.
 
 ### A note on the copy
 

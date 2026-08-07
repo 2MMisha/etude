@@ -1,0 +1,48 @@
+---
+import { translations } from '../lib/translations';
+import type { Lang } from '../lib/languages';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const copy = translations[lang].testimonials;
+---
+
+<section class="section section--surface testimonials">
+  <div class="container">
+    <h2>{copy.title}</h2>
+    <p class="notice testimonials__notice">{copy.placeholderNotice}</p>
+    <div class="grid grid--3">
+      {copy.items.map((item) => (
+        <figure class="card testimonial-card">
+          <blockquote>“{item.quote}”</blockquote>
+          <figcaption>{item.role}</figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonials__notice {
+    margin-block-end: var(--space-md);
+  }
+  .testimonial-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .testimonial-card blockquote {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: var(--color-navy-900);
+    line-height: 1.5;
+  }
+  .testimonial-card figcaption {
+    font-size: 0.85rem;
+    color: var(--color-blue-600);
+    font-weight: 600;
+  }
+</style>

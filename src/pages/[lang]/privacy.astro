@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang].privacy;
+---
+
+<BaseLayout lang={lang} path="/privacy" title={copy.title} description={copy.intro}>
+  <PageIntro title={copy.title} intro={copy.intro} />
+
+  <section class="section">
+    <div class="container legal-body">
+      <p class="notice legal-updated">{copy.updatedNote}</p>
+      {copy.sections.map((s) => (
+        <div class="legal-section">
+          <h2>{s.title}</h2>
+          <p>{s.body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-body {
+    max-width: 72ch;
+  }
+  .legal-updated {
+    margin-block-end: var(--space-md);
+  }
+  .legal-section {
+    margin-block-end: var(--space-md);
+  }
+  .legal-section h2 {
+    font-size: 1.2rem;
+  }
+</style>

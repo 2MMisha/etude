@@ -1,0 +1,10 @@
+---
+// Renders the Tabnav accessibility widget embed snippet verbatim once the
+// client has signed up at tabnav.com and pasted their code into
+// SITE.tabnavEmbedCode (see README). Inert (renders nothing) until then —
+// same pattern as the GA4 component.
+import { SITE } from '../lib/site';
+const embedCode = SITE.tabnavEmbedCode;
+---
+
+{embedCode && <Fragment set:html={embedCode} />}

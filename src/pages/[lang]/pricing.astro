@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
+import PromoBanner from '../../components/PromoBanner.astro';
+import Faq from '../../components/Faq.astro';
 import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 import { SITE } from '../../lib/site';
@@ -15,6 +17,12 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
 
 <BaseLayout lang={lang} path="/pricing" title={copy.pricing.title} description={copy.pricing.intro}>
   <PageIntro title={copy.pricing.title} intro={copy.pricing.intro} />
+
+  <section class="section--tight">
+    <div class="container">
+      <PromoBanner lang={lang} />
+    </div>
+  </section>
 
   <section class="section">
     <div class="container pricing-layout">
@@ -39,6 +47,8 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
       </div>
     </div>
   </section>
+
+  <Faq lang={lang} />
 </BaseLayout>
 
 <style>

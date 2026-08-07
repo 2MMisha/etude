@@ -62,6 +62,30 @@ export const SITE = {
     instagram: 'https://www.instagram.com/etude_il/',
   },
 
+  // Google Business Profile — client-provided link, used as the primary
+  // "view on map" / "get directions" destination sitewide.
+  googleMapsUrl: 'https://maps.app.goo.gl/xrAfJ9uFRuBK4Zvb8?g_st=ic',
+
+  // Promotions — shown on Home and Pricing. Set promoActive to false to hide
+  // sitewide once a promotion period ends, without deleting the copy.
+  promo: {
+    active: true,
+    freeTrialLesson: true,
+    olimDiscount: {
+      year1: 90,
+      year2: 50,
+      year3: 15,
+    },
+  },
+
+  // Accessibility widget (Tabnav) — same provider used on law.ristar.co.
+  // Inert until a real embed snippet is issued for this domain. Sign up at
+  // https://tabnav.com/get-free-widget with etude.ristar.co as the domain;
+  // they'll email a ready-to-paste <script> snippet — paste it verbatim
+  // into tabnavEmbedCode below (see README section on the accessibility
+  // widget for details). Left blank, no accessibility widget loads.
+  tabnavEmbedCode: '',
+
   // Analytics — inert until a real ID is supplied. Leave as-is to ship with
   // analytics disabled; replace with a real G-XXXXXXX ID to activate.
   ga4MeasurementId: '', // e.g. 'G-XXXXXXXXXX'

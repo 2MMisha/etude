@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { SITE } from '../../lib/site';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang].accessibility;
+---
+
+<BaseLayout lang={lang} path="/accessibility" title={copy.title} description={copy.intro}>
+  <PageIntro title={copy.title} intro={copy.intro} />
+
+  <section class="section">
+    <div class="container legal-body">
+      <p class="notice legal-updated">{copy.updatedNote}</p>
+      {copy.sections.map((s) => (
+        <div class="legal-section">
+          <h2>{s.title}</h2>
+          <p>{s.body}</p>
+        </div>
+      ))}
+
+      <div class="legal-section card coordinator-card">
+        <h2>{copy.coordinatorTitle}</h2>
+        <ul class="coordinator-list">
+          <li><a href={`tel:${SITE.phone}`}>{SITE.phoneDisplay}</a></li>
+          <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-body {
+    max-width: 72ch;
+  }
+  .legal-updated {
+    margin-block-end: var(--space-md);
+  }
+  .legal-section {
+    margin-block-end: var(--space-md);
+  }
+  .legal-section h2 {
+    font-size: 1.2rem;
+  }
+  .coordinator-card {
+    margin-block-start: var(--space-lg);
+  }
+  .coordinator-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
