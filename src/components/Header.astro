@@ -16,7 +16,6 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
   { key: 'classes', href: '/classes' },
   { key: 'schedule', href: '/schedule' },
   { key: 'instructors', href: '/instructors' },
-  { key: 'gallery', href: '/gallery' },
   { key: 'pricing', href: '/pricing' },
   { key: 'news', href: '/news' },
   { key: 'contact', href: '/contact' },
@@ -26,7 +25,7 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
 <header class="site-header">
   <div class="container site-header__row">
     <a href={localizePath(lang, '/')} class="brand" aria-label={SITE.brandNameLocalized[lang]}>
-      <img src="/images/logo-circular-192.png" alt="" width="44" height="44" class="brand__mark" />
+      <img src="/images/brand/icon.svg" alt="" width="38" height="38" class="brand__mark" />
       <span class="brand__name">{SITE.brandNameLocalized[lang]}</span>
     </a>
 
@@ -85,7 +84,7 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
     text-decoration: none;
   }
   .brand:hover { text-decoration: none; }
-  .brand__mark { border-radius: 50%; }
+  .brand__mark { display: block; }
   .brand__name {
     font-family: var(--font-display);
     font-size: 1.3rem;

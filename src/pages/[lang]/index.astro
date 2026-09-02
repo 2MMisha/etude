@@ -34,7 +34,7 @@ const latestNews = allNews
         </div>
       </div>
       <div class="hero__mark" aria-hidden="true">
-        <img src="/images/logo-circular-512.png" alt="" width="320" height="320" />
+        <img src="/images/brand/logo-full.svg" alt="" width="380" />
       </div>
     </div>
   </section>
@@ -103,7 +103,10 @@ const latestNews = allNews
 
 <style>
   .hero {
-    background: linear-gradient(180deg, var(--color-silver-100) 0%, var(--color-ground) 100%);
+    background:
+      linear-gradient(180deg, rgba(250, 249, 246, 0.75) 0%, rgba(250, 249, 246, 1) 100%),
+      url('/images/brand/bg.png');
+    background-size: auto, 420px auto;
     padding-block: var(--space-xl);
   }
   .hero__inner {
@@ -124,13 +127,13 @@ const latestNews = allNews
     margin-block-start: var(--space-sm);
   }
   .hero__mark img {
-    filter: drop-shadow(0 20px 45px rgba(11,31,77,0.25));
+    filter: drop-shadow(0 20px 45px rgba(30,47,99,0.2));
   }
   @media (max-width: 880px) {
     .hero__inner { flex-direction: column; text-align: center; }
     .hero__content { max-width: none; }
     .hero__ctas { justify-content: center; }
-    .hero__mark img { width: 200px; height: 200px; }
+    .hero__mark img { width: 220px; height: auto; }
   }
 
   .intro { text-align: center; }

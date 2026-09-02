@@ -12,7 +12,6 @@ const STATIC_ROUTES = [
   '/classes',
   '/schedule',
   '/instructors',
-  '/gallery',
   '/pricing',
   '/news',
   '/contact',

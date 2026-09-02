@@ -16,6 +16,7 @@ export default defineConfig({
           ru: 'ru-RU',
         },
       },
+      filter: (page) => !page.includes('/admin'),
     }),
   ],
 });

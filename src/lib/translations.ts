@@ -11,7 +11,6 @@ export const translations = {
       classes: 'שיעורים',
       schedule: 'לוח זמנים',
       instructors: 'צוות ההוראה',
-      gallery: 'גלריה',
       pricing: 'מחירים והרשמה',
       news: 'חדשות',
       contact: 'צור קשר',
@@ -102,11 +101,6 @@ export const translations = {
       title: 'צוות ההוראה',
       intro: 'מדריכים מוסמכים ומנוסים, שמלווים כל תלמיד באופן אישי.',
       placeholderNotice: 'פרופילי המדריכים המלאים יעלו בקרוב.',
-    },
-    gallery: {
-      title: 'גלריה',
-      intro: 'רגעים מהסטודיו, מהשיעורים ומהאירועים שלנו.',
-      placeholderNotice: 'תמונות וסרטונים מהסטודיו יעלו כאן בקרוב.',
     },
     pricing: {
       title: 'מחירים והרשמה',
@@ -254,7 +248,6 @@ export const translations = {
       classes: 'Classes',
       schedule: 'Schedule',
       instructors: 'Instructors',
-      gallery: 'Gallery',
       pricing: 'Pricing & Registration',
       news: 'News',
       contact: 'Contact',
@@ -345,11 +338,6 @@ export const translations = {
       title: 'Instructors',
       intro: 'Certified, experienced instructors who guide every student personally.',
       placeholderNotice: 'Full instructor profiles are coming soon.',
-    },
-    gallery: {
-      title: 'Gallery',
-      intro: 'Moments from the studio, our classes, and our events.',
-      placeholderNotice: 'Photos and videos from the studio will be added here soon.',
     },
     pricing: {
       title: 'Pricing & Registration',
@@ -497,7 +485,6 @@ export const translations = {
       classes: 'Занятия',
       schedule: 'Расписание',
       instructors: 'Преподаватели',
-      gallery: 'Галерея',
       pricing: 'Цены и запись',
       news: 'Новости',
       contact: 'Контакты',
@@ -588,11 +575,6 @@ export const translations = {
       title: 'Преподаватели',
       intro: 'Сертифицированные, опытные преподаватели, которые сопровождают каждого ученика лично.',
       placeholderNotice: 'Полные профили преподавателей будут добавлены в ближайшее время.',
-    },
-    gallery: {
-      title: 'Галерея',
-      intro: 'Моменты из жизни студии, занятий и мероприятий.',
-      placeholderNotice: 'Фото и видео из студии появятся здесь в ближайшее время.',
     },
     pricing: {
       title: 'Цены и запись',

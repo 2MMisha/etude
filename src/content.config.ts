@@ -2,9 +2,9 @@ import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
 // Each News post is one JSON file per entry: src/content/news/<id>.json
-// Written/updated by staff via the "News: Add or Update Post" GitHub Actions
-// workflow (see .github/workflows/news-add-update.yml) — do not hand-edit
-// unless you're comfortable with the JSON format.
+// Written/updated by staff via the hidden /admin/ panel (see README
+// "Editing content: the admin panel") — do not hand-edit unless you're
+// comfortable with the JSON format.
 const news = defineCollection({
   loader: glob({ pattern: '**/*.json', base: 'src/content/news' }),
   schema: z.object({
@@ -17,7 +17,7 @@ const news = defineCollection({
 });
 
 // Each Schedule entry is one JSON file per class slot: src/content/schedule/<id>.json
-// Written/updated via the "Schedule: Add or Update Slot" workflow.
+// Written/updated via the hidden /admin/ panel.
 const schedule = defineCollection({
   loader: glob({ pattern: '**/*.json', base: 'src/content/schedule' }),
   schema: z.object({

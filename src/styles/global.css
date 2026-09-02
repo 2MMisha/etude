@@ -1,16 +1,16 @@
 /*
-  Design tokens — derived from the ETUDE badge logo.
-  Palette: deep navy (#0B1F4D family), a mid sapphire blue for accents,
-  warm platinum/silver for the metallic ring, and a warm off-white ground
-  (not pure white) so the navy and silver both have room to read as premium
-  rather than corporate-blue-on-white.
+  Design tokens — derived from the real ETUDE brand mark (public/images/brand),
+  a hand-lettered "ETUDE" wordmark in a single brand blue, #2f4b9b.
+  --color-blue-600 is that exact brand color; the navy shades are darker steps
+  of it (for headings/footer/dark surfaces), and blue-500 is a lighter tint
+  (for hover states) — everything else (silver/ground/ink) stays neutral.
 */
 :root {
-  --color-navy-900: #0b1f4d;
-  --color-navy-800: #132a63;
-  --color-navy-700: #1d3a7f;
-  --color-blue-600: #2c57a6;
-  --color-blue-500: #3f6bc0;
+  --color-navy-900: #1e2f63;
+  --color-navy-800: #263a7c;
+  --color-navy-700: #2e4696;
+  --color-blue-600: #2f4b9b;
+  --color-blue-500: #5570b8;
 
   --color-silver-300: #d7dbe3;
   --color-silver-200: #e7e9ee;
@@ -37,8 +37,8 @@
   --space-lg: 3rem;
   --space-xl: 5rem;
 
-  --shadow-card: 0 12px 30px -18px rgba(11, 31, 77, 0.35);
-  --shadow-lift: 0 20px 45px -20px rgba(11, 31, 77, 0.45);
+  --shadow-card: 0 12px 30px -18px rgba(30, 47, 99, 0.35);
+  --shadow-lift: 0 20px 45px -20px rgba(30, 47, 99, 0.45);
 
   --max-width: 1180px;
 }

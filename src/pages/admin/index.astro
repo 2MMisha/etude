@@ -1,0 +1,726 @@
+---
+// Hidden staff-only content panel — replaces the old GitHub Actions
+// "News/Schedule: Add/Update/Delete" workflows with a proper in-browser UI.
+// Not linked from any nav; gated by a password + a GitHub token the admin
+// supplies themselves. See README "Editing content: the admin panel".
+import { SITE } from '../../lib/site';
+import { ADMIN_PASSWORD_SHA256, ADMIN_BRANCH } from '../../lib/adminConfig';
+import '../../styles/global.css';
+
+const REPO_OWNER = SITE.githubOrg;
+const REPO_NAME = SITE.repoName;
+---
+
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <title>ETUDE — Admin</title>
+    <style>
+      body { background: var(--color-ground); }
+      .admin-shell { max-width: 880px; margin-inline: auto; padding: var(--space-lg) var(--space-sm) var(--space-xl); }
+      .admin-brand { display: flex; align-items: center; gap: 0.6rem; margin-block-end: var(--space-md); }
+      .admin-brand img { width: 32px; height: 32px; }
+      .admin-brand span { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--color-navy-900); }
+
+      .lock-screen { max-width: 360px; margin: 15vh auto 0; text-align: center; }
+      .lock-screen input { width: 100%; padding: 0.7em 0.9em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); font-size: 1rem; margin-block: var(--space-sm); }
+      .lock-error { color: #b3261e; font-size: 0.9rem; min-height: 1.4em; }
+
+      .warning-box {
+        background: #fff7e6; border: 1px solid #f0c674; border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md); font-size: 0.88rem; color: #6b4e00; margin-block-end: var(--space-md);
+      }
+      .warning-box strong { display: block; margin-block-end: 0.3em; }
+
+      .panel { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-md); margin-block-end: var(--space-lg); }
+      .panel h2 { margin-block-end: 0.4em; }
+      .panel .hint { font-size: 0.85rem; color: var(--color-ink-soft); margin-block-end: var(--space-sm); }
+      .token-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+      .token-row input[type="password"], .token-row input[type="text"] { flex: 1; min-width: 220px; padding: 0.55em 0.7em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
+      .token-status { font-size: 0.85rem; margin-block-start: 0.5em; }
+      .token-status.ok { color: #1b7a3d; }
+      .token-status.bad { color: #b3261e; }
+
+      .tabs { display: flex; gap: 0.5rem; margin-block-end: var(--space-md); }
+      .tab-btn { padding: 0.5em 1.1em; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+      .tab-btn.active { background: var(--color-navy-900); color: #fff; border-color: var(--color-navy-900); }
+
+      table.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      table.data-table th, table.data-table td { text-align: left; padding: 0.5em 0.6em; border-block-end: 1px solid var(--color-line); vertical-align: top; }
+      table.data-table td.actions { white-space: nowrap; }
+      table.data-table td.actions button { margin-inline-end: 0.4em; }
+
+      .btn-mini { padding: 0.35em 0.8em; font-size: 0.82rem; border-radius: var(--radius-sm); border: 1px solid var(--color-line); background: var(--color-silver-100); cursor: pointer; }
+      .btn-mini.danger { color: #b3261e; border-color: #eab8b3; }
+      .btn-mini.primary { background: var(--color-navy-900); color: #fff; border-color: var(--color-navy-900); }
+
+      .form-grid { display: grid; gap: 0.7rem; margin-block-start: var(--space-sm); }
+      .form-grid label { display: block; font-size: 0.85rem; font-weight: 600; margin-block-end: 0.25em; color: var(--color-ink); }
+      .form-grid input, .form-grid select, .form-grid textarea { width: 100%; padding: 0.55em 0.7em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.95rem; }
+      .form-grid textarea { min-height: 4.5em; resize: vertical; }
+      .lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+      @media (max-width: 700px) { .lang-grid { grid-template-columns: 1fr; } }
+      .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+      @media (max-width: 700px) { .row-3 { grid-template-columns: 1fr; } }
+
+      .field-error { color: #b3261e; font-size: 0.8rem; margin-block-start: 0.2em; }
+      .form-actions { display: flex; gap: 0.6rem; margin-block-start: var(--space-sm); align-items: center; }
+      .status-msg { font-size: 0.88rem; padding: 0.5em 0; }
+      .status-msg.ok { color: #1b7a3d; }
+      .status-msg.bad { color: #b3261e; }
+      .status-msg.pending { color: var(--color-ink-soft); }
+
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shell">
+      <div class="admin-brand">
+        <img src="/images/brand/icon.svg" alt="" />
+        <span>ETUDE — Admin</span>
+      </div>
+
+      <div id="lockScreen" class="lock-screen">
+        <h1 style="font-size:1.3rem">Staff access</h1>
+        <p class="hint">Enter the admin password to continue.</p>
+        <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password" />
+        <button class="btn-mini primary" id="unlockBtn" style="width:100%; padding-block:0.6em;">Unlock</button>
+        <p class="lock-error" id="lockError"></p>
+      </div>
+
+      <div id="adminMain" hidden>
+        <div class="warning-box">
+          <strong>How this works</strong>
+          This page writes directly to the site's GitHub repository using a personal access token you provide below —
+          it is stored only in this browser (localStorage), never sent anywhere but api.github.com. Don't use this on a
+          shared or public computer, and use a token scoped to only this one repository. Saving a post or slot here
+          pushes a commit to <code>{REPO_OWNER}/{REPO_NAME}</code>, which rebuilds the live site automatically within
+          about 1–2 minutes.
+        </div>
+
+        <div class="panel">
+          <h2 style="font-size:1.05rem">GitHub access</h2>
+          <p class="hint">
+            Create a fine-grained token at
+            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">github.com/settings/personal-access-tokens/new</a>
+            scoped to the <code>{REPO_OWNER}/{REPO_NAME}</code> repository only, with <strong>Contents: Read and write</strong> permission.
+          </p>
+          <div class="token-row">
+            <input type="password" id="tokenInput" placeholder="GitHub personal access token" autocomplete="off" />
+            <button class="btn-mini primary" id="saveTokenBtn">Save token</button>
+            <button class="btn-mini" id="forgetTokenBtn">Forget token</button>
+            <button class="btn-mini" id="lockBtn">Lock panel</button>
+          </div>
+          <p class="token-status" id="tokenStatus"></p>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" id="tabNewsBtn">News posts</button>
+          <button class="tab-btn" id="tabScheduleBtn">Schedule slots</button>
+        </div>
+
+        <section id="newsSection">
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h2 style="font-size:1.05rem">News posts</h2>
+              <button class="btn-mini primary" id="newNewsBtn">+ New post</button>
+            </div>
+            <p class="status-msg" id="newsListStatus"></p>
+            <div style="overflow-x:auto">
+              <table class="data-table" id="newsTable" hidden>
+                <thead><tr><th>Date</th><th>Title (EN)</th><th>ID</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="newsForm" hidden>
+            <h2 style="font-size:1.05rem" id="newsFormTitle">New post</h2>
+            <div class="form-grid">
+              <div>
+                <label for="newsId">Post ID (lowercase, hyphens only — reusing an existing ID overwrites it)</label>
+                <input type="text" id="newsId" placeholder="autumn-open-house" />
+                <p class="field-error" id="newsIdError"></p>
+              </div>
+              <div>
+                <label for="newsDate">Date</label>
+                <input type="date" id="newsDate" />
+                <p class="field-error" id="newsDateError"></p>
+              </div>
+              <div>
+                <label for="newsImage">Image URL (optional)</label>
+                <input type="text" id="newsImage" placeholder="https://…" />
+              </div>
+              <div>
+                <label>Title</label>
+                <div class="lang-grid">
+                  <input type="text" id="newsTitleHe" placeholder="עברית" dir="rtl" />
+                  <input type="text" id="newsTitleEn" placeholder="English" />
+                  <input type="text" id="newsTitleRu" placeholder="Русский" />
+                </div>
+              </div>
+              <div>
+                <label>Body</label>
+                <div class="lang-grid">
+                  <textarea id="newsBodyHe" placeholder="עברית" dir="rtl"></textarea>
+                  <textarea id="newsBodyEn" placeholder="English"></textarea>
+                  <textarea id="newsBodyRu" placeholder="Русский"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-mini primary" id="saveNewsBtn">Save post</button>
+              <button class="btn-mini" id="cancelNewsBtn">Cancel</button>
+              <span class="status-msg" id="newsSaveStatus"></span>
+            </div>
+          </div>
+        </section>
+
+        <section id="scheduleSection" hidden>
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h2 style="font-size:1.05rem">Schedule slots</h2>
+              <button class="btn-mini primary" id="newSlotBtn">+ New slot</button>
+            </div>
+            <p class="status-msg" id="scheduleListStatus"></p>
+            <div style="overflow-x:auto">
+              <table class="data-table" id="scheduleTable" hidden>
+                <thead><tr><th>Day</th><th>Time</th><th>Class (EN)</th><th>Level</th><th>ID</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="scheduleForm" hidden>
+            <h2 style="font-size:1.05rem" id="scheduleFormTitle">New slot</h2>
+            <div class="form-grid">
+              <div>
+                <label for="slotId">Slot ID (lowercase, hyphens only — reusing an existing ID overwrites it)</label>
+                <input type="text" id="slotId" placeholder="mon-latin-beginner" />
+                <p class="field-error" id="slotIdError"></p>
+              </div>
+              <div class="row-3">
+                <div>
+                  <label for="slotDay">Day</label>
+                  <select id="slotDay">
+                    <option value="sunday">Sunday</option>
+                    <option value="monday">Monday</option>
+                    <option value="tuesday">Tuesday</option>
+                    <option value="wednesday">Wednesday</option>
+                    <option value="thursday">Thursday</option>
+                    <option value="friday">Friday</option>
+                    <option value="saturday">Saturday</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="slotLevel">Level</label>
+                  <select id="slotLevel">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
+                <div></div>
+              </div>
+              <div class="row-3">
+                <div>
+                  <label for="slotStart">Start time (24h)</label>
+                  <input type="time" id="slotStart" />
+                </div>
+                <div>
+                  <label for="slotEnd">End time (24h)</label>
+                  <input type="time" id="slotEnd" />
+                </div>
+                <div></div>
+              </div>
+              <p class="field-error" id="slotTimeError"></p>
+              <div>
+                <label>Class name</label>
+                <div class="lang-grid">
+                  <input type="text" id="slotNameHe" placeholder="עברית" dir="rtl" />
+                  <input type="text" id="slotNameEn" placeholder="English" />
+                  <input type="text" id="slotNameRu" placeholder="Русский" />
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-mini primary" id="saveSlotBtn">Save slot</button>
+              <button class="btn-mini" id="cancelSlotBtn">Cancel</button>
+              <span class="status-msg" id="scheduleSaveStatus"></span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script define:vars={{ REPO_OWNER, REPO_NAME, ADMIN_BRANCH, ADMIN_PASSWORD_SHA256 }}>
+      const NEWS_DIR = 'src/content/news';
+      const SCHEDULE_DIR = 'src/content/schedule';
+      const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+      const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- Password gate ----------
+      async function sha256Hex(text) {
+        const data = new TextEncoder().encode(text);
+        const digest = await crypto.subtle.digest('SHA-256', data);
+        return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+      }
+
+      function showMain() {
+        $('lockScreen').hidden = true;
+        $('adminMain').hidden = false;
+        initAdmin();
+      }
+
+      if (sessionStorage.getItem('etudeAdminUnlocked') === '1') {
+        showMain();
+      }
+
+      $('unlockBtn').addEventListener('click', tryUnlock);
+      $('passwordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+
+      async function tryUnlock() {
+        const value = $('passwordInput').value;
+        const hash = await sha256Hex(value);
+        if (hash === ADMIN_PASSWORD_SHA256) {
+          sessionStorage.setItem('etudeAdminUnlocked', '1');
+          $('lockError').textContent = '';
+          showMain();
+        } else {
+          $('lockError').textContent = 'Incorrect password.';
+        }
+      }
+
+      $('lockBtn').addEventListener('click', () => {
+        sessionStorage.removeItem('etudeAdminUnlocked');
+        location.reload();
+      });
+
+      // ---------- UTF-8 safe base64 ----------
+      function b64Encode(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))));
+      }
+      function b64Decode(b64) {
+        return decodeURIComponent(atob(b64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+      }
+
+      // ---------- GitHub API ----------
+      function getToken() { return localStorage.getItem('etudeAdminGhToken') || ''; }
+
+      async function ghRequest(path, options = {}) {
+        const token = getToken();
+        const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            ...(options.headers || {}),
+          },
+        });
+        return res;
+      }
+
+      async function ghGetFile(path) {
+        const res = await ghRequest(`${path}?ref=${ADMIN_BRANCH}`);
+        if (res.status === 404) return null;
+        if (!res.ok) throw await ghError(res);
+        const data = await res.json();
+        return { sha: data.sha, content: b64Decode(data.content.replace(/\n/g, '')) };
+      }
+
+      async function ghListDir(dir) {
+        const res = await ghRequest(`${dir}?ref=${ADMIN_BRANCH}`);
+        if (res.status === 404) return [];
+        if (!res.ok) throw await ghError(res);
+        return res.json();
+      }
+
+      async function ghPutFile(path, obj, sha, message) {
+        const body = {
+          message,
+          content: b64Encode(JSON.stringify(obj, null, 2) + '\n'),
+          branch: ADMIN_BRANCH,
+        };
+        if (sha) body.sha = sha;
+        const res = await ghRequest(path, { method: 'PUT', body: JSON.stringify(body) });
+        if (!res.ok) throw await ghError(res);
+        return res.json();
+      }
+
+      async function ghDeleteFile(path, sha, message) {
+        const res = await ghRequest(path, {
+          method: 'DELETE',
+          body: JSON.stringify({ message, sha, branch: ADMIN_BRANCH }),
+        });
+        if (!res.ok) throw await ghError(res);
+        return res.json();
+      }
+
+      async function ghError(res) {
+        let msg = `${res.status} ${res.statusText}`;
+        try {
+          const data = await res.json();
+          if (data.message) msg = `${res.status}: ${data.message}`;
+        } catch {}
+        return new Error(msg);
+      }
+
+      // ---------- Token panel ----------
+      function refreshTokenUi() {
+        const token = getToken();
+        $('tokenInput').value = token ? '••••••••••••' : '';
+        $('tokenStatus').textContent = token ? 'A token is saved in this browser.' : 'No token saved yet.';
+        $('tokenStatus').className = 'token-status ' + (token ? 'ok' : '');
+      }
+
+      $('saveTokenBtn').addEventListener('click', async () => {
+        const value = $('tokenInput').value.trim();
+        if (!value || value.startsWith('••')) return;
+        localStorage.setItem('etudeAdminGhToken', value);
+        refreshTokenUi();
+        $('tokenStatus').textContent = 'Checking access…';
+        $('tokenStatus').className = 'token-status';
+        try {
+          const res = await ghRequest('');
+          if (res.ok || res.status === 404) {
+            $('tokenStatus').textContent = 'Token saved and repository is reachable.';
+            $('tokenStatus').className = 'token-status ok';
+            loadNews();
+            loadSchedule();
+          } else {
+            throw await ghError(res);
+          }
+        } catch (err) {
+          $('tokenStatus').textContent = 'Token saved, but access check failed: ' + err.message;
+          $('tokenStatus').className = 'token-status bad';
+        }
+      });
+
+      $('forgetTokenBtn').addEventListener('click', () => {
+        localStorage.removeItem('etudeAdminGhToken');
+        refreshTokenUi();
+      });
+
+      // ---------- Tabs ----------
+      $('tabNewsBtn').addEventListener('click', () => switchTab('news'));
+      $('tabScheduleBtn').addEventListener('click', () => switchTab('schedule'));
+      function switchTab(which) {
+        $('tabNewsBtn').classList.toggle('active', which === 'news');
+        $('tabScheduleBtn').classList.toggle('active', which === 'schedule');
+        $('newsSection').hidden = which !== 'news';
+        $('scheduleSection').hidden = which !== 'schedule';
+      }
+
+      // ---------- News ----------
+      let newsCache = [];
+
+      async function loadNews() {
+        $('newsListStatus').textContent = 'Loading…';
+        $('newsListStatus').className = 'status-msg pending';
+        try {
+          const files = await ghListDir(NEWS_DIR);
+          newsCache = await Promise.all(
+            files.filter((f) => f.name.endsWith('.json')).map(async (f) => {
+              const file = await ghGetFile(f.path);
+              const data = JSON.parse(file.content);
+              return { id: f.name.replace(/\.json$/, ''), sha: file.sha, data };
+            })
+          );
+          newsCache.sort((a, b) => (b.data.date || '').localeCompare(a.data.date || ''));
+          renderNewsTable();
+          $('newsListStatus').textContent = newsCache.length ? '' : 'No posts yet.';
+          $('newsListStatus').className = 'status-msg';
+        } catch (err) {
+          $('newsListStatus').textContent = 'Could not load posts: ' + err.message;
+          $('newsListStatus').className = 'status-msg bad';
+        }
+      }
+
+      function renderNewsTable() {
+        const table = $('newsTable');
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = '';
+        table.hidden = newsCache.length === 0;
+        for (const post of newsCache) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(post.data.date || '')}</td>
+            <td>${escapeHtml(post.data.title?.en || '')}</td>
+            <td><code>${escapeHtml(post.id)}</code></td>
+            <td class="actions"></td>
+          `;
+          const actionsTd = tr.querySelector('.actions');
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn-mini';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => openNewsForm(post));
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-mini danger';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', () => deleteNews(post));
+          actionsTd.append(editBtn, delBtn);
+          tbody.appendChild(tr);
+        }
+      }
+
+      let editingNewsId = null;
+      let editingNewsSha = null;
+
+      $('newNewsBtn').addEventListener('click', () => openNewsForm(null));
+      $('cancelNewsBtn').addEventListener('click', () => { $('newsForm').hidden = true; });
+
+      function openNewsForm(post) {
+        $('newsForm').hidden = false;
+        $('newsSaveStatus').textContent = '';
+        $('newsIdError').textContent = '';
+        $('newsDateError').textContent = '';
+        if (post) {
+          $('newsFormTitle').textContent = 'Edit post: ' + post.id;
+          $('newsId').value = post.id;
+          $('newsId').disabled = true;
+          $('newsDate').value = post.data.date || '';
+          $('newsImage').value = post.data.image || '';
+          $('newsTitleHe').value = post.data.title?.he || '';
+          $('newsTitleEn').value = post.data.title?.en || '';
+          $('newsTitleRu').value = post.data.title?.ru || '';
+          $('newsBodyHe').value = post.data.body?.he || '';
+          $('newsBodyEn').value = post.data.body?.en || '';
+          $('newsBodyRu').value = post.data.body?.ru || '';
+          editingNewsId = post.id;
+          editingNewsSha = post.sha;
+        } else {
+          $('newsFormTitle').textContent = 'New post';
+          $('newsId').value = '';
+          $('newsId').disabled = false;
+          $('newsDate').value = '';
+          $('newsImage').value = '';
+          $('newsTitleHe').value = '';
+          $('newsTitleEn').value = '';
+          $('newsTitleRu').value = '';
+          $('newsBodyHe').value = '';
+          $('newsBodyEn').value = '';
+          $('newsBodyRu').value = '';
+          editingNewsId = null;
+          editingNewsSha = null;
+        }
+        $('newsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      $('saveNewsBtn').addEventListener('click', async () => {
+        const id = (editingNewsId || $('newsId').value).trim().toLowerCase();
+        $('newsIdError').textContent = '';
+        $('newsDateError').textContent = '';
+        if (!SLUG_PATTERN.test(id)) {
+          $('newsIdError').textContent = 'Use lowercase letters, numbers, and hyphens only (e.g. "autumn-open-house").';
+          return;
+        }
+        const date = $('newsDate').value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          $('newsDateError').textContent = 'Pick a date.';
+          return;
+        }
+        const post = {
+          date,
+          image: $('newsImage').value.trim(),
+          title: { he: $('newsTitleHe').value, en: $('newsTitleEn').value, ru: $('newsTitleRu').value },
+          body: { he: $('newsBodyHe').value, en: $('newsBodyEn').value, ru: $('newsBodyRu').value },
+        };
+        for (const [lang, val] of Object.entries(post.title)) {
+          if (!val.trim()) { $('newsIdError').textContent = `Title (${lang}) is required.`; return; }
+        }
+        for (const [lang, val] of Object.entries(post.body)) {
+          if (!val.trim()) { $('newsIdError').textContent = `Body (${lang}) is required.`; return; }
+        }
+        $('newsSaveStatus').textContent = 'Saving…';
+        $('newsSaveStatus').className = 'status-msg pending';
+        try {
+          const sha = editingNewsId === id ? editingNewsSha : null;
+          await ghPutFile(`${NEWS_DIR}/${id}.json`, post, sha, `chore(news): ${editingNewsId ? 'update' : 'add'} "${id}" via admin panel`);
+          $('newsSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
+          $('newsSaveStatus').className = 'status-msg ok';
+          $('newsForm').hidden = true;
+          loadNews();
+        } catch (err) {
+          $('newsSaveStatus').textContent = 'Save failed: ' + err.message;
+          $('newsSaveStatus').className = 'status-msg bad';
+        }
+      });
+
+      async function deleteNews(post) {
+        if (!confirm(`Delete news post "${post.id}"? This cannot be undone.`)) return;
+        try {
+          await ghDeleteFile(`${NEWS_DIR}/${post.id}.json`, post.sha, `chore(news): delete "${post.id}" via admin panel`);
+          loadNews();
+        } catch (err) {
+          alert('Delete failed: ' + err.message);
+        }
+      }
+
+      // ---------- Schedule ----------
+      let scheduleCache = [];
+
+      async function loadSchedule() {
+        $('scheduleListStatus').textContent = 'Loading…';
+        $('scheduleListStatus').className = 'status-msg pending';
+        try {
+          const files = await ghListDir(SCHEDULE_DIR);
+          scheduleCache = await Promise.all(
+            files.filter((f) => f.name.endsWith('.json')).map(async (f) => {
+              const file = await ghGetFile(f.path);
+              const data = JSON.parse(file.content);
+              return { id: f.name.replace(/\.json$/, ''), sha: file.sha, data };
+            })
+          );
+          const dayOrder = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          scheduleCache.sort((a, b) => dayOrder.indexOf(a.data.day) - dayOrder.indexOf(b.data.day) || a.data.startTime.localeCompare(b.data.startTime));
+          renderScheduleTable();
+          $('scheduleListStatus').textContent = scheduleCache.length ? '' : 'No slots yet.';
+          $('scheduleListStatus').className = 'status-msg';
+        } catch (err) {
+          $('scheduleListStatus').textContent = 'Could not load slots: ' + err.message;
+          $('scheduleListStatus').className = 'status-msg bad';
+        }
+      }
+
+      function renderScheduleTable() {
+        const table = $('scheduleTable');
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = '';
+        table.hidden = scheduleCache.length === 0;
+        for (const slot of scheduleCache) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(slot.data.day || '')}</td>
+            <td>${escapeHtml(slot.data.startTime || '')}–${escapeHtml(slot.data.endTime || '')}</td>
+            <td>${escapeHtml(slot.data.className?.en || '')}</td>
+            <td>${escapeHtml(slot.data.level || '')}</td>
+            <td><code>${escapeHtml(slot.id)}</code></td>
+            <td class="actions"></td>
+          `;
+          const actionsTd = tr.querySelector('.actions');
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn-mini';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => openSlotForm(slot));
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-mini danger';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', () => deleteSlot(slot));
+          actionsTd.append(editBtn, delBtn);
+          tbody.appendChild(tr);
+        }
+      }
+
+      let editingSlotId = null;
+      let editingSlotSha = null;
+
+      $('newSlotBtn').addEventListener('click', () => openSlotForm(null));
+      $('cancelSlotBtn').addEventListener('click', () => { $('scheduleForm').hidden = true; });
+
+      function openSlotForm(slot) {
+        $('scheduleForm').hidden = false;
+        $('scheduleSaveStatus').textContent = '';
+        $('slotIdError').textContent = '';
+        $('slotTimeError').textContent = '';
+        if (slot) {
+          $('scheduleFormTitle').textContent = 'Edit slot: ' + slot.id;
+          $('slotId').value = slot.id;
+          $('slotId').disabled = true;
+          $('slotDay').value = slot.data.day;
+          $('slotLevel').value = slot.data.level;
+          $('slotStart').value = slot.data.startTime;
+          $('slotEnd').value = slot.data.endTime;
+          $('slotNameHe').value = slot.data.className?.he || '';
+          $('slotNameEn').value = slot.data.className?.en || '';
+          $('slotNameRu').value = slot.data.className?.ru || '';
+          editingSlotId = slot.id;
+          editingSlotSha = slot.sha;
+        } else {
+          $('scheduleFormTitle').textContent = 'New slot';
+          $('slotId').value = '';
+          $('slotId').disabled = false;
+          $('slotDay').value = 'sunday';
+          $('slotLevel').value = 'beginner';
+          $('slotStart').value = '';
+          $('slotEnd').value = '';
+          $('slotNameHe').value = '';
+          $('slotNameEn').value = '';
+          $('slotNameRu').value = '';
+          editingSlotId = null;
+          editingSlotSha = null;
+        }
+        $('scheduleForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      $('saveSlotBtn').addEventListener('click', async () => {
+        const id = (editingSlotId || $('slotId').value).trim().toLowerCase();
+        $('slotIdError').textContent = '';
+        $('slotTimeError').textContent = '';
+        if (!SLUG_PATTERN.test(id)) {
+          $('slotIdError').textContent = 'Use lowercase letters, numbers, and hyphens only (e.g. "mon-latin-beginner").';
+          return;
+        }
+        const startTime = $('slotStart').value;
+        const endTime = $('slotEnd').value;
+        if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) {
+          $('slotTimeError').textContent = 'Pick both a start and end time.';
+          return;
+        }
+        const slot = {
+          day: $('slotDay').value,
+          startTime,
+          endTime,
+          level: $('slotLevel').value,
+          className: { he: $('slotNameHe').value, en: $('slotNameEn').value, ru: $('slotNameRu').value },
+        };
+        for (const [lang, val] of Object.entries(slot.className)) {
+          if (!val.trim()) { $('slotIdError').textContent = `Class name (${lang}) is required.`; return; }
+        }
+        $('scheduleSaveStatus').textContent = 'Saving…';
+        $('scheduleSaveStatus').className = 'status-msg pending';
+        try {
+          const sha = editingSlotId === id ? editingSlotSha : null;
+          await ghPutFile(`${SCHEDULE_DIR}/${id}.json`, slot, sha, `chore(schedule): ${editingSlotId ? 'update' : 'add'} "${id}" via admin panel`);
+          $('scheduleSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
+          $('scheduleSaveStatus').className = 'status-msg ok';
+          $('scheduleForm').hidden = true;
+          loadSchedule();
+        } catch (err) {
+          $('scheduleSaveStatus').textContent = 'Save failed: ' + err.message;
+          $('scheduleSaveStatus').className = 'status-msg bad';
+        }
+      });
+
+      async function deleteSlot(slot) {
+        if (!confirm(`Delete schedule slot "${slot.id}"? This cannot be undone.`)) return;
+        try {
+          await ghDeleteFile(`${SCHEDULE_DIR}/${slot.id}.json`, slot.sha, `chore(schedule): delete "${slot.id}" via admin panel`);
+          loadSchedule();
+        } catch (err) {
+          alert('Delete failed: ' + err.message);
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      // ---------- Init ----------
+      function initAdmin() {
+        refreshTokenUi();
+        if (getToken()) {
+          loadNews();
+          loadSchedule();
+        }
+      }
+    </script>
+  </body>
+</html>
