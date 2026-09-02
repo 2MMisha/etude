@@ -1,7 +1,10 @@
 // Central business configuration.
-// Non-technical staff should NOT need to touch this file — it's for the
-// developer to update phone/address/socials/etc. For News & Schedule content,
-// use the hidden /admin/ panel instead (see README).
+// The fields sourced from settings below are editable by staff through the
+// hidden /admin/ panel's "Site settings" tab (see README) — everything else
+// here (domain, brand, taglines, address locality/region, opening days,
+// analytics/accessibility embeds) is developer-only and rarely changes, so
+// it stays a plain code edit.
+import settings from '../data/site-settings.json';
 
 export const SITE = {
   // Domain & repo
@@ -26,15 +29,15 @@ export const SITE = {
     ru: 'Школа бальных и латиноамериканских танцев',
   },
 
-  // Contact
-  phone: '+972-53-472-6458',
-  phoneDisplay: '053-472-6458',
-  whatsapp: '972534726458', // international format, no +, no leading 0
-  email: '2mmedia.il@gmail.com',
+  // Contact — editable via /admin/ "Site settings"
+  phone: settings.phone,
+  phoneDisplay: settings.phoneDisplay,
+  whatsapp: settings.whatsapp, // international format, no +, no leading 0
+  email: settings.email,
 
-  // Location
+  // Location — street is editable via /admin/; the rest rarely changes
   address: {
-    street: 'Meow Pow St. 34',
+    street: settings.address.street,
     city: 'Rishon LeZion',
     cityLocalized: {
       he: 'ראשון לציון',
@@ -46,39 +49,27 @@ export const SITE = {
     region: 'Center District',
   },
 
-  // Coordinates for map embed — approximate center of Rishon LeZion,
-  // documented placeholder until the exact studio address is geocoded
-  geo: {
-    lat: 31.9730,
-    lng: 34.7925,
-  },
+  // Coordinates for map embed — editable via /admin/ once the exact studio
+  // address is geocoded (right-click the spot on Google Maps / OpenStreetMap).
+  geo: settings.geo,
 
   hours: {
-    // Same hours every day per client
-    opens: '08:00',
-    closes: '21:00',
+    // Editable via /admin/; same hours every day per client, so "days" (which
+    // day names to display) stays a developer-only list below.
+    opens: settings.hours.opens,
+    closes: settings.hours.closes,
     days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   },
 
-  social: {
-    instagram: 'https://www.instagram.com/etude_il/',
-  },
+  // Editable via /admin/
+  social: settings.social,
 
-  // Google Business Profile — client-provided link, used as the primary
-  // "view on map" / "get directions" destination sitewide.
-  googleMapsUrl: 'https://maps.app.goo.gl/xrAfJ9uFRuBK4Zvb8?g_st=ic',
+  // Google Business Profile link — editable via /admin/
+  googleMapsUrl: settings.googleMapsUrl,
 
-  // Promotions — shown on Home and Pricing. Set promoActive to false to hide
-  // sitewide once a promotion period ends, without deleting the copy.
-  promo: {
-    active: true,
-    freeTrialLesson: true,
-    olimDiscount: {
-      year1: 90,
-      year2: 50,
-      year3: 15,
-    },
-  },
+  // Promotions — editable via /admin/. Turn "active" off to hide sitewide
+  // once a promotion period ends, without deleting the copy.
+  promo: settings.promo,
 
   // Accessibility widget (Tabnav) — same provider used on law.ristar.co.
   // Inert until a real embed snippet is issued for this domain. Sign up at

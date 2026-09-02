@@ -29,4 +29,16 @@ const schedule = defineCollection({
   }),
 });
 
-export const collections = { news, schedule };
+// Each Instructor is one JSON file per person: src/content/instructors/<id>.json
+// Written/updated via the hidden /admin/ panel.
+const instructors = defineCollection({
+  loader: glob({ pattern: '**/*.json', base: 'src/content/instructors' }),
+  schema: z.object({
+    order: z.number(), // display order, lowest first
+    photo: z.string().optional(), // URL; falls back to a placeholder when absent
+    name: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
+    bio: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
+  }),
+});
+
+export const collections = { news, schedule, instructors };

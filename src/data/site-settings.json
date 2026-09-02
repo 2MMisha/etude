@@ -1,0 +1,30 @@
+{
+  "phone": "+972-53-472-6458",
+  "phoneDisplay": "053-472-6458",
+  "whatsapp": "972534726458",
+  "email": "2mmedia.il@gmail.com",
+  "address": {
+    "street": "Meow Pow St. 34"
+  },
+  "geo": {
+    "lat": 31.973,
+    "lng": 34.7925
+  },
+  "hours": {
+    "opens": "08:00",
+    "closes": "21:00"
+  },
+  "social": {
+    "instagram": "https://www.instagram.com/etude_il/"
+  },
+  "googleMapsUrl": "https://maps.app.goo.gl/xrAfJ9uFRuBK4Zvb8?g_st=ic",
+  "promo": {
+    "active": true,
+    "freeTrialLesson": true,
+    "olimDiscount": {
+      "year1": 90,
+      "year2": 50,
+      "year3": 15
+    }
+  }
+}

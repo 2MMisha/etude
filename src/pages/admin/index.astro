@@ -97,9 +97,9 @@ const REPO_NAME = SITE.repoName;
           <strong>How this works</strong>
           This page writes directly to the site's GitHub repository using a personal access token you provide below —
           it is stored only in this browser (localStorage), never sent anywhere but api.github.com. Don't use this on a
-          shared or public computer, and use a token scoped to only this one repository. Saving a post or slot here
-          pushes a commit to <code>{REPO_OWNER}/{REPO_NAME}</code>, which rebuilds the live site automatically within
-          about 1–2 minutes.
+          shared or public computer, and use a token scoped to only this one repository. Saving anything here —
+          a news post, a schedule slot, an instructor, or the site settings below — pushes a commit to
+          <code>{REPO_OWNER}/{REPO_NAME}</code>, which rebuilds the live site automatically within about 1–2 minutes.
         </div>
 
         <div class="panel">
@@ -121,6 +121,8 @@ const REPO_NAME = SITE.repoName;
         <div class="tabs">
           <button class="tab-btn active" id="tabNewsBtn">News posts</button>
           <button class="tab-btn" id="tabScheduleBtn">Schedule slots</button>
+          <button class="tab-btn" id="tabInstructorsBtn">Instructors</button>
+          <button class="tab-btn" id="tabSettingsBtn">Site settings</button>
         </div>
 
         <section id="newsSection">
@@ -255,12 +257,159 @@ const REPO_NAME = SITE.repoName;
             </div>
           </div>
         </section>
+
+        <section id="instructorsSection" hidden>
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h2 style="font-size:1.05rem">Instructors</h2>
+              <button class="btn-mini primary" id="newInstructorBtn">+ New instructor</button>
+            </div>
+            <p class="status-msg" id="instructorsListStatus"></p>
+            <div style="overflow-x:auto">
+              <table class="data-table" id="instructorsTable" hidden>
+                <thead><tr><th>Order</th><th>Name (EN)</th><th>ID</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="instructorForm" hidden>
+            <h2 style="font-size:1.05rem" id="instructorFormTitle">New instructor</h2>
+            <div class="form-grid">
+              <div>
+                <label for="instructorId">Instructor ID (lowercase, hyphens only — reusing an existing ID overwrites it)</label>
+                <input type="text" id="instructorId" placeholder="jane-doe" />
+                <p class="field-error" id="instructorIdError"></p>
+              </div>
+              <div class="row-3">
+                <div>
+                  <label for="instructorOrder">Display order (lower shows first)</label>
+                  <input type="number" id="instructorOrder" step="1" value="1" />
+                </div>
+                <div style="grid-column: span 2">
+                  <label for="instructorPhoto">Photo URL (optional)</label>
+                  <input type="text" id="instructorPhoto" placeholder="https://…" />
+                </div>
+              </div>
+              <div>
+                <label>Name</label>
+                <div class="lang-grid">
+                  <input type="text" id="instructorNameHe" placeholder="עברית" dir="rtl" />
+                  <input type="text" id="instructorNameEn" placeholder="English" />
+                  <input type="text" id="instructorNameRu" placeholder="Русский" />
+                </div>
+              </div>
+              <div>
+                <label>Bio</label>
+                <div class="lang-grid">
+                  <textarea id="instructorBioHe" placeholder="עברית" dir="rtl"></textarea>
+                  <textarea id="instructorBioEn" placeholder="English"></textarea>
+                  <textarea id="instructorBioRu" placeholder="Русский"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-mini primary" id="saveInstructorBtn">Save instructor</button>
+              <button class="btn-mini" id="cancelInstructorBtn">Cancel</button>
+              <span class="status-msg" id="instructorSaveStatus"></span>
+            </div>
+          </div>
+        </section>
+
+        <section id="settingsSection" hidden>
+          <div class="panel">
+            <h2 style="font-size:1.05rem">Site settings</h2>
+            <p class="hint">
+              Contact details, hours, social links, map link, and the homepage/pricing promotions. Everything else
+              (domain, branding text, page copy, opening days) is developer-only and lives in the code.
+            </p>
+            <p class="status-msg" id="settingsStatus"></p>
+            <div class="form-grid" id="settingsFormFields">
+              <div class="row-3">
+                <div>
+                  <label for="setPhone">Phone (with country code)</label>
+                  <input type="text" id="setPhone" placeholder="+972-53-472-6458" />
+                </div>
+                <div>
+                  <label for="setPhoneDisplay">Phone (as shown to visitors)</label>
+                  <input type="text" id="setPhoneDisplay" placeholder="053-472-6458" />
+                </div>
+                <div>
+                  <label for="setWhatsapp">WhatsApp number (digits only, country code, no +)</label>
+                  <input type="text" id="setWhatsapp" placeholder="972534726458" />
+                </div>
+              </div>
+              <div>
+                <label for="setEmail">Email</label>
+                <input type="text" id="setEmail" placeholder="studio@example.com" />
+              </div>
+              <div>
+                <label for="setStreet">Street address</label>
+                <input type="text" id="setStreet" placeholder="Meow Pow St. 34" />
+              </div>
+              <div class="row-3">
+                <div>
+                  <label for="setLat">Map latitude</label>
+                  <input type="text" id="setLat" placeholder="31.973" />
+                </div>
+                <div>
+                  <label for="setLng">Map longitude</label>
+                  <input type="text" id="setLng" placeholder="34.7925" />
+                </div>
+                <div>
+                  <label for="setGoogleMaps">Google Maps link</label>
+                  <input type="text" id="setGoogleMaps" placeholder="https://maps.app.goo.gl/…" />
+                </div>
+              </div>
+              <div class="row-3">
+                <div>
+                  <label for="setOpens">Opens</label>
+                  <input type="time" id="setOpens" />
+                </div>
+                <div>
+                  <label for="setCloses">Closes</label>
+                  <input type="time" id="setCloses" />
+                </div>
+                <div>
+                  <label for="setInstagram">Instagram URL</label>
+                  <input type="text" id="setInstagram" placeholder="https://www.instagram.com/…" />
+                </div>
+              </div>
+              <div>
+                <label><input type="checkbox" id="setPromoActive" style="width:auto; display:inline-block; margin-inline-end:0.4em" /> Show promotions sitewide</label>
+              </div>
+              <div>
+                <label><input type="checkbox" id="setFreeTrial" style="width:auto; display:inline-block; margin-inline-end:0.4em" /> Show the free trial class offer</label>
+              </div>
+              <div class="row-3">
+                <div>
+                  <label for="setOlim1">Olim discount — year 1 (%)</label>
+                  <input type="number" id="setOlim1" min="0" max="100" />
+                </div>
+                <div>
+                  <label for="setOlim2">Olim discount — year 2 (%)</label>
+                  <input type="number" id="setOlim2" min="0" max="100" />
+                </div>
+                <div>
+                  <label for="setOlim3">Olim discount — year 3 (%)</label>
+                  <input type="number" id="setOlim3" min="0" max="100" />
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-mini primary" id="saveSettingsBtn">Save settings</button>
+              <span class="status-msg" id="settingsSaveStatus"></span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
 
     <script define:vars={{ REPO_OWNER, REPO_NAME, ADMIN_BRANCH, ADMIN_PASSWORD_SHA256 }}>
       const NEWS_DIR = 'src/content/news';
       const SCHEDULE_DIR = 'src/content/schedule';
+      const INSTRUCTORS_DIR = 'src/content/instructors';
+      const SETTINGS_PATH = 'src/data/site-settings.json';
       const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
       const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -395,6 +544,8 @@ const REPO_NAME = SITE.repoName;
             $('tokenStatus').className = 'token-status ok';
             loadNews();
             loadSchedule();
+            loadInstructors();
+            loadSettings();
           } else {
             throw await ghError(res);
           }
@@ -412,11 +563,17 @@ const REPO_NAME = SITE.repoName;
       // ---------- Tabs ----------
       $('tabNewsBtn').addEventListener('click', () => switchTab('news'));
       $('tabScheduleBtn').addEventListener('click', () => switchTab('schedule'));
+      $('tabInstructorsBtn').addEventListener('click', () => switchTab('instructors'));
+      $('tabSettingsBtn').addEventListener('click', () => switchTab('settings'));
       function switchTab(which) {
         $('tabNewsBtn').classList.toggle('active', which === 'news');
         $('tabScheduleBtn').classList.toggle('active', which === 'schedule');
+        $('tabInstructorsBtn').classList.toggle('active', which === 'instructors');
+        $('tabSettingsBtn').classList.toggle('active', which === 'settings');
         $('newsSection').hidden = which !== 'news';
         $('scheduleSection').hidden = which !== 'schedule';
+        $('instructorsSection').hidden = which !== 'instructors';
+        $('settingsSection').hidden = which !== 'settings';
       }
 
       // ---------- News ----------
@@ -713,12 +870,237 @@ const REPO_NAME = SITE.repoName;
         return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       }
 
+      // ---------- Instructors ----------
+      let instructorsCache = [];
+
+      async function loadInstructors() {
+        $('instructorsListStatus').textContent = 'Loading…';
+        $('instructorsListStatus').className = 'status-msg pending';
+        try {
+          const files = await ghListDir(INSTRUCTORS_DIR);
+          instructorsCache = await Promise.all(
+            files.filter((f) => f.name.endsWith('.json')).map(async (f) => {
+              const file = await ghGetFile(f.path);
+              const data = JSON.parse(file.content);
+              return { id: f.name.replace(/\.json$/, ''), sha: file.sha, data };
+            })
+          );
+          instructorsCache.sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0));
+          renderInstructorsTable();
+          $('instructorsListStatus').textContent = instructorsCache.length ? '' : 'No instructors yet.';
+          $('instructorsListStatus').className = 'status-msg';
+        } catch (err) {
+          $('instructorsListStatus').textContent = 'Could not load instructors: ' + err.message;
+          $('instructorsListStatus').className = 'status-msg bad';
+        }
+      }
+
+      function renderInstructorsTable() {
+        const table = $('instructorsTable');
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = '';
+        table.hidden = instructorsCache.length === 0;
+        for (const person of instructorsCache) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(person.data.order ?? '')}</td>
+            <td>${escapeHtml(person.data.name?.en || '')}</td>
+            <td><code>${escapeHtml(person.id)}</code></td>
+            <td class="actions"></td>
+          `;
+          const actionsTd = tr.querySelector('.actions');
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn-mini';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => openInstructorForm(person));
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-mini danger';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', () => deleteInstructor(person));
+          actionsTd.append(editBtn, delBtn);
+          tbody.appendChild(tr);
+        }
+      }
+
+      let editingInstructorId = null;
+      let editingInstructorSha = null;
+
+      $('newInstructorBtn').addEventListener('click', () => openInstructorForm(null));
+      $('cancelInstructorBtn').addEventListener('click', () => { $('instructorForm').hidden = true; });
+
+      function openInstructorForm(person) {
+        $('instructorForm').hidden = false;
+        $('instructorSaveStatus').textContent = '';
+        $('instructorIdError').textContent = '';
+        if (person) {
+          $('instructorFormTitle').textContent = 'Edit instructor: ' + person.id;
+          $('instructorId').value = person.id;
+          $('instructorId').disabled = true;
+          $('instructorOrder').value = person.data.order ?? 1;
+          $('instructorPhoto').value = person.data.photo || '';
+          $('instructorNameHe').value = person.data.name?.he || '';
+          $('instructorNameEn').value = person.data.name?.en || '';
+          $('instructorNameRu').value = person.data.name?.ru || '';
+          $('instructorBioHe').value = person.data.bio?.he || '';
+          $('instructorBioEn').value = person.data.bio?.en || '';
+          $('instructorBioRu').value = person.data.bio?.ru || '';
+          editingInstructorId = person.id;
+          editingInstructorSha = person.sha;
+        } else {
+          $('instructorFormTitle').textContent = 'New instructor';
+          $('instructorId').value = '';
+          $('instructorId').disabled = false;
+          $('instructorOrder').value = instructorsCache.length + 1;
+          $('instructorPhoto').value = '';
+          $('instructorNameHe').value = '';
+          $('instructorNameEn').value = '';
+          $('instructorNameRu').value = '';
+          $('instructorBioHe').value = '';
+          $('instructorBioEn').value = '';
+          $('instructorBioRu').value = '';
+          editingInstructorId = null;
+          editingInstructorSha = null;
+        }
+        $('instructorForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      $('saveInstructorBtn').addEventListener('click', async () => {
+        const id = (editingInstructorId || $('instructorId').value).trim().toLowerCase();
+        $('instructorIdError').textContent = '';
+        if (!SLUG_PATTERN.test(id)) {
+          $('instructorIdError').textContent = 'Use lowercase letters, numbers, and hyphens only (e.g. "jane-doe").';
+          return;
+        }
+        const order = Number($('instructorOrder').value);
+        if (!Number.isFinite(order)) {
+          $('instructorIdError').textContent = 'Display order must be a number.';
+          return;
+        }
+        const person = {
+          order,
+          photo: $('instructorPhoto').value.trim(),
+          name: { he: $('instructorNameHe').value, en: $('instructorNameEn').value, ru: $('instructorNameRu').value },
+          bio: { he: $('instructorBioHe').value, en: $('instructorBioEn').value, ru: $('instructorBioRu').value },
+        };
+        for (const [lang, val] of Object.entries(person.name)) {
+          if (!val.trim()) { $('instructorIdError').textContent = `Name (${lang}) is required.`; return; }
+        }
+        for (const [lang, val] of Object.entries(person.bio)) {
+          if (!val.trim()) { $('instructorIdError').textContent = `Bio (${lang}) is required.`; return; }
+        }
+        if (!person.photo) delete person.photo;
+        $('instructorSaveStatus').textContent = 'Saving…';
+        $('instructorSaveStatus').className = 'status-msg pending';
+        try {
+          const sha = editingInstructorId === id ? editingInstructorSha : null;
+          await ghPutFile(`${INSTRUCTORS_DIR}/${id}.json`, person, sha, `chore(instructors): ${editingInstructorId ? 'update' : 'add'} "${id}" via admin panel`);
+          $('instructorSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
+          $('instructorSaveStatus').className = 'status-msg ok';
+          $('instructorForm').hidden = true;
+          loadInstructors();
+        } catch (err) {
+          $('instructorSaveStatus').textContent = 'Save failed: ' + err.message;
+          $('instructorSaveStatus').className = 'status-msg bad';
+        }
+      });
+
+      async function deleteInstructor(person) {
+        if (!confirm(`Delete instructor "${person.id}"? This cannot be undone.`)) return;
+        try {
+          await ghDeleteFile(`${INSTRUCTORS_DIR}/${person.id}.json`, person.sha, `chore(instructors): delete "${person.id}" via admin panel`);
+          loadInstructors();
+        } catch (err) {
+          alert('Delete failed: ' + err.message);
+        }
+      }
+
+      // ---------- Site settings ----------
+      let settingsSha = null;
+
+      async function loadSettings() {
+        $('settingsStatus').textContent = 'Loading…';
+        $('settingsStatus').className = 'status-msg pending';
+        try {
+          const file = await ghGetFile(SETTINGS_PATH);
+          if (!file) {
+            $('settingsStatus').textContent = `Could not find ${SETTINGS_PATH} in the repo.`;
+            $('settingsStatus').className = 'status-msg bad';
+            return;
+          }
+          const s = JSON.parse(file.content);
+          settingsSha = file.sha;
+          $('setPhone').value = s.phone || '';
+          $('setPhoneDisplay').value = s.phoneDisplay || '';
+          $('setWhatsapp').value = s.whatsapp || '';
+          $('setEmail').value = s.email || '';
+          $('setStreet').value = s.address?.street || '';
+          $('setLat').value = s.geo?.lat ?? '';
+          $('setLng').value = s.geo?.lng ?? '';
+          $('setGoogleMaps').value = s.googleMapsUrl || '';
+          $('setOpens').value = s.hours?.opens || '';
+          $('setCloses').value = s.hours?.closes || '';
+          $('setInstagram').value = s.social?.instagram || '';
+          $('setPromoActive').checked = !!s.promo?.active;
+          $('setFreeTrial').checked = !!s.promo?.freeTrialLesson;
+          $('setOlim1').value = s.promo?.olimDiscount?.year1 ?? '';
+          $('setOlim2').value = s.promo?.olimDiscount?.year2 ?? '';
+          $('setOlim3').value = s.promo?.olimDiscount?.year3 ?? '';
+          $('settingsStatus').textContent = '';
+        } catch (err) {
+          $('settingsStatus').textContent = 'Could not load settings: ' + err.message;
+          $('settingsStatus').className = 'status-msg bad';
+        }
+      }
+
+      $('saveSettingsBtn').addEventListener('click', async () => {
+        const lat = Number($('setLat').value);
+        const lng = Number($('setLng').value);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          $('settingsSaveStatus').textContent = 'Map latitude/longitude must be numbers.';
+          $('settingsSaveStatus').className = 'status-msg bad';
+          return;
+        }
+        const settings = {
+          phone: $('setPhone').value.trim(),
+          phoneDisplay: $('setPhoneDisplay').value.trim(),
+          whatsapp: $('setWhatsapp').value.trim(),
+          email: $('setEmail').value.trim(),
+          address: { street: $('setStreet').value.trim() },
+          geo: { lat, lng },
+          hours: { opens: $('setOpens').value, closes: $('setCloses').value },
+          social: { instagram: $('setInstagram').value.trim() },
+          googleMapsUrl: $('setGoogleMaps').value.trim(),
+          promo: {
+            active: $('setPromoActive').checked,
+            freeTrialLesson: $('setFreeTrial').checked,
+            olimDiscount: {
+              year1: Number($('setOlim1').value) || 0,
+              year2: Number($('setOlim2').value) || 0,
+              year3: Number($('setOlim3').value) || 0,
+            },
+          },
+        };
+        $('settingsSaveStatus').textContent = 'Saving…';
+        $('settingsSaveStatus').className = 'status-msg pending';
+        try {
+          await ghPutFile(SETTINGS_PATH, settings, settingsSha, 'chore(settings): update site settings via admin panel');
+          $('settingsSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
+          $('settingsSaveStatus').className = 'status-msg ok';
+          loadSettings();
+        } catch (err) {
+          $('settingsSaveStatus').textContent = 'Save failed: ' + err.message;
+          $('settingsSaveStatus').className = 'status-msg bad';
+        }
+      });
+
       // ---------- Init ----------
       function initAdmin() {
         refreshTokenUi();
         if (getToken()) {
           loadNews();
           loadSchedule();
+          loadInstructors();
+          loadSettings();
         }
       }
     </script>

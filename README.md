@@ -51,12 +51,12 @@ DNS propagation can take anywhere from a few minutes to a few hours. GitHub Page
 
 ## 3. Editing content without touching code
 
-Two kinds of content are editable by non-technical staff through the site's own hidden admin panel, with no local setup and (day-to-day) no GitHub website navigation:
+Four kinds of content are editable by non-technical staff through the site's own hidden, password-protected **admin panel** — no GitHub account needed day-to-day, no Actions tab, no YAML forms:
 
 - **News posts** — announcements, updates
 - **Schedule slots** — weekly class times
-
-Both are edited through a hidden, password-protected **admin panel** built into the site itself — no GitHub account needed day-to-day, no Actions tab, no YAML forms.
+- **Instructors** — the teaching roster (name, bio, photo, display order)
+- **Site settings** — phone, WhatsApp, email, street address, map coordinates, opening hours, Instagram link, Google Maps link, and the homepage/pricing promotions
 
 ### Editing content: the admin panel
 
@@ -73,12 +73,14 @@ The panel lives at a URL that isn't linked from anywhere on the public site: **`
 
 Because the token is what actually grants write access, the password alone is not a strong security boundary — treat it more like a "don't leave this open on a shared computer" lock than a login system. Whoever holds both the password and a token can edit site content; keep both to trusted staff only, and use "Forget token" / "Lock panel" (buttons inside the panel) when stepping away from a shared machine.
 
-Once unlocked and connected, the panel gives you:
+Once unlocked and connected, the panel gives you four tabs:
 
 - **News posts** — a table of existing posts with Edit/Delete, and a "+ New post" form for Post ID, Date, an optional Image URL, and Title/Body in Hebrew, English, and Russian (multi-line bodies are fully supported, unlike the old GitHub form).
-- **Schedule slots** — the same pattern for Day, Level, Start/End time, and Class name in all three languages.
+- **Schedule slots** — the same list-and-form pattern for Day, Level, Start/End time, and Class name in all three languages.
+- **Instructors** — the same pattern for an Instructor ID, a display order number (lowest shows first on the Instructors page), an optional photo URL, and Name/Bio in all three languages.
+- **Site settings** — a single form (no list — there's only one settings file) for phone, WhatsApp, email, street address, map latitude/longitude, opening hours, Instagram link, Google Maps link, and the promo toggles/discount percentages. Everything else about the site (domain, branding text, page copy, which weekdays are listed in the schema.org data) stays developer-only in `src/lib/site.ts`, since those fields are one-time setup rather than things that change often.
 
-Saving writes a commit straight to `main`, which triggers `deploy.yml` exactly as before — the live site rebuilds within about 1–2 minutes. Reusing an existing Post ID / Slot ID overwrites that entry (that's how you edit one); deleting asks for confirmation first.
+Saving anything writes a commit straight to `main`, which triggers `deploy.yml` exactly as before — the live site rebuilds within about 1–2 minutes. For News/Schedule/Instructors, reusing an existing ID overwrites that entry (that's how you edit one), and deleting asks for confirmation first.
 
 ### Adding an image (for News posts)
 
@@ -97,10 +99,10 @@ Several things are placeholders until real content is ready:
 
 | Placeholder | Where | How to replace |
 |---|---|---|
-| Instructor names/bios/photos | `src/pages/[lang]/instructors.astro` | Replace the `placeholderInstructors` array and photo blocks with real data (consider moving to a content collection like News/Schedule if the roster changes often). |
-| News/Schedule sample entries | `src/content/news/`, `src/content/schedule/` | These 3 news posts and 5 schedule slots are realistic seed content, not real ones — delete/replace via the admin panel above once real content is ready. |
+| Instructor roster | admin panel → **Instructors** tab | There are no seed instructors — the Instructors page shows an empty-state notice until at least one is added via the panel. |
+| News posts / Schedule slots | admin panel → **News posts** / **Schedule slots** tabs | There is no seed content — both pages show their real empty-state message ("no updates yet" / "full schedule coming soon") until staff add real entries via the panel. |
 | Logo files | `public/images/brand/*.svg`, `public/images/apple-touch-icon.png`, `public/images/logo-mark-512.png`, `public/favicon.ico` | Using the real ETUDE brand mark (a hand-lettered "ETUDE" wordmark + "E" monogram, brand blue `#2f4b9b`). If an updated logo file arrives later, drop the new SVGs into `public/images/brand/` and regenerate the raster sizes (favicon, apple-touch-icon, `logo-mark-512.png`, `og-default.jpg`) from the new `icon.svg`/`logo-full.svg` — there's no automated script for this yet, it was done by hand with a one-off Python/cairosvg pass. |
-| Map coordinates | `src/lib/site.ts` → `geo.lat` / `geo.lng` | Currently an approximate Rishon LeZion center point. Update with the exact studio coordinates once available (right-click the exact spot on openstreetmap.org or Google Maps to get precise lat/lng). |
+| Map coordinates | admin panel → **Site settings** tab (backed by `src/data/site-settings.json`) | Currently an approximate Rishon LeZion center point. Update with the exact studio coordinates once available (right-click the exact spot on openstreetmap.org or Google Maps to get precise lat/lng) — no code edit needed. |
 
 ---
 
@@ -171,15 +173,19 @@ These are regenerated on every build, always in sync with real content:
 ```
 src/
   lib/
-    site.ts              — central business config: address, phone, hours, socials, GA4 ID,
-                            Google Maps link, promo settings, Tabnav embed code, etc.
+    site.ts              — central business config: domain, branding text, and everything pulled
+                            in from data/site-settings.json (address, phone, hours, socials, promo)
     languages.ts          — supported languages, RTL/LTR, path helpers
     translations.ts        — all static UI copy in HE/EN/RU (first-pass draft — see note below)
     adminConfig.ts          — admin panel password hash + target branch
-  content.config.ts       — Zod schemas for the News and Schedule collections
+  data/
+    site-settings.json    — the subset of site.ts staff can edit via the admin panel's
+                            "Site settings" tab (contact info, hours, social links, promos)
+  content.config.ts       — Zod schemas for the News, Schedule, and Instructors collections
   content/
     news/*.json            — one file per news post (edit via the /admin/ panel, not by hand)
     schedule/*.json         — one file per class slot (edit via the /admin/ panel, not by hand)
+    instructors/*.json       — one file per instructor (edit via the /admin/ panel, not by hand)
   components/              — Header, Footer, SEO tags, JSON-LD, forms, cards, map, etc.
     Testimonials.astro       — homepage testimonials (placeholder quotes — swap in real ones)
     PromoBanner.astro         — free trial class + Olim discount banner (Home + Pricing)
@@ -210,7 +216,7 @@ The 3 testimonials on the homepage (`src/components/Testimonials.astro` → `tra
 
 ### A note on the copy
 
-All Hebrew, English, and Russian page copy in `src/lib/translations.ts` (and the seed News posts) is a **first-pass draft** written to get the site launched with real, usable sentences — not certified translation. Please have a native speaker review it, particularly the Hebrew and Russian, before treating it as final.
+All Hebrew, English, and Russian page copy in `src/lib/translations.ts` is a **first-pass draft** written to get the site launched with real, usable sentences — not certified translation. Please have a native speaker review it, particularly the Hebrew and Russian, before treating it as final.
 
 ### Adding a new page
 
