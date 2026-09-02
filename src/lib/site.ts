@@ -10,11 +10,10 @@ export const SITE = {
   // Domain & repo
   domain: 'etude.ristar.co',
   siteUrl: 'https://etude.ristar.co',
-  // GitHub org slugs cannot contain dots — adjust if your actual org handle
-  // differs from "ristar.co". Also used at runtime by the /admin/ panel to
-  // target the right repo via the GitHub API — keep both fields accurate.
-  githubOrg: 'ristar-co',
-  repoName: '2mmisha',
+  // Used at runtime by the /admin/ panel to target the right repo via the
+  // GitHub API — keep both fields matching the actual origin remote.
+  githubOrg: '2MMisha',
+  repoName: 'etude',
 
   // Brand
   brandName: 'ETUDE',
