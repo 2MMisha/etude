@@ -1,10 +1,10 @@
 {
-  "phone": "+972-53-472-6458",
-  "phoneDisplay": "053-472-6458",
-  "whatsapp": "972534726458",
+  "phone": "+972-53-472-6469",
+  "phoneDisplay": "053-472-6469",
+  "whatsapp": "972534726469",
   "email": "2mmedia.il@gmail.com",
   "address": {
-    "street": "Meow Pow St. 34"
+    "street": "Rotschhild 49, Rishon LeZion"
   },
   "geo": {
     "lat": 31.973,
@@ -22,9 +22,9 @@
     "active": true,
     "freeTrialLesson": true,
     "olimDiscount": {
-      "year1": 90,
-      "year2": 50,
-      "year3": 15
+      "year1": 50,
+      "year2": 15,
+      "year3": 5
     }
   }
 }
