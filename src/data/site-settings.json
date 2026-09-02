@@ -19,8 +19,8 @@
   },
   "googleMapsUrl": "https://maps.app.goo.gl/xrAfJ9uFRuBK4Zvb8?g_st=ic",
   "promo": {
-    "active": true,
-    "freeTrialLesson": true,
+    "active": false,
+    "freeTrialLesson": false,
     "olimDiscount": {
       "year1": 50,
       "year2": 15,
