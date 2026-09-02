@@ -1,0 +1,14 @@
+{
+  "order": 3,
+  "photo": "https://ibb.co/G4VMjzCY",
+  "name": {
+    "he": "מיכאל מוקרושוב",
+    "en": "Michael (Mikhail) Mokrushov",
+    "ru": "Михаил Мокрушов"
+  },
+  "bio": {
+    "he": "מאמן צעיר, רקדן פעיל, חצי גמר באליפות אירופה, מקום 8 בדירוג עולמי (נכון לספט׳ 1 2026)",
+    "en": "● Young Coach & Active Competitor;\n● European Championship Semi-Finalist;\n● World Ranking #8 (as of September 1, 2026).",
+    "ru": "● Молодой тренер и действующий спортсмен;\n● Полуфиналист Чемпионата Европы;\n● 8-е место в мировом рейтинге (по состоянию на 1 сентября 2026 года)."
+  }
+}
