@@ -5,6 +5,14 @@
   of it (for headings/footer/dark surfaces), and blue-500 is a lighter tint
   (for hover states) — everything else (silver/ground/ink) stays neutral.
 */
+@font-face {
+  font-family: 'Another Shabby';
+  src: url('/fonts/another-shabby/another-shabby.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --color-navy-900: #1e2f63;
   --color-navy-800: #263a7c;
@@ -24,8 +32,8 @@
 
   --color-accent: var(--color-blue-600);
 
-  --font-display: 'Noto Serif', 'Noto Serif Hebrew', 'Noto Serif JP', Georgia, serif;
-  --font-body: 'Noto Sans', 'Noto Sans Hebrew', Arial, sans-serif;
+  --font-display: 'Another Shabby', 'Noto Serif Hebrew', 'Noto Serif', 'Noto Serif JP', Georgia, serif;
+  --font-body: 'Montserrat', 'Noto Sans Hebrew', 'Noto Sans', Arial, sans-serif;
 
   --radius-sm: 4px;
   --radius-md: 10px;
