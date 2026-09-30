@@ -1,0 +1,11 @@
+{
+  "day": "tuesday",
+  "startTime": "17:15",
+  "endTime": "18:00",
+  "level": "advanced",
+  "className": {
+    "he": "בב",
+    "en": "ככ",
+    "ru": "גג"
+  }
+}
