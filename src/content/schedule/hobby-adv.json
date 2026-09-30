@@ -1,0 +1,11 @@
+{
+  "day": "sunday",
+  "startTime": "18:00",
+  "endTime": "19:00",
+  "level": "advanced",
+  "className": {
+    "he": "קבוצת הובי (מעל 18) מתקדמים",
+    "en": "Advanced Hobby (18+)",
+    "ru": "Хобби-группа 18+ (Продвинутые)"
+  }
+}
