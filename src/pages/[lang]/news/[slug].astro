@@ -63,7 +63,7 @@ const articleSchema = {
         <img src={post.data.image} alt="" class="news-article__image" />
       ) : (
         <div class="news-article__placeholder" aria-hidden="true">
-          <span>{copy.common.placeholderImage}</span>
+          <img src="/images/brand/icon.svg" alt="" width="64" height="64" />
         </div>
       )}
       <p class="news-article__body">{body}</p>
@@ -109,6 +109,7 @@ const articleSchema = {
     justify-content: center;
     color: var(--color-ink-soft);
   }
+  .news-article__placeholder img { opacity: 0.55; }
   .news-article__body {
     font-size: 1.08rem;
     white-space: pre-line;

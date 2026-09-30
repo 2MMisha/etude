@@ -1,6 +1,6 @@
 ---
 import { translations } from '../lib/translations';
-import { SITE } from '../lib/site';
+import { freeTrialActive, olimOfferActive } from '../lib/site';
 import type { Lang } from '../lib/languages';
 
 interface Props {
@@ -10,27 +10,29 @@ const { lang } = Astro.props;
 const copy = translations[lang].promo;
 ---
 
-{SITE.promo.active && (
+{(freeTrialActive || olimOfferActive) && (
   <div class="promo-banner">
     <span class="badge promo-banner__badge">{copy.badge}</span>
-    <div class="grid grid--2 promo-banner__grid">
-      {SITE.promo.freeTrialLesson && (
+    <div class={`promo-banner__grid ${freeTrialActive && olimOfferActive ? 'promo-banner__grid--2' : ''}`}>
+      {freeTrialActive && (
         <div class="promo-item">
           <h3>{copy.trialTitle}</h3>
           <p>{copy.trialBody}</p>
         </div>
       )}
-      <div class="promo-item">
-        <h3>{copy.olimTitle}</h3>
-        <p>{copy.olimBody}</p>
-      </div>
+      {olimOfferActive && (
+        <div class="promo-item">
+          <h3>{copy.olimTitle}</h3>
+          <p>{copy.olimBody}</p>
+        </div>
+      )}
     </div>
   </div>
 )}
 
 <style>
   .promo-banner {
-    background: linear-gradient(135deg, var(--color-navy-900), var(--color-blue-600));
+    background: var(--color-navy-900);
     border-radius: var(--radius-lg);
     padding: var(--space-md) var(--space-md) var(--space-lg);
     color: #fff;
@@ -41,7 +43,25 @@ const copy = translations[lang].promo;
     margin-block-end: var(--space-sm);
   }
   .promo-banner__grid {
+    display: grid;
+    gap: var(--space-md);
     margin-block-start: var(--space-xs);
+  }
+  .promo-banner__grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .promo-banner__grid--2 .promo-item + .promo-item {
+    border-inline-start: 1px solid rgba(255, 255, 255, 0.22);
+    padding-inline-start: var(--space-md);
+  }
+  @media (max-width: 880px) {
+    .promo-banner__grid--2 { grid-template-columns: 1fr; }
+    .promo-banner__grid--2 .promo-item + .promo-item {
+      border-inline-start: 0;
+      padding-inline-start: 0;
+      border-block-start: 1px solid rgba(255, 255, 255, 0.22);
+      padding-block-start: var(--space-md);
+    }
   }
   .promo-item h3 {
     color: #fff;

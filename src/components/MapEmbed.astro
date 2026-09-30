@@ -11,6 +11,8 @@ const copy = translations[lang];
 const { lat, lng } = SITE.geo;
 const delta = 0.01;
 const bbox = `${lng - delta}%2C${lat - delta}%2C${lng + delta}%2C${lat + delta}`;
+const directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${lat}%2C${lng}&destination_place_id=${SITE.googlePlaceId}`;
+const wazeHref = `https://waze.com/ul?ll=${lat}%2C${lng}&navigate=yes`;
 const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
 ---
 
@@ -21,9 +23,10 @@ const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=
     loading="lazy"
     referrerpolicy="no-referrer-when-downgrade"
   ></iframe>
-  <a href={SITE.googleMapsUrl} target="_blank" rel="noopener noreferrer" class="map-embed__link">
-    {copy.common.viewOnGoogleMaps} &rarr;
-  </a>
+  <div class="map-embed__links">
+    <a href={directionsHref} target="_blank" rel="noopener noreferrer">{copy.common.viewOnGoogleMaps}</a>
+    <a href={wazeHref} target="_blank" rel="noopener noreferrer">Waze</a>
+  </div>
 </div>
 
 <style>
@@ -39,8 +42,10 @@ const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=
     border: 0;
     display: block;
   }
-  .map-embed__link {
-    display: block;
+  .map-embed__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
     padding: 0.75rem var(--space-md);
     background: var(--color-surface);
     font-weight: 600;

@@ -4,11 +4,11 @@
   "whatsapp": "972534726469",
   "email": "2mmedia.il@gmail.com",
   "address": {
-    "street": "Rotschhild 49, Rishon LeZion"
+    "street": "Rothschild 49"
   },
   "geo": {
-    "lat": 31.973,
-    "lng": 34.7925
+    "lat": 31.963806,
+    "lng": 34.8008568
   },
   "hours": {
     "opens": "08:00",
@@ -21,10 +21,6 @@
   "promo": {
     "active": true,
     "freeTrialLesson": true,
-    "olimDiscount": {
-      "year1": 50,
-      "year2": 15,
-      "year3": 5
-    }
+    "olimOffer": true
   }
 }

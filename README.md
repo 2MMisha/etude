@@ -78,7 +78,7 @@ Once unlocked and connected, the panel gives you four tabs:
 - **News posts** — a table of existing posts with Edit/Delete, and a "+ New post" form for Post ID, Date, an optional Image URL, and Title/Body in Hebrew, English, and Russian (multi-line bodies are fully supported, unlike the old GitHub form).
 - **Schedule slots** — the same list-and-form pattern for Day, Level, Start/End time, and Class name in all three languages.
 - **Instructors** — the same pattern for an Instructor ID, a display order number (lowest shows first on the Instructors page), an optional photo URL, and Name/Bio in all three languages.
-- **Site settings** — a single form (no list — there's only one settings file) for phone, WhatsApp, email, street address, map latitude/longitude, opening hours, Instagram link, Google Maps link, and the promo toggles/discount percentages. Everything else about the site (domain, branding text, page copy, which weekdays are listed in the schema.org data) stays developer-only in `src/lib/site.ts`, since those fields are one-time setup rather than things that change often.
+- **Site settings** — a single form (no list — there's only one settings file) for phone, WhatsApp, email, street address, map latitude/longitude, opening hours, Instagram link, Google Maps link, and the promo toggles. Everything else about the site (domain, branding text, page copy, which weekdays are listed in the schema.org data) stays developer-only in `src/lib/site.ts`, since those fields are one-time setup rather than things that change often.
 
 Saving anything writes a commit straight to `main`, which triggers `deploy.yml` exactly as before — the live site rebuilds within about 1–2 minutes. For News/Schedule/Instructors, reusing an existing ID overwrites that entry (that's how you edit one), and deleting asks for confirmation first.
 
@@ -120,19 +120,19 @@ The site includes an inert integration point for the Tabnav accessibility widget
 
 Until this is set, the integration renders nothing (same inert-until-configured pattern as GA4 below) — the Accessibility Statement page still works and describes the widget for when it's turned on.
 
-## 6. Promotions (free trial class + Olim discount)
+## 6. Promotions (free trial class + Olim offer)
 
-Both are configured in `src/lib/site.ts` under `promo`, and shown on the Home page and the Pricing page automatically:
+Both are toggled from the admin panel → **Site settings** (backed by `src/data/site-settings.json` under `promo`) and shown on the Home and Pricing pages:
 
-```ts
-promo: {
-  active: true,           // set to false to hide both promos sitewide
-  freeTrialLesson: true,  // set to false to hide just the free-trial line
-  olimDiscount: { year1: 90, year2: 50, year3: 15 },
-},
+```json
+"promo": {
+  "active": true,          // false hides all promos sitewide
+  "freeTrialLesson": true, // false hides the free-trial offer, and the "free" wording in CTAs and the FAQ
+  "olimOffer": true        // false hides the new-immigrants offer
+}
 ```
 
-The discount percentages feed directly into the copy in `src/lib/translations.ts` (`promo.olimBody` per language) — if the numbers ever change, update both the `site.ts` values (used for future logic/consistency) and the wording in `translations.ts` (since the copy is static text, not auto-generated from the numbers).
+The Olim offer deliberately publishes no discount percentages — the copy (`promo.olimBody` and the FAQ answer in `src/lib/translations.ts`) only says special terms exist and asks visitors to get in touch.
 
 ## 7. Activating Google Analytics (GA4)
 
@@ -188,7 +188,7 @@ src/
     instructors/*.json       — one file per instructor (edit via the /admin/ panel, not by hand)
   components/              — Header, Footer, SEO tags, JSON-LD, forms, cards, map, etc.
     Testimonials.astro       — homepage testimonials (placeholder quotes — swap in real ones)
-    PromoBanner.astro         — free trial class + Olim discount banner (Home + Pricing)
+    PromoBanner.astro         — free trial class + Olim offer banner (Home + Pricing)
     Faq.astro                  — FAQ accordion with FAQPage schema (Pricing page)
     LanguageBanner.astro        — dismissible "view this site in X" suggestion banner
     AccessibilityWidget.astro    — Tabnav widget embed, inert until configured

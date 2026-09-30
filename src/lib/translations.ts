@@ -30,6 +30,10 @@ export const translations = {
       privacy: 'מדיניות פרטיות',
       accessibility: 'הצהרת נגישות',
       viewOnGoogleMaps: 'ניווט ב-Google Maps',
+      skipToContent: 'דילוג לתוכן',
+      menu: 'תפריט',
+      closeMenu: 'סגירת התפריט',
+      footerNav: 'ניווט',
     },
     home: {
       heroEyebrow: 'ריקודי בלרום ולטיניים בראשון לציון',
@@ -37,6 +41,7 @@ export const translations = {
       heroSubtitle:
         'שיעורים קבוצתיים ופרטיים בריקודי בלרום ולטיניים, לכל הגילאים והרמות — מהצעד הראשון ועד לרחבת הריקודים.',
       heroCtaPrimary: 'שיעור ניסיון חינם',
+      heroCtaTrial: 'קביעת שיעור ניסיון',
       heroCtaSecondary: 'לוח השיעורים',
       introTitle: 'סטודיו לריקוד באווירה מקצועית ונעימה',
       introBody:
@@ -94,7 +99,7 @@ export const translations = {
     schedule: {
       title: 'לוח זמנים',
       intro: 'השיעורים מתקיימים במהלך כל השבוע. לוח הזמנים המלא מתעדכן מעת לעת — לאישור מקום מומלץ ליצור קשר מראש.',
-      placeholderNotice: 'לוח הזמנים המלא ייטען בקרוב. בינתיים, הסטודיו פתוח בין השעות 8:00 עד 21:00 בכל ימות השבוע.',
+      placeholderNotice: 'לוח הזמנים המלא ייטען בקרוב. בינתיים, הסטודיו פתוח בכל ימות השבוע, {hours}.',
       columns: { day: 'יום', time: 'שעה', class: 'שיעור', level: 'רמה' },
     },
     instructors: {
@@ -155,8 +160,8 @@ export const translations = {
       badge: 'מבצע',
       trialTitle: 'שיעור ניסיון קבוצתי ראשון — חינם!',
       trialBody: 'בואו להתנסות ללא שום התחייבות — השיעור הקבוצתי הראשון שלכם אצלנו על חשבון הבית.',
-      olimTitle: 'הנחה לעולים חדשים',
-      olimBody: 'עולים חדשים נהנים מהנחה על המנוי: 90% הנחה בשנה הראשונה, 50% בשנה השנייה ו-15% בשנה השלישית.',
+      olimTitle: 'תנאים מיוחדים לעולים חדשים',
+      olimBody: 'לעולים חדשים יש אצלנו תנאים מיוחדים למנוי. צרו איתנו קשר ונספר לכם את כל הפרטים.',
     },
     faq: {
       title: 'שאלות נפוצות',
@@ -166,8 +171,8 @@ export const translations = {
           a: 'כן — השיעור הקבוצתי הראשון שלכם אצלנו הוא ללא עלות וללא כל התחייבות מצדכם.',
         },
         {
-          q: 'אני עולה חדש/ה — האם מגיעה לי הנחה?',
-          a: 'כן. עולים חדשים זכאים להנחה על המנוי: 90% הנחה בשנה הראשונה, 50% בשנה השנייה ו-15% בשנה השלישית.',
+          q: 'אני עולה חדש/ה — יש לכם תנאים מיוחדים?',
+          a: 'כן, לעולים חדשים יש תנאים מיוחדים למנוי. צרו איתנו קשר בטלפון, בוואטסאפ או במייל ונסביר את כל הפרטים.',
         },
         {
           q: 'אין לי שום ניסיון קודם בריקוד — זה מתאים לי?',
@@ -267,6 +272,10 @@ export const translations = {
       privacy: 'Privacy Policy',
       accessibility: 'Accessibility Statement',
       viewOnGoogleMaps: 'Get directions on Google Maps',
+      skipToContent: 'Skip to content',
+      menu: 'Menu',
+      closeMenu: 'Close menu',
+      footerNav: 'Explore',
     },
     home: {
       heroEyebrow: 'Ballroom & Latin Dance in Rishon LeZion',
@@ -274,6 +283,7 @@ export const translations = {
       heroSubtitle:
         'Group and private lessons in ballroom and Latin dance, for every age and level — from your first step to the dance floor.',
       heroCtaPrimary: 'Book a free trial class',
+      heroCtaTrial: 'Book a trial class',
       heroCtaSecondary: 'View the schedule',
       introTitle: 'A dance studio built on patience and progress',
       introBody:
@@ -331,7 +341,7 @@ export const translations = {
     schedule: {
       title: 'Schedule',
       intro: 'Classes run throughout the week. The full timetable is updated periodically — contact us in advance to confirm a spot.',
-      placeholderNotice: 'The full schedule will be added soon. In the meantime, the studio is open 8:00 AM–9:00 PM, every day.',
+      placeholderNotice: 'The full schedule will be added soon. In the meantime, the studio is open every day, {hours}.',
       columns: { day: 'Day', time: 'Time', class: 'Class', level: 'Level' },
     },
     instructors: {
@@ -392,8 +402,8 @@ export const translations = {
       badge: 'Special offer',
       trialTitle: 'Your first group trial class is free',
       trialBody: 'Come try it with no commitment — your first group class with us is on the house.',
-      olimTitle: 'Discount for new immigrants (Olim)',
-      olimBody: 'New immigrants (Olim) receive a discount on subscriptions: 90% off in the first year, 50% in the second year, and 15% in the third year.',
+      olimTitle: 'Special terms for new immigrants (Olim)',
+      olimBody: 'New immigrants (Olim) get special subscription terms. Get in touch and we\u2019ll walk you through the details.',
     },
     faq: {
       title: 'Frequently asked questions',
@@ -403,8 +413,8 @@ export const translations = {
           a: 'Yes — your first group class with us is completely free, with no commitment on your part.',
         },
         {
-          q: "I'm a new immigrant (Oleh/Olah) — do I get a discount?",
-          a: 'Yes. New immigrants receive a discount on subscriptions: 90% off in the first year, 50% in the second year, and 15% in the third year.',
+          q: "I'm a new immigrant (Oleh/Olah) — are there special terms for me?",
+          a: "Yes, new immigrants get special subscription terms. Contact us by phone, WhatsApp, or email and we'll explain the details.",
         },
         {
           q: "I have zero dance experience — is this for me?",
@@ -504,6 +514,10 @@ export const translations = {
       privacy: 'Политика конфиденциальности',
       accessibility: 'Заявление о доступности',
       viewOnGoogleMaps: 'Маршрут на Google Maps',
+      skipToContent: 'Перейти к содержанию',
+      menu: 'Меню',
+      closeMenu: 'Закрыть меню',
+      footerNav: 'Разделы',
     },
     home: {
       heroEyebrow: 'Бальные и латиноамериканские танцы в Ришон-ле-Ционе',
@@ -511,6 +525,7 @@ export const translations = {
       heroSubtitle:
         'Групповые и индивидуальные занятия бальными и латиноамериканскими танцами для любого возраста и уровня — от первого шага до танцпола.',
       heroCtaPrimary: 'Бесплатное пробное занятие',
+      heroCtaTrial: 'Записаться на пробное занятие',
       heroCtaSecondary: 'Смотреть расписание',
       introTitle: 'Студия танца с профессиональной и тёплой атмосферой',
       introBody:
@@ -568,7 +583,7 @@ export const translations = {
     schedule: {
       title: 'Расписание',
       intro: 'Занятия проходят в течение всей недели. Полное расписание периодически обновляется — для подтверждения места рекомендуем связаться заранее.',
-      placeholderNotice: 'Полное расписание будет добавлено в ближайшее время. Пока студия открыта с 8:00 до 21:00 каждый день.',
+      placeholderNotice: 'Полное расписание будет добавлено в ближайшее время. Пока что студия открыта каждый день, {hours}.',
       columns: { day: 'День', time: 'Время', class: 'Занятие', level: 'Уровень' },
     },
     instructors: {
@@ -629,8 +644,8 @@ export const translations = {
       badge: 'Специальное предложение',
       trialTitle: 'Первое групповое пробное занятие — бесплатно',
       trialBody: 'Приходите попробовать без каких-либо обязательств — первое групповое занятие у нас за наш счёт.',
-      olimTitle: 'Скидка для новых репатриантов (олим)',
-      olimBody: 'Новые репатрианты (олим) получают скидку на абонемент: 90% в первый год, 50% во второй год и 15% в третий год.',
+      olimTitle: 'Особые условия для новых репатриантов',
+      olimBody: 'Для новых репатриантов у нас особые условия на абонемент. Свяжитесь с нами, и мы расскажем все подробности.',
     },
     faq: {
       title: 'Часто задаваемые вопросы',
@@ -640,8 +655,8 @@ export const translations = {
           a: 'Да — ваше первое групповое занятие у нас полностью бесплатно и без каких-либо обязательств.',
         },
         {
-          q: 'Я новый репатриант (оле/ola) — положена ли мне скидка?',
-          a: 'Да. Новые репатрианты получают скидку на абонемент: 90% в первый год, 50% во второй год и 15% в третий год.',
+          q: 'Я новый репатриант — есть ли для меня особые условия?',
+          a: 'Да, для новых репатриантов есть особые условия на абонемент. Свяжитесь с нами по телефону, WhatsApp или email, и мы всё подробно расскажем.',
         },
         {
           q: 'У меня совсем нет опыта в танцах — подойдёт ли мне это?',

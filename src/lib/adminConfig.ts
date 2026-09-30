@@ -13,7 +13,7 @@
 //   node scripts/hash-admin-password.mjs "your new password"
 // and paste the printed hash below.
 export const ADMIN_PASSWORD_SHA256 =
-  '82fb6a9c3550de9e896a2725bffc27a329dd69204f0214d87c840013c0d425cd'; // current password: Etude#Dance2026
+  'c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646';
 
 // Branch the admin panel commits to. Matches the branch GitHub Pages deploys
 // from (see .github/workflows/deploy.yml) — pushing here triggers a rebuild.

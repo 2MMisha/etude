@@ -4,6 +4,7 @@ import PageIntro from '../../components/PageIntro.astro';
 import { ALL_LANGS, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 import { getCollection } from 'astro:content';
+import { hoursDisplay } from '../../lib/site';
 
 export function getStaticPaths() {
   return ALL_LANGS.map((lang) => ({ params: { lang } }));
@@ -43,7 +44,7 @@ const byDay = DAY_ORDER.map((day) => ({
   <section class="section">
     <div class="container">
       {byDay.length === 0 ? (
-        <p class="notice">{copy.schedule.placeholderNotice}</p>
+        <p class="notice">{copy.schedule.placeholderNotice.replace('{hours}', hoursDisplay)}</p>
       ) : (
         <div class="schedule-grid">
           {byDay.map((group) => (

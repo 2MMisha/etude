@@ -27,15 +27,27 @@ const allInstructors = (await getCollection('instructors')).sort((a, b) => a.dat
           {allInstructors.map((person) => (
             <div class="card instructor-card">
               {person.data.photo ? (
-                <img src={person.data.photo} alt="" class="instructor-card__photo-img" />
+                <img
+                  src={person.data.photo}
+                  alt={person.data.name[lang]}
+                  class="instructor-card__photo-img"
+                  loading="lazy"
+                  referrerpolicy="no-referrer"
+                  onerror="this.replaceWith(this.nextElementSibling.content.cloneNode(true))"
+                />
+                <template>
+                  <div class="instructor-card__photo instructor-card__photo--monogram" aria-hidden="true">
+                    <span>{person.data.name[lang].charAt(0)}</span>
+                  </div>
+                </template>
               ) : (
-                <div class="instructor-card__photo" aria-hidden="true">
-                  <span>{copy.common.placeholderImage}</span>
+                <div class="instructor-card__photo instructor-card__photo--monogram" aria-hidden="true">
+                  <span>{person.data.name[lang].charAt(0)}</span>
                 </div>
               )}
               <div>
                 <h3>{person.data.name[lang]}</h3>
-                <p>{person.data.bio[lang]}</p>
+                <p class="instructor-card__bio">{person.data.bio[lang].trim()}</p>
               </div>
             </div>
           ))}
@@ -76,6 +88,18 @@ const allInstructors = (await getCollection('instructors')).sort((a, b) => a.dat
     color: var(--color-ink-soft);
     font-size: 0.85rem;
     padding: var(--space-sm);
+  }
+  /* Shown when a photo is missing or its URL doesn't resolve to an image. */
+  .instructor-card__photo--monogram {
+    background: var(--color-blue-100);
+  }
+  .instructor-card__photo--monogram span {
+    font-family: var(--font-display);
+    font-size: 5rem;
+    color: var(--color-blue-600);
+  }
+  .instructor-card__bio {
+    white-space: pre-line;
   }
   .instructor-card > div:last-child {
     padding: 0 var(--space-md) var(--space-md);

@@ -8,6 +8,7 @@ import AccessibilityWidget from '../components/AccessibilityWidget.astro';
 import LanguageBanner from '../components/LanguageBanner.astro';
 import WhatsAppFloat from '../components/WhatsAppFloat.astro';
 import { LANGUAGES, type Lang } from '../lib/languages';
+import { translations } from '../lib/translations';
 import '../styles/global.css';
 
 interface Props {
@@ -33,7 +34,14 @@ const { dir } = LANGUAGES[lang];
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Noto+Serif:wght@500;600;700&family=Noto+Serif+Hebrew:wght@500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&display=swap"
+      rel="preload"
+      href="/fonts/another-shabby/another-shabby-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&family=Marck+Script&family=Gveret+Levin&display=swap"
       rel="stylesheet"
     />
     <Seo lang={lang} path={path} title={title} description={description} ogImage={ogImage} type={schemaType} />
@@ -42,7 +50,7 @@ const { dir } = LANGUAGES[lang];
     <slot name="head" />
   </head>
   <body>
-    <a href="#main" class="skip-link">Skip to content</a>
+    <a href="#main" class="skip-link">{translations[lang].common.skipToContent}</a>
     <LanguageBanner lang={lang} path={path} />
     <Header lang={lang} path={path} />
     <main id="main">

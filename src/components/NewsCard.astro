@@ -25,7 +25,7 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
       <img src={image} alt="" loading="lazy" />
     ) : (
       <div class="news-card__placeholder" aria-hidden="true">
-        <span>{copy.common.placeholderImage}</span>
+        <img src="/images/brand/icon.svg" alt="" width="64" height="64" />
       </div>
     )}
   </div>
@@ -70,6 +70,11 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
       var(--color-silver-200) 10px,
       var(--color-silver-200) 20px
     );
+  }
+  .news-card__image .news-card__placeholder img {
+    width: 64px;
+    height: 64px;
+    opacity: 0.55;
   }
   .news-card__body {
     padding: var(--space-md);

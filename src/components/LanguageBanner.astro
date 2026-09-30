@@ -41,7 +41,11 @@ const alternatives = ALL_LANGS.filter((l) => l !== lang).map((l) => ({
     const alternatives = JSON.parse(el.dataset.alternatives || '[]');
     const storageKey = 'etude-lang-banner-dismissed';
 
-    if (localStorage.getItem(storageKey) === '1') return;
+    try {
+      if (localStorage.getItem(storageKey) === '1') return;
+    } catch (e) {
+      /* storage blocked — just show the banner */
+    }
 
     const browserLangs = navigator.languages || [navigator.language];
     let match = null;
@@ -64,7 +68,11 @@ const alternatives = ALL_LANGS.filter((l) => l !== lang).map((l) => ({
     linkEl.href = match.href;
 
     dismissBtn.addEventListener('click', () => {
-      localStorage.setItem(storageKey, '1');
+      try {
+        localStorage.setItem(storageKey, '1');
+      } catch (e) {
+        /* storage blocked — dismiss for this page view only */
+      }
       el.hidden = true;
     });
 

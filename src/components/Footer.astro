@@ -1,7 +1,7 @@
 ---
 import { localizePath, type Lang } from '../lib/languages';
 import { translations } from '../lib/translations';
-import { SITE } from '../lib/site';
+import { SITE, hoursDisplay } from '../lib/site';
 
 interface Props {
   lang: Lang;
@@ -25,7 +25,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     <div class="footer-col">
       <h3>{copy.contact.detailsTitle}</h3>
       <ul class="footer-list">
-        <li><a href={`tel:${SITE.phone}`}>{SITE.phoneDisplay}</a></li>
+        <li><a href={`tel:${SITE.phone}`} dir="ltr">{SITE.phoneDisplay}</a></li>
         <li><a href={whatsappHref} target="_blank" rel="noopener noreferrer">{copy.common.whatsapp}</a></li>
         <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
         <li>{SITE.address.street}, {SITE.address.cityLocalized[lang]}</li>
@@ -34,7 +34,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
 
     <div class="footer-col">
       <h3>{copy.contact.hoursTitle}</h3>
-      <p dir="ltr">08:00 – 21:00</p>
+      <p>{hoursDisplay}</p>
       <div class="footer-social-list">
         <a href={SITE.social.instagram} target="_blank" rel="noopener noreferrer" class="footer-social">Instagram</a>
         <a href={SITE.googleMapsUrl} target="_blank" rel="noopener noreferrer" class="footer-social">{copy.common.viewOnGoogleMaps}</a>
@@ -42,11 +42,14 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h3>{copy.nav.home}</h3>
+      <h3>{copy.common.footerNav}</h3>
       <ul class="footer-list">
         <li><a href={localizePath(lang, '/about')}>{copy.nav.about}</a></li>
         <li><a href={localizePath(lang, '/classes')}>{copy.nav.classes}</a></li>
+        <li><a href={localizePath(lang, '/schedule')}>{copy.nav.schedule}</a></li>
+        <li><a href={localizePath(lang, '/instructors')}>{copy.nav.instructors}</a></li>
         <li><a href={localizePath(lang, '/pricing')}>{copy.nav.pricing}</a></li>
+        <li><a href={localizePath(lang, '/news')}>{copy.nav.news}</a></li>
         <li><a href={localizePath(lang, '/contact')}>{copy.nav.contact}</a></li>
       </ul>
     </div>
@@ -89,16 +92,14 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
   }
   .footer-brand span {
     font-family: var(--font-display);
-    font-size: 1.2rem;
+    font-size: 1.6rem;
     color: #fff;
-    font-weight: 700;
   }
   .footer-col h3 {
-    color: var(--color-silver-100);
+    color: #fff;
     font-family: var(--font-body);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 0.95rem;
+    font-weight: 600;
     margin-block-end: 0.9rem;
   }
   .footer-col p {

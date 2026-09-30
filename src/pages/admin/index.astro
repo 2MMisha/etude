@@ -381,19 +381,8 @@ const REPO_NAME = SITE.repoName;
               <div>
                 <label><input type="checkbox" id="setFreeTrial" style="width:auto; display:inline-block; margin-inline-end:0.4em" /> Show the free trial class offer</label>
               </div>
-              <div class="row-3">
-                <div>
-                  <label for="setOlim1">Olim discount — year 1 (%)</label>
-                  <input type="number" id="setOlim1" min="0" max="100" />
-                </div>
-                <div>
-                  <label for="setOlim2">Olim discount — year 2 (%)</label>
-                  <input type="number" id="setOlim2" min="0" max="100" />
-                </div>
-                <div>
-                  <label for="setOlim3">Olim discount — year 3 (%)</label>
-                  <input type="number" id="setOlim3" min="0" max="100" />
-                </div>
+              <div>
+                <label><input type="checkbox" id="setOlimOffer" style="width:auto; display:inline-block; margin-inline-end:0.4em" /> Show the new immigrants (Olim) offer — no percentages are published, visitors are asked to get in touch</label>
               </div>
             </div>
             <div class="form-actions">
@@ -1042,9 +1031,7 @@ const REPO_NAME = SITE.repoName;
           $('setInstagram').value = s.social?.instagram || '';
           $('setPromoActive').checked = !!s.promo?.active;
           $('setFreeTrial').checked = !!s.promo?.freeTrialLesson;
-          $('setOlim1').value = s.promo?.olimDiscount?.year1 ?? '';
-          $('setOlim2').value = s.promo?.olimDiscount?.year2 ?? '';
-          $('setOlim3').value = s.promo?.olimDiscount?.year3 ?? '';
+          $('setOlimOffer').checked = s.promo?.olimOffer !== false;
           $('settingsStatus').textContent = '';
         } catch (err) {
           $('settingsStatus').textContent = 'Could not load settings: ' + err.message;
@@ -1073,11 +1060,7 @@ const REPO_NAME = SITE.repoName;
           promo: {
             active: $('setPromoActive').checked,
             freeTrialLesson: $('setFreeTrial').checked,
-            olimDiscount: {
-              year1: Number($('setOlim1').value) || 0,
-              year2: Number($('setOlim2').value) || 0,
-              year3: Number($('setOlim3').value) || 0,
-            },
+            olimOffer: $('setOlimOffer').checked,
           },
         };
         $('settingsSaveStatus').textContent = 'Saving…';

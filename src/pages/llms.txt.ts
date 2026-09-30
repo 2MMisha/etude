@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { ALL_LANGS, LANGUAGES, localizePath } from '../lib/languages';
 import { translations } from '../lib/translations';
-import { SITE } from '../lib/site';
+import { SITE, freeTrialActive, olimOfferActive } from '../lib/site';
 
 export const prerender = true;
 
@@ -33,15 +33,14 @@ export const GET: APIRoute = async () => {
       `Instagram: ${SITE.social.instagram}.`
   );
   lines.push('');
-  if (SITE.promo.active) {
-    const promoParts: string[] = [];
-    if (SITE.promo.freeTrialLesson) {
-      promoParts.push('the first group trial class is free');
-    }
-    promoParts.push(
-      `new immigrants (Olim) receive a subscription discount of ${SITE.promo.olimDiscount.year1}% in year 1, ` +
-        `${SITE.promo.olimDiscount.year2}% in year 2, and ${SITE.promo.olimDiscount.year3}% in year 3`
-    );
+  const promoParts: string[] = [];
+  if (freeTrialActive) {
+    promoParts.push('the first group trial class is free');
+  }
+  if (olimOfferActive) {
+    promoParts.push('new immigrants (Olim) get special subscription terms — contact the studio for details');
+  }
+  if (promoParts.length) {
     lines.push(`Current offers: ${promoParts.join('; ')}.`);
     lines.push('');
   }

@@ -9,6 +9,7 @@ interface Props {
 }
 const { lang, path } = Astro.props;
 const nav = translations[lang].nav;
+const common = translations[lang].common;
 
 const navItems: { key: keyof typeof nav; href: string }[] = [
   { key: 'home', href: '/' },
@@ -29,15 +30,22 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
       <span class="brand__name">{SITE.brandNameLocalized[lang]}</span>
     </a>
 
-    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true" />
-    <label for="nav-toggle" class="nav-toggle-label" aria-label="Menu">
+    <button
+      type="button"
+      class="nav-toggle"
+      aria-expanded="false"
+      aria-controls="site-nav"
+      data-label-open={common.menu}
+      data-label-close={common.closeMenu}
+      aria-label={common.menu}
+    >
       <span></span><span></span><span></span>
-    </label>
+    </button>
 
-    <nav class="site-nav" aria-label="Primary">
+    <nav class="site-nav" id="site-nav" aria-label={common.menu}>
       <ul class="site-nav__list">
         {navItems.map((item) => {
-          const isActive = path === item.href || (item.href === '/' && path === '/');
+          const isActive = item.href === '/' ? path === '/' : path === item.href || path.startsWith(`${item.href}/`);
           return (
             <li>
               <a href={localizePath(lang, item.href)} aria-current={isActive ? 'page' : undefined}>
@@ -53,6 +61,8 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
             href={localizePath(l, path)}
             class={`lang-switcher__item ${l === lang ? 'is-active' : ''}`}
             aria-current={l === lang ? 'true' : undefined}
+            lang={LANGUAGES[l].htmlLang}
+            hreflang={LANGUAGES[l].htmlLang}
           >
             {LANGUAGES[l].label}
           </a>
@@ -61,6 +71,26 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
     </nav>
   </div>
 </header>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
+  const header = document.querySelector('.site-header');
+  if (toggle && header) {
+    const setOpen = (open: boolean) => {
+      header.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', (open ? toggle.dataset.labelClose : toggle.dataset.labelOpen) || '');
+    };
+    toggle.addEventListener('click', () => setOpen(!header.classList.contains('is-open')));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && header.classList.contains('is-open')) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    matchMedia('(min-width: 1321px)').addEventListener('change', (e) => e.matches && setOpen(false));
+  }
+</script>
 
 <style>
   .site-header {
@@ -78,6 +108,8 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
     gap: var(--space-md);
   }
   .brand {
+    flex-shrink: 0;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 0.65rem;
@@ -87,19 +119,19 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
   .brand__mark { display: block; }
   .brand__name {
     font-family: var(--font-display);
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: 1.6rem;
+    font-weight: 400;
     color: var(--color-navy-900);
     letter-spacing: 0.01em;
   }
 
   .site-nav__list {
     display: flex;
-    gap: var(--space-md);
+    gap: 1.35rem;
     list-style: none;
     margin: 0;
     padding: 0;
-    flex-wrap: wrap;
+    white-space: nowrap;
   }
   .site-nav__list a {
     color: var(--color-ink);
@@ -118,14 +150,14 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
   .site-nav {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: var(--space-md);
   }
 
   .lang-switcher {
     display: flex;
     gap: 0.4rem;
     border-inline-start: 1px solid var(--color-line);
-    padding-inline-start: var(--space-md);
+    padding-inline-start: var(--space-sm);
   }
   .lang-switcher__item {
     font-size: 0.85rem;
@@ -144,12 +176,11 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
     text-decoration: none;
   }
 
-  .nav-toggle,
-  .nav-toggle-label {
+  .nav-toggle {
     display: none;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1320px) {
     .site-nav {
       position: fixed;
       inset-block-start: 0;
@@ -161,8 +192,8 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
       align-items: flex-start;
       padding: 5.5rem var(--space-md) var(--space-md);
       box-shadow: var(--shadow-lift);
-      transition: inset-inline-end 0.25s ease;
       overflow-y: auto;
+      z-index: 105;
     }
     .site-nav__list {
       flex-direction: column;
@@ -177,23 +208,34 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
       margin-block-start: var(--space-md);
       width: 100%;
     }
-    .nav-toggle-label {
+    .site-nav { visibility: hidden; transition: inset-inline-end 0.25s ease, visibility 0s linear 0.25s; }
+    .nav-toggle {
       display: flex;
       flex-direction: column;
       gap: 5px;
       cursor: pointer;
-      padding: 0.5rem;
+      padding: 0.6rem;
+      position: relative;
       z-index: 110;
+      background: none;
+      border: 0;
+      border-radius: var(--radius-sm);
     }
-    .nav-toggle-label span {
+    .nav-toggle span {
       width: 24px;
       height: 2px;
       background: var(--color-navy-900);
       display: block;
       border-radius: 2px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    .nav-toggle:checked ~ .site-nav {
+    .is-open .nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .is-open .nav-toggle span:nth-child(2) { opacity: 0; }
+    .is-open .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .is-open .site-nav {
       inset-inline-end: 0;
+      visibility: visible;
+      transition: inset-inline-end 0.25s ease;
     }
   }
 </style>

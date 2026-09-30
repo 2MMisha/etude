@@ -65,6 +65,8 @@ export const SITE = {
 
   // Google Business Profile link — editable via /admin/
   googleMapsUrl: settings.googleMapsUrl,
+  // Google Maps place ID of the studio (from the Google Business Profile).
+  googlePlaceId: 'ChIJ8XLGz3u1AhUR4HEpeYoEjgU',
 
   // Promotions — editable via /admin/. Turn "active" off to hide sitewide
   // once a promotion period ends, without deleting the copy.
@@ -87,3 +89,13 @@ export const SITE = {
 } as const;
 
 export type SiteConfig = typeof SITE;
+
+/** Opening hours as a display range, e.g. "08:00–21:00". Wrapped in a
+ *  left-to-right isolate so the range doesn't flip inside Hebrew text. */
+export const hoursDisplay = `\u2066${SITE.hours.opens}–${SITE.hours.closes}\u2069`;
+
+/** Whether the free trial class is currently advertised. */
+export const freeTrialActive = SITE.promo.active && SITE.promo.freeTrialLesson;
+
+/** Whether the new-immigrants (Olim) offer is currently advertised. */
+export const olimOfferActive = SITE.promo.active && SITE.promo.olimOffer !== false;

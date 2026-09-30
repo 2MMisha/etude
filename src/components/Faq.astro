@@ -1,17 +1,21 @@
 ---
 import { translations } from '../lib/translations';
 import type { Lang } from '../lib/languages';
+import { freeTrialActive, olimOfferActive } from '../lib/site';
 
 interface Props {
   lang: Lang;
 }
 const { lang } = Astro.props;
 const copy = translations[lang].faq;
+// items[0] is the free-trial question, items[1] the Olim one — drop each
+// when that offer is switched off in the admin panel.
+const items = copy.items.filter((_, i) => (i === 0 ? freeTrialActive : i === 1 ? olimOfferActive : true));
 
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: copy.items.map((item) => ({
+  mainEntity: items.map((item) => ({
     '@type': 'Question',
     name: item.q,
     acceptedAnswer: {
@@ -26,7 +30,7 @@ const faqSchema = {
   <div class="container">
     <h2>{copy.title}</h2>
     <div class="faq-list">
-      {copy.items.map((item, i) => (
+      {items.map((item, i) => (
         <details class="faq-item" open={i === 0}>
           <summary>{item.q}</summary>
           <p>{item.a}</p>
