@@ -86,6 +86,8 @@ const REPO_NAME = SITE.repoName;
       .tt-day ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2em; }
       .tt-day .muted { color: var(--color-ink-soft); }
       .tt-warn { color: #8a5a00; font-size: 0.85rem; }
+      .tt-rent { background: #fff4e0; border-inline-start: 3px solid #ffb547; padding-inline-start: 0.4em; border-radius: 3px; }
+      .tt-rent::before { content: '🔑 '; }
 
       [hidden] { display: none !important; }
     </style>
@@ -1266,7 +1268,7 @@ const REPO_NAME = SITE.repoName;
               <div class="tt-day">
                 <h3>${WEEKDAYS[d.weekday]}${d.date ? ' · ' + fmtDate(d.date) : ''}</h3>
                 ${d.items.length
-                  ? `<ul>${d.items.map((i) => `<li><strong>${i.start}–${i.end}</strong> ${escapeHtml(i.title)} <span class="muted">· ${escapeHtml(i.column)}</span></li>`).join('')}</ul>`
+                  ? `<ul>${d.items.map((i) => `<li${/\brent\b|השכרה|аренд/i.test(i.column) ? ' class="tt-rent"' : ''}><strong>${i.start}–${i.end}</strong> ${escapeHtml(i.title)} <span class="muted">· ${escapeHtml(i.column)}</span></li>`).join('')}</ul>`
                   : '<p class="muted" style="margin:0">No classes</p>'}
               </div>`)
             .join('');

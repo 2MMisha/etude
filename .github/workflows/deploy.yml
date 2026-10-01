@@ -3,6 +3,10 @@ name: Build and Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Rebuild hourly so the schedule page and the studio /display/ screen pick
+  # up edits to the Google Sheet timetable (see src/lib/loadTimetable.ts).
+  schedule:
+    - cron: '0 * * * *'
   workflow_dispatch: {}
 
 permissions:
