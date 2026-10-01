@@ -10,8 +10,11 @@ interface Props {
   image?: string;
   title: string;
   excerpt: string;
+  /** h3 under a section h2 (homepage); h2 when the cards sit right under the page h1 (news list). */
+  headingLevel?: 2 | 3;
 }
-const { lang, id, date, image, title, excerpt } = Astro.props;
+const { lang, id, date, image, title, excerpt, headingLevel = 3 } = Astro.props;
+const Heading = headingLevel === 2 ? 'h2' : 'h3';
 const copy = translations[lang];
 const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US', {
   year: 'numeric',
@@ -32,7 +35,7 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
   </div>
   <div class="news-card__body">
     <time datetime={date} class="news-card__date">{formattedDate}</time>
-    <h3><a href={localizePath(lang, `/news/${id}`)}>{title}</a></h3>
+    <Heading class="news-card__title h3"><a href={localizePath(lang, `/news/${id}`)}>{title}</a></Heading>
     <p>{excerpt}</p>
     <a href={localizePath(lang, `/news/${id}`)} class="news-card__link">{copy.common.readMore} &rarr;</a>
   </div>
@@ -87,12 +90,12 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
     font-weight: 600;
     margin-block-end: 0.4rem;
   }
-  .news-card__body h3 { margin-block-end: 0.4rem; }
-  .news-card__body h3 a {
+  .news-card__title { margin-block-end: 0.4rem; }
+  .news-card__title a {
     color: var(--color-navy-900);
     text-decoration: none;
   }
-  .news-card__body h3 a:hover { text-decoration: underline; }
+  .news-card__title a:hover { text-decoration: underline; }
   .news-card__link {
     font-weight: 600;
     font-size: 0.9rem;

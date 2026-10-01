@@ -25,14 +25,15 @@ const allInstructors = (await getCollection('instructors')).sort((a, b) => a.dat
         <p class="notice">{copy.instructors.placeholderNotice}</p>
       ) : (
         <div class="grid grid--2 instructor-grid">
-          {allInstructors.map((person) => (
+          {allInstructors.map((person, index) => (
             <div class="card instructor-card">
               {person.data.photo ? (
                 <img
                   src={person.data.photo}
                   alt={person.data.name[lang]}
                   class="instructor-card__photo-img"
-                  loading="lazy"
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  fetchpriority={index === 0 ? 'high' : undefined}
                   referrerpolicy="no-referrer"
                   onerror="this.replaceWith(this.nextElementSibling.content.cloneNode(true))"
                 />
@@ -47,7 +48,7 @@ const allInstructors = (await getCollection('instructors')).sort((a, b) => a.dat
                 </div>
               )}
               <div>
-                <h3>{person.data.name[lang]}</h3>
+                <h2 class="h3">{person.data.name[lang]}</h2>
                 <p class="instructor-card__bio">{person.data.bio[lang].trim()}</p>
               </div>
             </div>

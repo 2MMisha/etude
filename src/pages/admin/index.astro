@@ -21,7 +21,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <title>ETUDE — Admin</title>
-    <style>
+    <style is:global>
       body { background: var(--color-ground); }
       .admin-shell { max-width: 880px; margin-inline: auto; padding: var(--space-lg) var(--space-sm) var(--space-xl); }
       .admin-brand { display: flex; align-items: center; gap: 0.6rem; margin-block-end: var(--space-md); }
@@ -87,6 +87,12 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       .tt-week { font-size: 0.95rem; margin: var(--space-md) 0 0; font-family: var(--font-body); color: var(--color-navy-900); }
       .tt-rent { background: #fff4e0; border-inline-start: 3px solid #ffb547; padding-inline-start: 0.4em; border-radius: 3px; }
       .tt-rent::before { content: '🔑 '; }
+
+      .rich-wrap { display: flex; flex-direction: column; gap: 0.3rem; }
+      .rich-bar { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+      .rich-bar button { min-width: 2.1em; padding: 0.2em 0.55em; font-size: 0.85rem; border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-surface); cursor: pointer; line-height: 1.4; }
+      .rich-bar button:hover { background: var(--color-silver-100); }
+      .form-grid .rich-wrap textarea { min-height: 9em; }
 
       [hidden] { display: none !important; }
     </style>
@@ -182,10 +188,16 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
               </div>
               <div>
                 <label>Body</label>
+                <p class="hint" style="margin:0 0 0.4em">
+                  Select text and use the buttons, or type it yourself:
+                  <code>**bold**</code> · <code>*italic*</code> · <code>__underline__</code> ·
+                  <code>[link text](https://…)</code> · a line starting with <code>- </code> is a list item ·
+                  an empty line starts a new paragraph.
+                </p>
                 <div class="lang-grid">
-                  <textarea id="newsBodyHe" placeholder="עברית" dir="rtl"></textarea>
-                  <textarea id="newsBodyEn" placeholder="English"></textarea>
-                  <textarea id="newsBodyRu" placeholder="Русский"></textarea>
+                  <textarea id="newsBodyHe" placeholder="עברית" dir="rtl" data-rich></textarea>
+                  <textarea id="newsBodyEn" placeholder="English" data-rich></textarea>
+                  <textarea id="newsBodyRu" placeholder="Русский" data-rich></textarea>
                 </div>
               </div>
             </div>
@@ -1228,7 +1240,63 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
         }
       });
 
-      // ---------- Init ----------      // ---------- Init ----------
+      // ---------- News body formatting toolbar ----------
+      // Inserts the light markup that src/lib/richText.ts renders on the site.
+      function wrapSelection(area, before, after = before, placeholder = 'text') {
+        const { selectionStart: start, selectionEnd: end, value } = area;
+        const selected = value.slice(start, end) || placeholder;
+        area.setRangeText(before + selected + after, start, end, 'end');
+        area.setSelectionRange(start + before.length, start + before.length + selected.length);
+        area.focus();
+      }
+
+      function addLink(area) {
+        const url = (prompt('Link address (https://…, or a site page like /he/contact/):', 'https://') || '').trim();
+        if (!url || url === 'https://') return;
+        if (!/^(https?:\/\/|mailto:|tel:|\/)/i.test(url)) {
+          alert('The link must start with https://, http://, mailto:, tel: or /');
+          return;
+        }
+        wrapSelection(area, '[', `](${url})`, 'link text');
+      }
+
+      function toggleList(area) {
+        const { selectionStart: start, selectionEnd: end, value } = area;
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const nl = value.indexOf('\n', end);
+        const lineEnd = nl === -1 ? value.length : nl;
+        const lines = value.slice(lineStart, lineEnd).split('\n');
+        const allListed = lines.every((l) => /^- /.test(l));
+        const next = lines.map((l) => (allListed ? l.replace(/^- /, '') : /^- /.test(l) ? l : '- ' + l)).join('\n');
+        area.setRangeText(next, lineStart, lineEnd, 'select');
+        area.focus();
+      }
+
+      document.querySelectorAll('textarea[data-rich]').forEach((area) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'rich-wrap';
+        const bar = document.createElement('div');
+        bar.className = 'rich-bar';
+        const buttons = [
+          ['<b>B</b>', 'Bold', () => wrapSelection(area, '**')],
+          ['<i>I</i>', 'Italic', () => wrapSelection(area, '*')],
+          ['<u>U</u>', 'Underline', () => wrapSelection(area, '__')],
+          ['🔗', 'Link', () => addLink(area)],
+          ['• List', 'Bulleted list', () => toggleList(area)],
+        ];
+        for (const [html, title, action] of buttons) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.innerHTML = html;
+          b.title = title;
+          b.addEventListener('click', action);
+          bar.appendChild(b);
+        }
+        area.replaceWith(wrap);
+        wrap.append(bar, area);
+      });
+
+      // ---------- Init ----------
       function initAdmin() {
         refreshTokenUi();
         if (getToken()) {

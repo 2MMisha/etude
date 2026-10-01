@@ -51,7 +51,7 @@ const byDay = DAY_ORDER.map((day) => ({
         <div class="schedule-grid">
           {byDay.map((group) => (
             <div class="schedule-day card">
-              <h3>{DAY_LABELS[group.day][lang]}</h3>
+              <h2 class="schedule-day__title h3">{DAY_LABELS[group.day][lang]}</h2>
               <ul class="schedule-slots">
                 {group.slots.map((slot) => (
                   <li>
@@ -76,7 +76,8 @@ const byDay = DAY_ORDER.map((day) => ({
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: var(--space-md);
   }
-  .schedule-day h3 {
+  /* h2 for a correct outline under the page h1, sized like an h3 */
+  .schedule-day__title {
     border-block-end: 2px solid var(--color-accent);
     padding-block-end: 0.5rem;
     margin-block-end: 0.85rem;

@@ -28,6 +28,8 @@ export default defineConfig({
   output: 'static',
   // Matches how GitHub Pages serves directory-index pages (see localizePath).
   trailingSlash: 'always',
+  // Inline the (small) CSS into each page so it doesn't block the first paint.
+  build: { inlineStylesheets: 'always' },
   integrations: [
     sitemap({
       i18n: {

@@ -20,7 +20,7 @@ const copy = translations[lang];
       <div class="grid grid--3">
         {copy.classes.categories.map((c) => (
           <div class="card">
-            <h3>{c.title}</h3>
+            <h2 class="h3">{c.title}</h2>
             <p>{c.body}</p>
           </div>
         ))}
@@ -57,5 +57,9 @@ const copy = translations[lang];
     margin-block-start: var(--space-md);
     font-weight: 600;
     color: var(--color-navy-900);
+  }
+  .classes-cta a {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
   }
 </style>

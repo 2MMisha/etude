@@ -1,4 +1,5 @@
 ---
+import { excerpt } from '../../../lib/richText';
 import PageMore from '../../../components/PageMore.astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PageIntro from '../../../components/PageIntro.astro';
@@ -30,11 +31,12 @@ const allNews = (await getCollection('news')).sort(
           {allNews.map((post) => (
             <NewsCard
               lang={lang}
+              headingLevel={2}
               id={post.id}
               date={post.data.date}
               image={post.data.image}
               title={post.data.title[lang]}
-              excerpt={post.data.body[lang].slice(0, 110) + (post.data.body[lang].length > 110 ? '…' : '')}
+              excerpt={excerpt(post.data.body[lang], 110)}
             />
           ))}
         </div>

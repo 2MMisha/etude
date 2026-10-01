@@ -2,6 +2,7 @@
 // The homepage, shared by /[lang]/ and the bare "/" (which renders the
 // Hebrew default directly — GitHub Pages can't send HTTP redirects, and a
 // meta-refresh is treated as a thin "doorway" page by SEO tools).
+import { excerpt } from '../lib/richText';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import NewsCard from './NewsCard.astro';
 import PromoBanner from './PromoBanner.astro';
@@ -26,6 +27,8 @@ const latestNews = allNews
 
 
 <BaseLayout lang={lang} path="/" title={copy.home.heroTitle} description={copy.home.heroSubtitle}>
+  {/* The hero background is the LCP element; a CSS url() is found late, so preload it. */}
+  <link slot="head" rel="preload" as="image" href="/images/brand/bg.webp" type="image/webp" fetchpriority="high" />
   <section class="hero">
     <div class="container hero__inner">
       <div class="hero__content">
@@ -93,7 +96,7 @@ const latestNews = allNews
               date={post.data.date}
               image={post.data.image}
               title={post.data.title[lang]}
-              excerpt={post.data.body[lang].slice(0, 110) + (post.data.body[lang].length > 110 ? '…' : '')}
+              excerpt={excerpt(post.data.body[lang], 110)}
             />
           ))}
         </div>
@@ -116,7 +119,7 @@ const latestNews = allNews
   .hero {
     background:
       linear-gradient(180deg, rgba(247, 248, 251, 0.6) 0%, var(--color-ground) 92%),
-      url('/images/brand/bg.png');
+      url('/images/brand/bg.webp');
     background-size: auto, 560px auto;
     padding-block: var(--space-xl) calc(var(--space-xl) - 1rem);
   }

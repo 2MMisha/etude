@@ -92,6 +92,11 @@ const alternatives = ALL_LANGS.filter((l) => l !== lang).map((l) => ({
     padding: 0.55rem var(--space-sm);
     text-align: center;
   }
+  /* display:flex above would otherwise override the hidden attribute and show
+     an empty bar to visitors who get no language suggestion. */
+  .lang-banner[hidden] {
+    display: none;
+  }
   .lang-banner__link {
     color: #fff;
     font-weight: 700;

@@ -20,6 +20,15 @@ const STATIC_ROUTES = [
   '/accessibility',
 ];
 
+// Link text for each static route, from the site's own navigation labels.
+function pageTitle(lang: (typeof ALL_LANGS)[number], route: string): string {
+  const t = translations[lang];
+  const key = route.replace(/^\//, '') || 'home';
+  if (key in t.nav) return t.nav[key as keyof typeof t.nav];
+  if (key in t.common) return t.common[key as keyof typeof t.common] as string;
+  return key;
+}
+
 export const GET: APIRoute = async () => {
   const allNews = await getCollection('news');
 
@@ -53,11 +62,11 @@ export const GET: APIRoute = async () => {
     lines.push('');
     for (const route of STATIC_ROUTES) {
       const url = `${SITE.siteUrl}${localizePath(lang, route)}`;
-      lines.push(`- ${url}`);
+      lines.push(`- [${pageTitle(lang, route)}](${url})`);
     }
     for (const post of allNews) {
       const url = `${SITE.siteUrl}${localizePath(lang, `/news/${post.id}`)}`;
-      lines.push(`- ${url} — ${post.data.title[lang]}`);
+      lines.push(`- [${post.data.title[lang]}](${url})`);
     }
     lines.push('');
   }

@@ -16,13 +16,13 @@ const copy = translations[lang].promo;
     <div class={`promo-banner__grid ${freeTrialActive && olimOfferActive ? 'promo-banner__grid--2' : ''}`}>
       {freeTrialActive && (
         <div class="promo-item">
-          <h3>{copy.trialTitle}</h3>
+          <h2 class="promo-item__title h3">{copy.trialTitle}</h2>
           <p>{copy.trialBody}</p>
         </div>
       )}
       {olimOfferActive && (
         <div class="promo-item">
-          <h3>{copy.olimTitle}</h3>
+          <h2 class="promo-item__title h3">{copy.olimTitle}</h2>
           <p>{copy.olimBody}</p>
         </div>
       )}
@@ -63,7 +63,8 @@ const copy = translations[lang].promo;
       padding-block-start: var(--space-md);
     }
   }
-  .promo-item h3 {
+  /* h2 for a correct heading outline (it follows the page h1), sized like an h3 */
+  .promo-item__title {
     color: #fff;
     margin-block-end: 0.4rem;
   }

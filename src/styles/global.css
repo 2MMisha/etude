@@ -116,6 +116,11 @@ h3 { font-size: clamp(1.4rem, 1.3rem + 0.5vw, 1.75rem); }
 :lang(he) h2 { font-size: clamp(2.1rem, 1.7rem + 1.6vw, 3.1rem); }
 :lang(he) h3 { font-size: clamp(1.55rem, 1.4rem + 0.6vw, 1.95rem); }
 
+/* An h2 that looks like an h3 — for cards that sit directly under the page
+   h1, so the heading outline stays h1 → h2 (accessibility / SEO). */
+h2.h3 { font-size: clamp(1.4rem, 1.3rem + 0.5vw, 1.75rem); }
+:lang(he) h2.h3 { font-size: clamp(1.55rem, 1.4rem + 0.6vw, 1.95rem); }
+
 /* Hebrew body copy reads better slightly larger and airier than Latin. */
 :lang(he) body { font-size: 1.05rem; line-height: 1.7; }
 

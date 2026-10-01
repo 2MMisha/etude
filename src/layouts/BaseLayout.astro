@@ -22,6 +22,8 @@ interface Props {
 
 const { lang, path, title, description, ogImage, schemaType } = Astro.props;
 const { dir } = LANGUAGES[lang];
+const GOOGLE_FONTS =
+  'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&family=Marck+Script&family=Gveret+Levin&display=swap';
 ---
 
 <!doctype html>
@@ -40,10 +42,10 @@ const { dir } = LANGUAGES[lang];
       type="font/woff2"
       crossorigin
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&family=Marck+Script&family=Gveret+Levin&display=swap"
-      rel="stylesheet"
-    />
+    {/* Google Fonts loaded without blocking the first paint (text shows in a
+        fallback font for a moment, then swaps — display=swap). */}
+    <link rel="stylesheet" href={GOOGLE_FONTS} media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href={GOOGLE_FONTS} /></noscript>
     <Seo lang={lang} path={path} title={title} description={description} ogImage={ogImage} type={schemaType} />
     <LocalBusinessSchema lang={lang} />
     <Analytics />

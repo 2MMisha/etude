@@ -4,6 +4,7 @@ import { ALL_LANGS, localizePath, type Lang } from '../../../lib/languages';
 import { translations } from '../../../lib/translations';
 import { SITE } from '../../../lib/site';
 import { getCollection } from 'astro:content';
+import { renderRichText, excerpt } from '../../../lib/richText';
 
 export async function getStaticPaths() {
   const allNews = await getCollection('news');
@@ -21,6 +22,7 @@ const copy = translations[lang];
 
 const title = post.data.title[lang];
 const body = post.data.body[lang];
+const bodyHtml = renderRichText(body);
 const formattedDate = new Date(post.data.date).toLocaleDateString(
   lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US',
   { year: 'numeric', month: 'long', day: 'numeric' }
@@ -46,7 +48,7 @@ const articleSchema = {
   lang={lang}
   path={`/news/${post.id}`}
   title={title}
-  description={body.slice(0, 150)}
+  description={excerpt(body, 155)}
   ogImage={post.data.image}
   schemaType="article"
 >
@@ -66,7 +68,7 @@ const articleSchema = {
           <img src="/images/brand/icon.svg" alt={SITE.brandName} width="64" height="64" />
         </div>
       )}
-      <p class="news-article__body">{body}</p>
+      <div class="news-article__body" set:html={bodyHtml} />
     </div>
   </article>
 </BaseLayout>
@@ -112,6 +114,13 @@ const articleSchema = {
   .news-article__placeholder img { opacity: 0.55; }
   .news-article__body {
     font-size: 1.08rem;
-    white-space: pre-line;
+  }
+  .news-article__body :global(a) {
+    color: var(--color-blue-600);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+  .news-article__body :global(ul) {
+    padding-inline-start: 1.3em;
   }
 </style>

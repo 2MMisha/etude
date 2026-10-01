@@ -16,7 +16,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
   <div class="container footer-grid">
     <div class="footer-col">
       <a href={localizePath(lang, '/')} class="footer-brand">
-        <img src="/images/brand/icon-white.svg" alt={SITE.brandName} width="36" height="36" />
+        <img src="/images/brand/icon-white.svg" alt={`${SITE.brandName} logo`} width="36" height="36" />
         <span>{SITE.brandNameLocalized[lang]}</span>
       </a>
       <p>{SITE.tagline[lang]}</p>
@@ -24,7 +24,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h3>{copy.contact.detailsTitle}</h3>
+      <h2>{copy.contact.detailsTitle}</h2>
       <ul class="footer-list">
         <li><a href={`tel:${SITE.phone}`} dir="ltr">{SITE.phoneDisplay}</a></li>
         <li><a href={whatsappHref} target="_blank" rel="noopener noreferrer">{copy.common.whatsapp}</a></li>
@@ -34,7 +34,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h3>{copy.contact.hoursTitle}</h3>
+      <h2>{copy.contact.hoursTitle}</h2>
       <p>{hoursDisplay}</p>
       <div class="footer-social-list">
         <a href={SITE.social.instagram} target="_blank" rel="noopener noreferrer" class="footer-social">Instagram</a>
@@ -43,7 +43,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h3>{copy.common.footerNav}</h3>
+      <h2>{copy.common.footerNav}</h2>
       <ul class="footer-list">
         <li><a href={localizePath(lang, '/about')}>{copy.nav.about}</a></li>
         <li><a href={localizePath(lang, '/classes')}>{copy.nav.classes}</a></li>
@@ -97,7 +97,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     font-size: 1.6rem;
     color: #fff;
   }
-  .footer-col h3 {
+  .footer-col h2 {
     color: #fff;
     font-family: var(--font-body);
     font-size: 0.95rem;
@@ -152,7 +152,8 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     flex-wrap: wrap;
     gap: var(--space-xs);
   }
-  .footer-bottom p { margin: 0; }
+  /* inherit: the global p colour is a dark grey meant for light backgrounds */
+  .footer-bottom p { margin: 0; color: inherit; }
   .footer-legal {
     display: flex;
     gap: var(--space-sm);
