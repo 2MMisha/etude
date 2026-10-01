@@ -2,13 +2,12 @@
 //
 // The studio keeps its weekly grid in a shared Google Sheet ("לוח זמנים
 // 2026-2027", one tab per week). Every build downloads it as .xlsx and parses
-// it with the same parseTimetableWorkbook() the /admin/ Excel upload uses, so
-// staff only edit the sheet — the site rebuilds on a schedule (see
+// it with parseTimetableWorkbook(), so staff only edit the sheet — the site rebuilds on a schedule (see
 // .github/workflows/deploy.yml) and picks up changes by itself.
 //
 // If the sheet can't be downloaded (no network, sharing turned off), the
-// build falls back to src/data/timetable.json — the last Excel file uploaded
-// through /admin/ — instead of failing.
+// build falls back to src/data/timetable.json (a saved copy of an earlier
+// week) instead of failing.
 import * as XLSX from 'xlsx';
 import fallback from '../data/timetable.json';
 import { parseTimetableWorkbook, type Timetable } from './timetable';

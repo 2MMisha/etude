@@ -5,10 +5,12 @@
 // supplies themselves. See README "Editing content: the admin panel".
 import { SITE } from '../../lib/site';
 import { ADMIN_PASSWORD_SHA256, ADMIN_BRANCH } from '../../lib/adminConfig';
+import { TIMETABLE_SHEET_ID } from '../../lib/loadTimetable';
 import '../../styles/global.css';
 
 const REPO_OWNER = SITE.githubOrg;
 const REPO_NAME = SITE.repoName;
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/edit`;
 ---
 
 <!doctype html>
@@ -77,15 +79,12 @@ const REPO_NAME = SITE.repoName;
       .tt-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin-block: var(--space-sm); }
       .tt-summary div { background: var(--color-silver-100); border-radius: var(--radius-sm); padding: 0.6em 0.8em; font-size: 0.85rem; }
       .tt-summary strong { display: block; font-size: 1rem; color: var(--color-navy-900); }
-      .tt-drop { display: block; border: 2px dashed var(--color-line); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; cursor: pointer; background: var(--color-ground); }
-      .tt-drop.is-over { border-color: var(--color-blue-500); background: var(--color-blue-100); }
-      .tt-drop input { display: none; }
       .tt-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; margin-block-start: var(--space-sm); }
       .tt-day { border: 1px solid var(--color-line); border-radius: var(--radius-sm); padding: 0.6em 0.8em; font-size: 0.85rem; }
       .tt-day h3 { font-size: 0.9rem; margin: 0 0 0.3em; font-family: var(--font-body); }
       .tt-day ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2em; }
       .tt-day .muted { color: var(--color-ink-soft); }
-      .tt-warn { color: #8a5a00; font-size: 0.85rem; }
+      .tt-week { font-size: 0.95rem; margin: var(--space-md) 0 0; font-family: var(--font-body); color: var(--color-navy-900); }
       .tt-rent { background: #fff4e0; border-inline-start: 3px solid #ffb547; padding-inline-start: 0.4em; border-radius: 3px; }
       .tt-rent::before { content: '🔑 '; }
 
@@ -113,7 +112,7 @@ const REPO_NAME = SITE.repoName;
           This page writes directly to the site's GitHub repository using a personal access token you provide below —
           it is stored only in this browser (localStorage), never sent anywhere but api.github.com. Don't use this on a
           shared or public computer, and use a token scoped to only this one repository. Saving anything here —
-          a news post, a schedule slot, an instructor, or the site settings below — pushes a commit to
+          a news post, a schedule slot, an instructor, the site settings, or a timetable update — pushes a commit to
           <code>{REPO_OWNER}/{REPO_NAME}</code>, which rebuilds the live site automatically within about 1–2 minutes.
         </div>
 
@@ -138,7 +137,7 @@ const REPO_NAME = SITE.repoName;
           <button class="tab-btn" id="tabScheduleBtn">Schedule slots</button>
           <button class="tab-btn" id="tabInstructorsBtn">Instructors</button>
           <button class="tab-btn" id="tabSettingsBtn">Site settings</button>
-          <button class="tab-btn" id="tabTimetableBtn">Timetable (Excel)</button>
+          <button class="tab-btn" id="tabTimetableBtn">Timetable (Google Sheet)</button>
         </div>
 
         <section id="newsSection">
@@ -410,60 +409,30 @@ const REPO_NAME = SITE.repoName;
 
         <section id="timetableSection" hidden>
           <div class="panel">
-            <h2 style="font-size:1.05rem">Timetable (Excel)</h2>
+            <h2 style="font-size:1.05rem">Timetable (Google Sheet)</h2>
             <p class="hint">
-              Upload the studio's weekly schedule spreadsheet (the usual grid: day names across the top, dates under them,
-              teacher/hall columns, times down column A, one merged cell per class). It is read right here in the browser,
-              shown below for checking, and published when you press <strong>Publish</strong>. It feeds the in-studio screen
-              <a href="/display/" target="_blank" rel="noopener">/display/</a> and the public Schedule page (rental columns are hidden there).
+              The studio screen <a href="/display/" target="_blank" rel="noopener">/display/</a> shows the classes from the shared
+              Google Sheet — one tab per week. Just edit the sheet: the site rebuilds every hour and picks up the changes by itself.
+              Press <strong>Update now</strong> to rebuild right away (takes about 2–3 minutes). Columns whose name contains
+              "rent" are shown on the screen as hall rentals.
             </p>
-            <p class="status-msg" id="ttCurrentStatus"></p>
-            <div class="tt-summary" id="ttCurrent" hidden></div>
             <div class="form-actions" style="margin-block-start:0">
+              <a class="btn-mini primary" href={SHEET_URL} target="_blank" rel="noopener">Open the Google Sheet ↗</a>
               <a class="btn-mini" href="/display/" target="_blank" rel="noopener">Open display ↗</a>
-              <button class="btn-mini" id="ttDownloadBtn" hidden>Download last uploaded Excel</button>
+              <button class="btn-mini" id="ttRefreshBtn">Update now</button>
+              <span class="status-msg" id="ttRefreshStatus"></span>
             </div>
           </div>
 
           <div class="panel">
-            <h2 style="font-size:1.05rem">Upload a new file</h2>
-            <label class="tt-drop" id="ttDrop">
-              <input type="file" id="ttFile" accept=".xlsx,.xls,.xlsm,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-              <strong>Choose an Excel file</strong> or drop it here
-              <div class="hint" id="ttFileName" style="margin:0.3em 0 0"></div>
-            </label>
-            <p class="status-msg" id="ttParseStatus"></p>
-            <div id="ttPreview" hidden>
-              <div class="tt-summary" id="ttPreviewSummary"></div>
-              <div id="ttWarnings"></div>
-              <div class="tt-days" id="ttDays"></div>
-              <div style="margin-block-start:var(--space-sm)">
-                <label style="font-size:0.88rem"><input type="checkbox" id="ttReplaceAll" style="width:auto; margin-inline-end:0.4em" />
-                  Replace everything published before (otherwise only the dates in this file are replaced, and other upcoming weeks are kept)</label>
-              </div>
-              <div class="form-actions">
-                <button class="btn-mini primary" id="ttPublishBtn">Publish timetable</button>
-                <span class="status-msg" id="ttPublishStatus"></span>
-              </div>
-            </div>
+            <h2 style="font-size:1.05rem">Currently on the screen</h2>
+            <p class="status-msg" id="ttCurrentStatus"></p>
+            <div class="tt-summary" id="ttCurrent" hidden></div>
+            <div id="ttDays"></div>
           </div>
         </section>
       </div>
     </div>
-
-    <script>
-      // Bundled helper for the Timetable tab: SheetJS + the shared parser,
-      // loaded lazily the first time a file is chosen (it's a large library).
-      import { parseTimetableWorkbook, mergeTimetables } from '../../lib/timetable';
-      (window as any).etudeTimetable = {
-        async parse(buffer: ArrayBuffer, fileName: string) {
-          const XLSX = await import('xlsx');
-          const wb = XLSX.read(buffer, { cellFormula: true, sheetStubs: true });
-          return parseTimetableWorkbook(wb, XLSX.utils, fileName);
-        },
-        merge: mergeTimetables,
-      };
-    </script>
 
     <script define:vars={{ REPO_OWNER, REPO_NAME, ADMIN_BRANCH, ADMIN_PASSWORD_SHA256 }}>
       const NEWS_DIR = 'src/content/news';
@@ -606,7 +575,6 @@ const REPO_NAME = SITE.repoName;
             loadSchedule();
             loadInstructors();
             loadSettings();
-            loadTimetable();
           } else {
             throw await ghError(res);
           }
@@ -1151,14 +1119,74 @@ const REPO_NAME = SITE.repoName;
         }
       });
 
-      // ---------- Timetable (Excel) ----------
-      const TIMETABLE_PATH = 'src/data/timetable.json';
-      const TIMETABLE_XLSX_PATH = 'src/data/timetable-source.xlsx';
+      // ---------- Timetable (Google Sheet) ----------
+      // Shows exactly what the deployed site serves to /display/ (built from the
+      // sheet), so it always matches the screen.
       const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      let ttCurrent = { updatedAt: '', sourceFile: '', days: [] };
-      let ttUpload = null; // { buffer, fileName, timetable }
+      const RENT = /\brent\b|השכרה|аренд/i;
 
-      // Generic GitHub REST call (the helpers above are scoped to /contents/).
+      function fmtDate(iso) {
+        const [y, m, d] = iso.split('-');
+        return `${d}/${m}/${y}`;
+      }
+
+      function sundayOf(iso) {
+        const d = new Date(`${iso}T12:00:00`);
+        d.setDate(d.getDate() - d.getDay());
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      async function loadTimetable() {
+        $('ttCurrentStatus').textContent = 'Loading…';
+        $('ttCurrentStatus').className = 'status-msg pending';
+        try {
+          const res = await fetch(`/data/timetable.json?t=${Date.now()}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const tt = await res.json();
+          const days = (tt.days || []).filter((d) => d.date).sort((a, b) => a.date.localeCompare(b.date));
+          if (!days.length) {
+            $('ttCurrentStatus').textContent = 'No classes found in the sheet yet.';
+            $('ttCurrentStatus').className = 'status-msg';
+            $('ttCurrent').hidden = true;
+            $('ttDays').innerHTML = '';
+            return;
+          }
+          const weeks = new Map();
+          for (const d of days) {
+            const key = sundayOf(d.date);
+            if (!weeks.has(key)) weeks.set(key, []);
+            weeks.get(key).push(d);
+          }
+          const classes = days.reduce((n, d) => n + d.items.length, 0);
+          $('ttCurrent').hidden = false;
+          $('ttCurrent').innerHTML = `
+            <div><strong>${fmtDate(days[0].date)} – ${fmtDate(days[days.length - 1].date)}</strong>dates covered</div>
+            <div><strong>${weeks.size}</strong>weeks (sheet tabs)</div>
+            <div><strong>${classes}</strong>classes &amp; rentals</div>
+            ${tt.updatedAt ? `<div><strong>${escapeHtml(new Date(tt.updatedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}</strong>last read from the sheet</div>` : ''}`;
+          $('ttDays').innerHTML = [...weeks.entries()]
+            .map(([sunday, wdays]) => `
+              <h3 class="tt-week">Week of ${fmtDate(sunday)}</h3>
+              <div class="tt-days">${wdays
+                .map((d) => `
+                  <div class="tt-day">
+                    <h3>${WEEKDAYS[d.weekday]} · ${fmtDate(d.date)}</h3>
+                    ${d.items.length
+                      ? `<ul>${d.items.map((i) => `<li${RENT.test(i.column) ? ' class="tt-rent"' : ''}><strong>${i.start}–${i.end}</strong> ${escapeHtml(i.title)} <span class="muted">· ${escapeHtml(i.column)}</span></li>`).join('')}</ul>`
+                      : '<p class="muted" style="margin:0">No classes</p>'}
+                  </div>`)
+                .join('')}</div>`)
+            .join('');
+          $('ttCurrentStatus').textContent = '';
+          $('ttCurrentStatus').className = 'status-msg';
+        } catch (err) {
+          $('ttCurrentStatus').textContent = 'Could not load the timetable: ' + err.message;
+          $('ttCurrentStatus').className = 'status-msg bad';
+        }
+      }
+
+      // "Update now": an empty commit on the branch triggers the deploy workflow,
+      // which re-reads the sheet. Needs only the token's Contents permission.
       async function ghApi(path, options = {}) {
         const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${path}`, {
           ...options,
@@ -1173,163 +1201,34 @@ const REPO_NAME = SITE.repoName;
         return res.json();
       }
 
-      function bufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let bin = '';
-        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-        return btoa(bin);
-      }
-
-      // Commit several files in ONE commit (Git Data API), so the site rebuilds once.
-      async function ghCommitFiles(files, message) {
-        const ref = await ghApi(`git/ref/heads/${ADMIN_BRANCH}`);
-        const parent = await ghApi(`git/commits/${ref.object.sha}`);
-        const tree = [];
-        for (const f of files) {
-          const blob = await ghApi('git/blobs', { method: 'POST', body: JSON.stringify({ content: f.base64, encoding: 'base64' }) });
-          tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
-        }
-        const newTree = await ghApi('git/trees', { method: 'POST', body: JSON.stringify({ base_tree: parent.tree.sha, tree }) });
-        const commit = await ghApi('git/commits', {
-          method: 'POST',
-          body: JSON.stringify({ message, tree: newTree.sha, parents: [ref.object.sha] }),
-        });
-        await ghApi(`git/refs/heads/${ADMIN_BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
-        return commit;
-      }
-
-      function ttSummaryHtml(tt) {
-        const dated = tt.days.filter((d) => d.date).map((d) => d.date).sort();
-        const classes = tt.days.reduce((n, d) => n + d.items.length, 0);
-        const range = dated.length ? `${fmtDate(dated[0])} – ${fmtDate(dated[dated.length - 1])}` : 'weekday template';
-        return `
-          <div><strong>${escapeHtml(range)}</strong>dates covered</div>
-          <div><strong>${tt.days.length}</strong>days</div>
-          <div><strong>${classes}</strong>classes</div>
-          ${tt.updatedAt ? `<div><strong>${escapeHtml(new Date(tt.updatedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}</strong>uploaded</div>` : ''}
-          ${tt.sourceFile ? `<div><strong style="overflow-wrap:anywhere">${escapeHtml(tt.sourceFile)}</strong>file</div>` : ''}`;
-      }
-
-      function fmtDate(iso) {
-        const [y, m, d] = iso.split('-');
-        return `${d}/${m}/${y}`;
-      }
-
-      async function loadTimetable() {
-        $('ttCurrentStatus').textContent = 'Loading…';
-        $('ttCurrentStatus').className = 'status-msg pending';
-        try {
-          const file = await ghGetFile(TIMETABLE_PATH);
-          ttCurrent = file ? JSON.parse(file.content) : { updatedAt: '', sourceFile: '', days: [] };
-          const has = ttCurrent.days && ttCurrent.days.length > 0;
-          $('ttCurrent').hidden = !has;
-          $('ttCurrent').innerHTML = has ? ttSummaryHtml(ttCurrent) : '';
-          $('ttCurrentStatus').textContent = has ? 'Currently published:' : 'No timetable has been published yet.';
-          $('ttCurrentStatus').className = 'status-msg';
-          const xlsx = await ghRequest(`${TIMETABLE_XLSX_PATH}?ref=${ADMIN_BRANCH}`, { method: 'HEAD' });
-          $('ttDownloadBtn').hidden = !xlsx.ok;
-        } catch (err) {
-          $('ttCurrentStatus').textContent = 'Could not load the timetable: ' + err.message;
-          $('ttCurrentStatus').className = 'status-msg bad';
-        }
-      }
-
-      $('ttDownloadBtn').addEventListener('click', async () => {
-        try {
-          const res = await ghRequest(`${TIMETABLE_XLSX_PATH}?ref=${ADMIN_BRANCH}`, { headers: { Accept: 'application/vnd.github.raw+json' } });
-          if (!res.ok) throw await ghError(res);
-          const url = URL.createObjectURL(await res.blob());
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = ttCurrent.sourceFile || 'timetable.xlsx';
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-        } catch (err) {
-          alert('Download failed: ' + err.message);
-        }
-      });
-
-      async function ttHandleFile(file) {
-        if (!file) return;
-        $('ttFileName').textContent = file.name;
-        $('ttPreview').hidden = true;
-        $('ttPublishStatus').textContent = '';
-        $('ttParseStatus').textContent = 'Reading the file…';
-        $('ttParseStatus').className = 'status-msg pending';
-        try {
-          if (!window.etudeTimetable) throw new Error('the page has not finished loading — try again in a moment');
-          const buffer = await file.arrayBuffer();
-          const { timetable, warnings } = await window.etudeTimetable.parse(buffer, file.name);
-          ttUpload = { buffer, fileName: file.name, timetable };
-          $('ttPreviewSummary').innerHTML = ttSummaryHtml({ ...timetable, updatedAt: '' });
-          $('ttWarnings').innerHTML = warnings.map((w) => `<p class="tt-warn">⚠ ${escapeHtml(w)}</p>`).join('');
-          $('ttDays').innerHTML = timetable.days
-            .map((d) => `
-              <div class="tt-day">
-                <h3>${WEEKDAYS[d.weekday]}${d.date ? ' · ' + fmtDate(d.date) : ''}</h3>
-                ${d.items.length
-                  ? `<ul>${d.items.map((i) => `<li${/\brent\b|השכרה|аренд/i.test(i.column) ? ' class="tt-rent"' : ''}><strong>${i.start}–${i.end}</strong> ${escapeHtml(i.title)} <span class="muted">· ${escapeHtml(i.column)}</span></li>`).join('')}</ul>`
-                  : '<p class="muted" style="margin:0">No classes</p>'}
-              </div>`)
-            .join('');
-          const ok = timetable.days.length > 0;
-          $('ttPreview').hidden = !ok;
-          $('ttParseStatus').textContent = ok ? 'Check the classes below, then publish.' : 'Nothing to publish from this file.';
-          $('ttParseStatus').className = 'status-msg ' + (ok ? 'ok' : 'bad');
-        } catch (err) {
-          ttUpload = null;
-          $('ttParseStatus').textContent = 'Could not read this file: ' + err.message;
-          $('ttParseStatus').className = 'status-msg bad';
-        }
-      }
-
-      $('ttFile').addEventListener('change', (e) => ttHandleFile(e.target.files[0]));
-      $('ttDrop').addEventListener('dragover', (e) => { e.preventDefault(); $('ttDrop').classList.add('is-over'); });
-      $('ttDrop').addEventListener('dragleave', () => $('ttDrop').classList.remove('is-over'));
-      $('ttDrop').addEventListener('drop', (e) => {
-        e.preventDefault();
-        $('ttDrop').classList.remove('is-over');
-        ttHandleFile(e.dataTransfer.files[0]);
-      });
-
-      $('ttPublishBtn').addEventListener('click', async () => {
-        if (!ttUpload) return;
+      $('ttRefreshBtn').addEventListener('click', async () => {
         if (!getToken()) {
-          $('ttPublishStatus').textContent = 'Save a GitHub token first (top of the page).';
-          $('ttPublishStatus').className = 'status-msg bad';
+          $('ttRefreshStatus').textContent = 'Save a GitHub token first (top of the page).';
+          $('ttRefreshStatus').className = 'status-msg bad';
           return;
         }
-        $('ttPublishBtn').disabled = true;
-        $('ttPublishStatus').textContent = 'Publishing…';
-        $('ttPublishStatus').className = 'status-msg pending';
+        $('ttRefreshBtn').disabled = true;
+        $('ttRefreshStatus').textContent = 'Starting…';
+        $('ttRefreshStatus').className = 'status-msg pending';
         try {
-          // Re-read what's live right before merging, in case someone else published meanwhile.
-          await loadTimetable();
-          const merged = window.etudeTimetable.merge(ttCurrent, ttUpload.timetable, { replaceAll: $('ttReplaceAll').checked });
-          await ghCommitFiles(
-            [
-              { path: TIMETABLE_PATH, base64: b64Encode(JSON.stringify(merged, null, 2) + '\n') },
-              { path: TIMETABLE_XLSX_PATH, base64: bufferToBase64(ttUpload.buffer) },
-            ],
-            `chore(timetable): upload ${ttUpload.fileName} via admin panel`
-          );
-          $('ttPublishStatus').textContent = 'Published! The site and the display update in about 2–3 minutes.';
-          $('ttPublishStatus').className = 'status-msg ok';
-          ttUpload = null;
-          $('ttPreview').hidden = true;
-          $('ttFile').value = '';
-          $('ttFileName').textContent = '';
-          $('ttParseStatus').textContent = '';
-          loadTimetable();
+          const ref = await ghApi(`git/ref/heads/${ADMIN_BRANCH}`);
+          const parent = await ghApi(`git/commits/${ref.object.sha}`);
+          const commit = await ghApi('git/commits', {
+            method: 'POST',
+            body: JSON.stringify({ message: 'chore(timetable): refresh from Google Sheet via admin panel', tree: parent.tree.sha, parents: [ref.object.sha] }),
+          });
+          await ghApi(`git/refs/heads/${ADMIN_BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
+          $('ttRefreshStatus').textContent = 'Update started — the screen and this list refresh in about 2–3 minutes.';
+          $('ttRefreshStatus').className = 'status-msg ok';
         } catch (err) {
-          $('ttPublishStatus').textContent = 'Publish failed: ' + err.message;
-          $('ttPublishStatus').className = 'status-msg bad';
+          $('ttRefreshStatus').textContent = 'Could not start the update: ' + err.message;
+          $('ttRefreshStatus').className = 'status-msg bad';
         } finally {
-          $('ttPublishBtn').disabled = false;
+          $('ttRefreshBtn').disabled = false;
         }
       });
 
-      // ---------- Init ----------
+      // ---------- Init ----------      // ---------- Init ----------
       function initAdmin() {
         refreshTokenUi();
         if (getToken()) {
@@ -1337,8 +1236,8 @@ const REPO_NAME = SITE.repoName;
           loadSchedule();
           loadInstructors();
           loadSettings();
-          loadTimetable();
         }
+        loadTimetable();
       }
     </script>
   </body>

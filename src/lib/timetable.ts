@@ -1,16 +1,12 @@
-// Studio timetable uploaded as an Excel file through the /admin/ panel.
+// Studio timetable, read from the shared Google Sheet at build time (see
+// loadTimetable.ts).
 //
 // The spreadsheet is the studio's own weekly grid: one sheet per week, a row
 // of day names (SUNDAY…SATURDAY, each merged across several columns), a row
 // of dates under it, a row of column labels (teachers / halls), then one row
 // per 15-minute slot with the time in the first column. A class is a filled
-// cell; its length is the height of its merged range.
-//
-// The admin panel parses the file in the browser (SheetJS) with
-// parseTimetableWorkbook(), merges it into the published data with
-// mergeTimetables(), and commits the result as src/data/timetable.json. The
-// site then reads that JSON at build time (public schedule page, and the
-// /data/timetable.json endpoint the in-studio /display/ screen polls).
+// cell; its length is the height of its merged range. Titles and labels are
+// kept exactly as typed in the sheet.
 import type { WorkBook, WorkSheet, CellObject, Range } from 'xlsx';
 
 export interface TimetableItem {
@@ -31,8 +27,6 @@ export interface Timetable {
   sourceFile: string; // original Excel file name
   days: TimetableDay[];
 }
-
-export const EMPTY_TIMETABLE: Timetable = { updatedAt: '', sourceFile: '', days: [] };
 
 // Day-name spellings recognised in the header row (EN / HE / RU).
 const WEEKDAY_NAMES: string[][] = [
@@ -234,26 +228,6 @@ export function parseTimetableWorkbook(wb: WorkBook, utils: Utils, sourceFile: s
 
 function sortDays(days: TimetableDay[]): TimetableDay[] {
   return [...days].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || a.weekday - b.weekday);
-}
-
-/**
- * Merge a new upload into the published timetable: dated days in the upload
- * replace the same dates; other dated days are kept (unless `replaceAll`),
- * but anything older than `keepPastDays` is dropped so the file stays small.
- * Undated (weekday-template) days are replaced wholesale when the upload has any.
- */
-export function mergeTimetables(
-  current: Timetable,
-  incoming: Timetable,
-  { replaceAll = false, keepPastDays = 14, today = new Date() } = {}
-): Timetable {
-  const cutoff = new Date(today.getTime() - keepPastDays * 86400000).toISOString().slice(0, 10);
-  const incomingDates = new Set(incoming.days.map((d) => d.date).filter(Boolean));
-  const incomingHasTemplates = incoming.days.some((d) => !d.date);
-  const kept = replaceAll
-    ? []
-    : current.days.filter((d) => (d.date ? !incomingDates.has(d.date) && d.date >= cutoff : !incomingHasTemplates));
-  return { ...incoming, days: sortDays([...kept, ...incoming.days]) };
 }
 
 function isoOf(d: Date): string {

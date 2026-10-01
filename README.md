@@ -82,18 +82,19 @@ Once unlocked and connected, the panel gives you four tabs:
 
 Saving anything writes a commit straight to `main`, which triggers `deploy.yml` exactly as before — the live site rebuilds within about 1–2 minutes. For News/Schedule/Instructors, reusing an existing ID overwrites that entry (that's how you edit one), and deleting asks for confirmation first.
 
-### Weekly timetable (Excel) and the studio display screen
+### Weekly timetable (Google Sheet) and the studio display screen
 
-**Source of truth: the shared Google Sheet** ("לוח זמנים 2026-2027", ID in `src/lib/loadTimetable.ts`). Every build downloads it as .xlsx and parses it with the same parser as the admin upload, using weeks from 4 Oct 2026 on; `deploy.yml` rebuilds the site **every hour**, so edits to the sheet appear on the Schedule page and the `/display/` screen within about an hour (or run the workflow by hand from the Actions tab). The sheet must stay shared as "anyone with the link can view". When starting a new week tab from a copy, update its **"Week of"** cell — the dates under the day names come from it, and a tab repeating another tab's dates is ignored (the build log says which dates). Known class names and teacher labels are translated in `localizeTitle`/`localizeColumn` in `src/lib/timetable.ts`; new names show as typed until added there. Note: GitHub pauses scheduled workflows after 60 days without commits — any commit (e.g. an admin-panel save) re-enables them.
+**Source of truth: the shared Google Sheet** ("לוח זמנים 2026-2027", ID in `src/lib/loadTimetable.ts`) — one tab per week. Every build downloads it as .xlsx and parses it (`src/lib/timetable.ts`), using weeks from 4 Oct 2026 on; `deploy.yml` rebuilds the site **every hour**, so edits to the sheet reach the screen within about an hour. The admin panel's **Timetable (Google Sheet)** tab links to the sheet, lists every week/day exactly as the screen sees it (rentals highlighted), and has an **Update now** button that rebuilds right away (an empty commit — needs only the token's Contents permission).
 
-If the sheet can't be downloaded, the build falls back to the last Excel upload below. The admin panel's **Timetable (Excel)** tab takes the studio's usual weekly schedule spreadsheet (day names across the top, dates under them, a teacher/hall column row, times down column A, one merged cell per class). The file is parsed in the browser, shown as a day-by-day preview, and **Publish** commits `src/data/timetable.json` (plus the original file as `src/data/timetable-source.xlsx`) in a single commit. Uploading a new week replaces only the dates in that file and keeps other upcoming weeks; tick "Replace everything" to start fresh.
+- The sheet must stay shared as "anyone with the link can view".
+- When starting a new week tab from a copy, update its **"Week of"** cell — the dates under the day names come from it, and a tab repeating another tab's dates is ignored (the build log says which dates).
+- Class names and column labels are shown exactly as typed in the sheet. Columns whose label contains "rent" are hall rentals: amber, hatched, with a 🔑 on the screen.
+- If the sheet can't be downloaded, the build falls back to `src/data/timetable.json` (a saved earlier week) instead of failing.
+- GitHub pauses scheduled workflows after 60 days without commits — any commit (e.g. an admin-panel save or **Update now**) re-enables them.
 
-That one upload feeds:
+**`/display/`** — a full-screen "today's classes" page for the TV in the studio: clock, the class in progress with a progress bar, what's next, and the day's list (past classes dimmed). Once the day is over it shows tomorrow. It re-checks `/data/timetable.json` every 2 minutes, so the TV never needs reloading. Options: `?lang=en` / `?lang=ru` (Hebrew by default), `?rent=0` to hide rentals, `?date=2026-10-05&time=18:20` to preview a moment. If a date isn't in the sheet, it falls back to the same weekday of the latest week (and says so). Not linked anywhere, `noindex`, excluded from the sitemap and `robots.txt`.
 
-- **`/display/`** — a full-screen "today's classes" page for the TV in the studio: clock, the class in progress with a progress bar, what's next, and the day's list (past classes dimmed). Once the day is over it shows tomorrow. It re-checks `/data/timetable.json` every 2 minutes, so the TV never needs reloading. Options: `?lang=en` / `?lang=ru` (Hebrew by default), `?rent=0` to hide rental columns, `?date=2026-10-05&time=18:20` to preview a moment. If a date isn't in the uploaded file, it falls back to the same weekday of the latest uploaded week (and says so). Not linked anywhere, `noindex`, excluded from the sitemap and `robots.txt`.
-- **The public Schedule page** — the current (or next) uploaded week, with columns whose label contains "rent" hidden.
-
-Parser and merge rules live in `src/lib/timetable.ts`.
+The public **Schedule page** is separate: it lists the **Schedule slots** managed in the admin panel.
 
 ### Adding an image (for News posts)
 
