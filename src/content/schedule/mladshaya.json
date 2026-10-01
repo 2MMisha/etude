@@ -1,0 +1,11 @@
+{
+  "day": "monday",
+  "startTime": "18:00",
+  "endTime": "19:00",
+  "level": "intermediate",
+  "className": {
+    "he": "קבוצת קטנים (סלוניים)",
+    "en": "Junior Ballroom Dance",
+    "ru": "Младшая Конкурсная Группа"
+  }
+}
