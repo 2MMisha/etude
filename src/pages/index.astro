@@ -1,22 +1,11 @@
 ---
+import HomePage from '../components/HomePage.astro';
 import { DEFAULT_LANG } from '../lib/languages';
-// "/" itself carries no content — it always serves the Hebrew default via an
-// instant meta-refresh (works with and without JS). We deliberately do NOT
-// auto-redirect based on browser language here: a silent redirect on first
-// visit is bad practice for returning visitors and SEO crawling. Instead,
-// LanguageBanner.astro (shown on every real page) offers a one-click,
-// dismissible suggestion to switch language based on the visitor's browser.
+// "/" serves the Hebrew homepage itself instead of redirecting: GitHub Pages
+// can't send HTTP redirects, and a meta-refresh "doorway" page is flagged by
+// SEO tools (no H1, no description, no links). Its canonical points at /he/,
+// so search engines index one URL. We deliberately do NOT auto-redirect by
+// browser language — LanguageBanner.astro offers a dismissible suggestion.
 ---
 
-<!doctype html>
-<html lang={DEFAULT_LANG}>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content={`0; url=/${DEFAULT_LANG}/`} />
-    <link rel="canonical" href={`/${DEFAULT_LANG}/`} />
-    <title>ETUDE Dance School</title>
-  </head>
-  <body>
-    <p>Redirecting… <a href="/he/">ETUDE Dance School</a></p>
-  </body>
-</html>
+<HomePage lang={DEFAULT_LANG} />

@@ -1,13 +1,14 @@
 ---
 import { translations } from '../lib/translations';
 import { SITE } from '../lib/site';
-import type { Lang } from '../lib/languages';
+import { localizePath, type Lang } from '../lib/languages';
 
 interface Props {
   lang: Lang;
 }
 const { lang } = Astro.props;
 const copy = translations[lang];
+const consent = copy.contact.consent;
 ---
 
 <form class="contact-form" action={SITE.formSubmitEndpoint} method="POST">
@@ -36,6 +37,25 @@ const copy = translations[lang];
   <div class="field">
     <label for="message">{copy.contact.formMessage}</label>
     <textarea id="message" name="message" rows="5" required></textarea>
+  </div>
+
+  {/* Required consent; the submitted value is kept in the emailed form as a record of agreement. */}
+  <div class="consent">
+    <input
+      id="consent"
+      name="consent"
+      type="checkbox"
+      required
+      value={`${consent.before}${consent.terms}${consent.between}${consent.privacy}${consent.after}`}
+      data-required-message={consent.required}
+    />
+    <label for="consent">
+      {consent.before}<a href={localizePath(lang, '/terms')} target="_blank" rel="noopener">{consent.terms}</a>{consent.between}<a
+        href={localizePath(lang, '/privacy')}
+        target="_blank"
+        rel="noopener">{consent.privacy}</a
+      >{consent.after}
+    </label>
   </div>
 
   <button type="submit" class="btn btn--primary">{copy.contact.formSubmit}</button>
@@ -71,8 +91,41 @@ const copy = translations[lang];
   textarea:focus {
     border-color: var(--color-blue-500);
   }
+  .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .consent input {
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    margin: 0.15rem 0 0;
+    padding: 0;
+    flex-shrink: 0;
+    accent-color: var(--color-navy-900);
+    cursor: pointer;
+  }
+  .consent label {
+    font-weight: 400;
+    color: var(--color-ink);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .consent a {
+    color: var(--color-blue-600);
+    text-decoration: underline;
+  }
   .contact-form .btn {
     align-self: flex-start;
     margin-block-start: 0.4rem;
   }
 </style>
+
+<script>
+  // Show the consent message in the page's own language instead of the browser default.
+  document.querySelectorAll<HTMLInputElement>('.contact-form input[name="consent"]').forEach((box) => {
+    const message = box.dataset.requiredMessage || '';
+    box.addEventListener('invalid', () => box.setCustomValidity(box.checked ? '' : message));
+    box.addEventListener('change', () => box.setCustomValidity(''));
+  });
+</script>

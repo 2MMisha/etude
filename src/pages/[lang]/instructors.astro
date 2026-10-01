@@ -1,4 +1,5 @@
 ---
+import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import { ALL_LANGS, type Lang } from '../../lib/languages';
@@ -55,6 +56,7 @@ const allInstructors = (await getCollection('instructors')).sort((a, b) => a.dat
       )}
     </div>
   </section>
+  <PageMore title={copy.pageMore.instructors.title} paragraphs={copy.pageMore.instructors.paragraphs} surface />
 </BaseLayout>
 
 <style>

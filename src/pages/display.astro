@@ -1,0 +1,356 @@
+---
+// In-studio screen: today's classes from the timetable uploaded via /admin/.
+// Open https://etude.ristar.co/display/ full-screen on the studio TV (any
+// smart-TV browser, a Chromecast/Fire stick, or a mini PC). The page polls
+// /data/timetable.json every couple of minutes, so a new Excel upload shows
+// up on the TV within a few minutes of the site redeploying — no reload.
+//
+// URL options: ?lang=he|en|ru (default he) · ?rent=0 hides rental columns ·
+// ?date=2026-10-05&time=18:20 freezes the clock (for checking a layout).
+// Not linked anywhere, noindex, excluded from the sitemap and robots.txt.
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Heebo:wght@400;500;600;700;800&family=Marck+Script&display=swap"
+      rel="stylesheet"
+    />
+    <title>ETUDE — Today</title>
+  </head>
+  <body class="display">
+    <div class="screen">
+      <header class="top">
+        <img class="top__logo" src="/images/brand/logo-full-white.svg" alt="ETUDE" />
+        <div class="top__day">
+          <p class="top__label" data-text="today"></p>
+          <p class="top__date" id="date"></p>
+        </div>
+        <p class="top__clock" id="clock" dir="ltr"></p>
+      </header>
+
+      <main class="body">
+        <section class="focus" id="focus" aria-live="polite"></section>
+        <section class="list">
+          <h2 class="list__title" id="listTitle"></h2>
+          <ol class="timeline" id="timeline"></ol>
+        </section>
+      </main>
+
+      <footer class="bottom">
+        <span>etude.ristar.co</span>
+        <span id="note"></span>
+      </footer>
+    </div>
+
+    <script>
+      import { dayFor, timeToMinutes, RENTAL_COLUMN, type Timetable, type TimetableItem } from '../lib/timetable';
+
+      type Lang = 'he' | 'en' | 'ru';
+      const L = {
+        he: {
+          today: 'השיעורים היום', now: 'עכשיו', next: 'השיעור הבא', startsIn: 'מתחיל בעוד', endsIn: 'מסתיים בעוד',
+          min: 'דק׳', h: 'שע׳', schedule: 'לוח השיעורים', tomorrow: 'מחר', noClasses: 'אין שיעורים היום',
+          dayOver: 'השיעורים להיום הסתיימו', seeYou: 'נתראה בשיעור הבא!', template: 'לפי לוח השבוע האחרון שהועלה',
+          noData: 'לוח הזמנים עדיין לא הועלה', offline: 'אין חיבור — מוצג המידע האחרון', locale: 'he-IL', dir: 'rtl',
+        },
+        en: {
+          today: "Today's classes", now: 'Now', next: 'Up next', startsIn: 'Starts in', endsIn: 'Ends in',
+          min: 'min', h: 'h', schedule: 'Schedule', tomorrow: 'Tomorrow', noClasses: 'No classes today',
+          dayOver: "That's all for today", seeYou: 'See you at the next class!', template: 'Based on the latest uploaded week',
+          noData: 'The schedule has not been uploaded yet', offline: 'Offline — showing the last known schedule', locale: 'en-GB', dir: 'ltr',
+        },
+        ru: {
+          today: 'Занятия сегодня', now: 'Сейчас', next: 'Следующее', startsIn: 'Начало через', endsIn: 'До конца',
+          min: 'мин', h: 'ч', schedule: 'Расписание', tomorrow: 'Завтра', noClasses: 'Сегодня занятий нет',
+          dayOver: 'Занятия на сегодня закончились', seeYou: 'До встречи на следующем занятии!', template: 'По последней загруженной неделе',
+          noData: 'Расписание ещё не загружено', offline: 'Нет связи — показано последнее расписание', locale: 'ru-RU', dir: 'ltr',
+        },
+      } as const;
+
+      const params = new URLSearchParams(location.search);
+      const lang: Lang = (['he', 'en', 'ru'] as const).find((l) => l === params.get('lang')) ?? 'he';
+      const t = L[lang];
+      const hideRent = params.get('rent') === '0';
+      const frozenDate = params.get('date');
+      const frozenTime = params.get('time');
+      document.documentElement.lang = lang;
+      document.documentElement.dir = t.dir;
+      document.querySelectorAll<HTMLElement>('[data-text]').forEach((el) => {
+        el.textContent = t[el.dataset.text as keyof typeof t] as string;
+      });
+
+      const $ = (id: string) => document.getElementById(id)!;
+      let timetable: Timetable | null = null;
+      let offline = false;
+      const colors = new Map<string, number>();
+
+      function now(): Date {
+        if (!frozenDate) return new Date();
+        const [y, m, d] = frozenDate.split('-').map(Number);
+        const [hh, mm] = (frozenTime || '12:00').split(':').map(Number);
+        return new Date(y, m - 1, d, hh, mm);
+      }
+
+      function esc(s: string) {
+        return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+      }
+
+      function colorOf(column: string) {
+        if (!colors.has(column)) colors.set(column, colors.size % 6);
+        return colors.get(column)!;
+      }
+
+      function duration(mins: number) {
+        if (mins < 60) return `${mins} ${t.min}`;
+        const h = Math.floor(mins / 60), m = mins % 60;
+        return m ? `${h} ${t.h} ${m} ${t.min}` : `${h} ${t.h}`;
+      }
+
+      function itemsOf(date: Date) {
+        if (!timetable) return { items: [] as TimetableItem[], fromTemplate: false };
+        const { day, fromTemplate } = dayFor(timetable, date);
+        const items = (day?.items ?? []).filter((i) => !(hideRent && RENTAL_COLUMN.test(i.column)));
+        return { items, fromTemplate };
+      }
+
+      function chip(column: string) {
+        return `<span class="chip c${colorOf(column)}">${esc(column)}</span>`;
+      }
+
+      function focusCard(kind: 'now' | 'next', item: TimetableItem, minutes: number) {
+        const start = timeToMinutes(item.start), end = timeToMinutes(item.end);
+        const progress = kind === 'now' ? Math.min(100, Math.max(0, ((minutes - start) / (end - start)) * 100)) : 0;
+        const left = kind === 'now' ? `${t.endsIn} ${duration(end - minutes)}` : `${t.startsIn} ${duration(start - minutes)}`;
+        return `
+          <article class="card card--${kind}">
+            <p class="card__kind">${kind === 'now' ? `<span class="pulse"></span>${t.now}` : t.next}</p>
+            <h3 class="card__title" dir="auto">${esc(item.title)}</h3>
+            <p class="card__time" dir="ltr">${item.start} – ${item.end}</p>
+            <div class="card__meta">${chip(item.column)}<span>${left}</span></div>
+            ${kind === 'now' ? `<div class="bar"><span style="inline-size:${progress.toFixed(1)}%"></span></div>` : ''}
+          </article>`;
+      }
+
+      function row(item: TimetableItem, state: string) {
+        return `
+          <li class="row row--${state}">
+            <span class="row__time" dir="ltr">${item.start}<small>${item.end}</small></span>
+            <span class="row__title" dir="auto">${esc(item.title)}</span>
+            ${chip(item.column)}
+          </li>`;
+      }
+
+      function render() {
+        const date = now();
+        const minutes = date.getHours() * 60 + date.getMinutes();
+        $('clock').textContent = date.toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+        const dateText = date.toLocaleDateString(t.locale, { weekday: 'long', day: 'numeric', month: 'long' });
+        $('date').textContent = dateText;
+
+        if (!timetable) {
+          $('focus').innerHTML = `<div class="empty"><p class="empty__big">${t.noData}</p></div>`;
+          $('timeline').innerHTML = '';
+          $('listTitle').textContent = '';
+          return;
+        }
+
+        const { items, fromTemplate } = itemsOf(date);
+        const current = items.filter((i) => timeToMinutes(i.start) <= minutes && minutes < timeToMinutes(i.end));
+        const upcoming = items.filter((i) => timeToMinutes(i.start) > minutes);
+        const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+        const tomorrowItems = itemsOf(tomorrow).items;
+
+        let focus = '';
+        if (current.length) focus += current.slice(0, 2).map((i) => focusCard('now', i, minutes)).join('');
+        if (upcoming.length && current.length < 2) {
+          const firstStart = upcoming[0].start;
+          focus += upcoming.filter((i) => i.start === firstStart).slice(0, 2 - current.length).map((i) => focusCard('next', i, minutes)).join('');
+        }
+        if (!focus) {
+          focus = `<div class="empty"><p class="empty__big">${items.length ? t.dayOver : t.noClasses}</p><p class="empty__small">${t.seeYou}</p></div>`;
+        }
+        $('focus').innerHTML = focus;
+
+        // Main list: today's classes; once the day is over (or empty), tomorrow's.
+        const showTomorrow = !current.length && !upcoming.length && tomorrowItems.length > 0;
+        const list = showTomorrow ? tomorrowItems : items;
+        $('listTitle').textContent = showTomorrow
+          ? `${t.tomorrow} · ${tomorrow.toLocaleDateString(t.locale, { weekday: 'long' })}`
+          : t.schedule;
+        const nextStart = upcoming[0]?.start;
+        $('timeline').innerHTML = list
+          .map((i) => {
+            if (showTomorrow) return row(i, 'future');
+            const s = timeToMinutes(i.start), e = timeToMinutes(i.end);
+            const state = e <= minutes ? 'past' : s <= minutes ? 'now' : i.start === nextStart ? 'next' : 'future';
+            return row(i, state);
+          })
+          .join('');
+        $('timeline').dataset.count = String(list.length);
+
+        const notes = [];
+        if (fromTemplate && !showTomorrow) notes.push(t.template);
+        if (offline) notes.push(t.offline);
+        $('note').textContent = notes.join(' · ');
+      }
+
+      async function load() {
+        try {
+          const res = await fetch(`/data/timetable.json?t=${Date.now()}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error(String(res.status));
+          const data = (await res.json()) as Timetable;
+          timetable = data.days?.length ? data : null;
+          offline = false;
+        } catch {
+          offline = true; // keep showing the last good copy
+        }
+        render();
+      }
+
+      load();
+      setInterval(load, 2 * 60 * 1000);
+      setInterval(render, 15 * 1000);
+      // Reload a few times a day so the TV also picks up changes to this page itself.
+      setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);
+
+      // Keep the TV/monitor from sleeping where the browser allows it.
+      const wakeLock = () => (navigator as any).wakeLock?.request('screen').catch(() => {});
+      wakeLock();
+      document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wakeLock());
+      // Click/tap anywhere to go full-screen.
+      document.addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+      });
+    </script>
+
+    <style is:global>
+      html { font-size: clamp(12px, 1.05vw, 40px); }
+      body.display {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        color: #fff;
+        font-family: 'Heebo', 'Montserrat', system-ui, sans-serif;
+        background:
+          radial-gradient(120% 90% at 85% 0%, rgba(85, 112, 184, 0.45) 0%, transparent 60%),
+          radial-gradient(90% 80% at 0% 100%, rgba(47, 75, 155, 0.5) 0%, transparent 55%),
+          var(--color-navy-900);
+        cursor: none;
+      }
+      :lang(en) body.display, :lang(ru) body.display { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
+      .display p, .display h2, .display h3 { margin: 0; color: inherit; }
+
+      .screen {
+        box-sizing: border-box;
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 2.2rem;
+        padding: 2.4rem 3rem 1.6rem;
+      }
+
+      .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2rem; }
+      .top__logo { block-size: 4.6rem; inline-size: auto; justify-self: start; }
+      .top__day { text-align: center; }
+      .top__label { font-size: 1.25rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-silver-300); font-weight: 600; }
+      .top__date { font-size: 2.6rem; font-weight: 700; line-height: 1.15; }
+      .top__clock {
+        justify-self: end;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 4.4rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+
+      .body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 2.6rem; min-height: 0; }
+
+      .focus { display: flex; flex-direction: column; gap: 1.6rem; justify-content: center; min-height: 0; }
+      .card {
+        border-radius: 1.6rem;
+        padding: 2rem 2.2rem;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        display: grid;
+        gap: 0.8rem;
+      }
+      .card--now { background: #fff; color: var(--color-navy-900); border-color: #fff; box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.35); }
+      .card__kind { display: flex; align-items: center; gap: 0.7rem; font-size: 1.3rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; }
+      .card--now .card__kind { color: var(--color-blue-600); opacity: 1; }
+      .display .card__title { font-size: 3.4rem; font-weight: 800; line-height: 1.08; font-family: inherit; }
+      .display .card--next .card__title { font-size: 2.6rem; }
+      .card__time { font-family: 'Montserrat', sans-serif; font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0.85; justify-self: start; }
+      .card__meta { display: flex; align-items: center; gap: 1rem; font-size: 1.35rem; font-weight: 600; flex-wrap: wrap; }
+      .bar { block-size: 0.6rem; border-radius: 1rem; background: var(--color-blue-100); overflow: hidden; margin-block-start: 0.4rem; }
+      .bar span { display: block; block-size: 100%; background: var(--color-blue-600); border-radius: inherit; transition: inline-size 1s linear; }
+      .pulse { inline-size: 0.8rem; block-size: 0.8rem; border-radius: 50%; background: #e5484d; animation: pulse 1.6s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: 0.25; transform: scale(0.8); } }
+
+      .empty { display: grid; gap: 1rem; padding: 2rem 0; }
+      .empty__big { font-size: 3.4rem; font-weight: 800; line-height: 1.1; }
+      .empty__small { font-size: 1.6rem; color: var(--color-silver-300); }
+
+      .list { display: flex; flex-direction: column; min-height: 0; }
+      .display .list__title { font-size: 1.25rem; line-height: 1.3; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-silver-300); font-weight: 600; margin-block-end: 1rem; font-family: inherit; }
+      .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8rem; min-height: 0; }
+      .row {
+        display: grid;
+        grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1.4rem;
+        padding: 1.1rem 1.5rem;
+        border-radius: 1.1rem;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid transparent;
+        transition: opacity 0.6s, background 0.6s;
+      }
+      .row__time { font-family: 'Montserrat', sans-serif; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; line-height: 1.05; }
+      .row__time small { font-size: 1.05rem; font-weight: 500; opacity: 0.7; }
+      .row__title { font-size: 1.9rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+      .row--past { opacity: 0.38; }
+      .row--now { background: #fff; color: var(--color-navy-900); }
+      .row--next { border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.1); }
+      /* Long days: tighten rows so up to ~12 classes still fit on one screen. */
+      .timeline[data-count='8'] .row, .timeline[data-count='9'] .row { padding-block: 0.7rem; }
+      .timeline[data-count='10'] .row, .timeline[data-count='11'] .row, .timeline[data-count='12'] .row { padding-block: 0.45rem; }
+      .timeline[data-count='10'] .row__title, .timeline[data-count='11'] .row__title, .timeline[data-count='12'] .row__title { font-size: 1.5rem; }
+
+      .chip {
+        --c: #7aa2ff;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        white-space: nowrap;
+        background: color-mix(in srgb, var(--c) 22%, transparent);
+        color: inherit;
+      }
+      .chip::before { content: ''; inline-size: 0.65rem; block-size: 0.65rem; border-radius: 50%; background: var(--c); }
+      .c1 { --c: #f59ac0; } .c2 { --c: #5fd3a8; } .c3 { --c: #ffc15e; } .c4 { --c: #b79cff; } .c5 { --c: #5cc8e6; }
+      .card--now .chip, .row--now .chip { background: color-mix(in srgb, var(--c) 30%, #fff); }
+
+      .bottom { display: flex; justify-content: space-between; gap: 2rem; font-size: 1.05rem; color: var(--color-silver-300); }
+
+      /* Portrait screens: stack the focus card above the list. */
+      @media (orientation: portrait) {
+        html { font-size: clamp(12px, 1.9vw, 40px); }
+        .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+        .top__logo { block-size: 3.4rem; }
+      }
+      @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+    </style>
+  </body>
+</html>

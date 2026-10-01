@@ -11,7 +11,15 @@ interface Props {
   type?: 'website' | 'article';
 }
 
-const { lang, path, title, description, ogImage, type = 'website' } = Astro.props;
+const { lang, path, title, description: rawDescription, ogImage, type = 'website' } = Astro.props;
+
+// Search engines cut snippets at ~160 characters; trim long page intros at a
+// word boundary instead of letting Google cut mid-word.
+const MAX_DESCRIPTION = 160;
+const description =
+  rawDescription.length <= MAX_DESCRIPTION
+    ? rawDescription
+    : rawDescription.slice(0, rawDescription.lastIndexOf(' ', MAX_DESCRIPTION - 1)).replace(/[\s,.;:—–-]+$/, '') + '…';
 
 const cleanPath = path === '/' ? '' : path;
 const canonicalUrl = `${SITE.siteUrl}${localizePath(lang, cleanPath || '/')}`;

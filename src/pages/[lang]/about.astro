@@ -1,4 +1,5 @@
 ---
+import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import { ALL_LANGS, type Lang } from '../../lib/languages';
@@ -34,6 +35,7 @@ const copy = translations[lang];
       </div>
     </div>
   </section>
+  <PageMore title={copy.pageMore.about.title} paragraphs={copy.pageMore.about.paragraphs} />
 </BaseLayout>
 
 <style>

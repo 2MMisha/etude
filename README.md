@@ -82,6 +82,17 @@ Once unlocked and connected, the panel gives you four tabs:
 
 Saving anything writes a commit straight to `main`, which triggers `deploy.yml` exactly as before — the live site rebuilds within about 1–2 minutes. For News/Schedule/Instructors, reusing an existing ID overwrites that entry (that's how you edit one), and deleting asks for confirmation first.
 
+### Weekly timetable (Excel) and the studio display screen
+
+The admin panel's **Timetable (Excel)** tab takes the studio's usual weekly schedule spreadsheet (day names across the top, dates under them, a teacher/hall column row, times down column A, one merged cell per class). The file is parsed in the browser, shown as a day-by-day preview, and **Publish** commits `src/data/timetable.json` (plus the original file as `src/data/timetable-source.xlsx`) in a single commit. Uploading a new week replaces only the dates in that file and keeps other upcoming weeks; tick "Replace everything" to start fresh.
+
+That one upload feeds:
+
+- **`/display/`** — a full-screen "today's classes" page for the TV in the studio: clock, the class in progress with a progress bar, what's next, and the day's list (past classes dimmed). Once the day is over it shows tomorrow. It re-checks `/data/timetable.json` every 2 minutes, so the TV never needs reloading. Options: `?lang=en` / `?lang=ru` (Hebrew by default), `?rent=0` to hide rental columns, `?date=2026-10-05&time=18:20` to preview a moment. If a date isn't in the uploaded file, it falls back to the same weekday of the latest uploaded week (and says so). Not linked anywhere, `noindex`, excluded from the sitemap and `robots.txt`.
+- **The public Schedule page** — the current (or next) uploaded week, with columns whose label contains "rent" hidden.
+
+Parser and merge rules live in `src/lib/timetable.ts`.
+
 ### Adding an image (for News posts)
 
 The panel's Image URL field still only accepts a URL, not a file upload. To get a URL for a photo:
@@ -164,7 +175,8 @@ These are regenerated on every build, always in sync with real content:
 - **`/sitemap-index.xml`** and **`/sitemap-0.xml`** — full sitemap with per-language alternate links (via `@astrojs/sitemap`).
 - **`/robots.txt`** — points crawlers to the sitemap.
 - **`/llms.txt`** — a plain-text summary of the business and every page/post in every language, for AI assistants and crawlers. Generated at build time from the same content as the site itself (see `src/pages/llms.txt.ts`).
-- Every page also emits: a unique `<title>` and meta description, canonical URL, `hreflang` alternates for all 3 languages + `x-default`, Open Graph and Twitter Card tags, and `DanceSchool` (LocalBusiness) structured data — with `NewsArticle` structured data added on individual news posts.
+- All internal links, canonicals and hreflang URLs end in `/` (`localizePath()` in `src/lib/languages.ts`) — GitHub Pages 301-redirects the slash-less form, and a canonical pointing at a redirect is an SEO error. `/` itself renders the Hebrew homepage (canonical → `/he/`) instead of a meta-refresh redirect.
+- Every page also emits: a unique `<title>` and meta description (trimmed to 160 characters), canonical URL, `hreflang` alternates for all 3 languages + `x-default`, Open Graph and Twitter Card tags, and `DanceSchool` (LocalBusiness) structured data — with `NewsArticle` structured data added on individual news posts.
 
 ---
 

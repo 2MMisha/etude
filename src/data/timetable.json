@@ -1,0 +1,106 @@
+{
+  "updatedAt": "2026-10-01T15:08:26.415Z",
+  "sourceFile": "לוח זמנים 2026-2027.xlsx",
+  "days": [
+    {
+      "date": "2026-10-04",
+      "weekday": 0,
+      "items": [
+        {
+          "start": "18:00",
+          "end": "19:00",
+          "title": "Adv Hobby Gr",
+          "column": "Roman"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-05",
+      "weekday": 1,
+      "items": [
+        {
+          "start": "18:00",
+          "end": "19:00",
+          "title": "Jun Ballroom Dance Gr",
+          "column": "Evgeniia"
+        },
+        {
+          "start": "19:00",
+          "end": "20:30",
+          "title": "Ballroom Dance (Standard)",
+          "column": "Evgeniia"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-06",
+      "weekday": 2,
+      "items": [
+        {
+          "start": "17:15",
+          "end": "18:00",
+          "title": "Adv Children's Gr",
+          "column": "Roman"
+        },
+        {
+          "start": "18:00",
+          "end": "19:00",
+          "title": "Adv Hobby Gr",
+          "column": "Roman"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-07",
+      "weekday": 3,
+      "items": [
+        {
+          "start": "18:00",
+          "end": "19:00",
+          "title": "Jun Ballroom Dance Gr",
+          "column": "Evgeniia"
+        },
+        {
+          "start": "19:00",
+          "end": "20:30",
+          "title": "Ballroom Dance (Standard)",
+          "column": "Evgeniia"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-08",
+      "weekday": 4,
+      "items": [
+        {
+          "start": "17:15",
+          "end": "18:00",
+          "title": "Adv Children's Gr",
+          "column": "Roman"
+        },
+        {
+          "start": "18:00",
+          "end": "19:00",
+          "title": "Jun Ballroom Dance Gr",
+          "column": "Evgeniia"
+        },
+        {
+          "start": "19:00",
+          "end": "20:30",
+          "title": "Ballroom Dance (Standard)",
+          "column": "Evgeniia"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-09",
+      "weekday": 5,
+      "items": []
+    },
+    {
+      "date": "2026-10-10",
+      "weekday": 6,
+      "items": []
+    }
+  ]
+}

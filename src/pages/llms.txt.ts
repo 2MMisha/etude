@@ -16,6 +16,7 @@ const STATIC_ROUTES = [
   '/news',
   '/contact',
   '/privacy',
+  '/terms',
   '/accessibility',
 ];
 

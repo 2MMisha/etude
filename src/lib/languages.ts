@@ -13,10 +13,16 @@ export function isLang(value: string): value is Lang {
   return (ALL_LANGS as string[]).includes(value);
 }
 
-/** Build a path prefixed with the given language, e.g. localizePath('en', '/about') -> '/en/about' */
+/**
+ * Build a path prefixed with the given language, always ending in a slash,
+ * e.g. localizePath('en', '/about') -> '/en/about/'. GitHub Pages serves every
+ * page as a directory index and 301-redirects the slash-less form, so internal
+ * links, canonicals and hreflang alternates must all use the trailing slash
+ * to point at the final URL rather than at a redirect.
+ */
 export function localizePath(lang: Lang, path: string): string {
-  const clean = path.startsWith('/') ? path : `/${path}`;
-  return `/${lang}${clean === '/' ? '' : clean}`;
+  const clean = path.replace(/^\/+|\/+$/g, '');
+  return clean ? `/${lang}/${clean}/` : `/${lang}/`;
 }
 
 /** Given a path like /en/about, strip the language prefix to get /about */

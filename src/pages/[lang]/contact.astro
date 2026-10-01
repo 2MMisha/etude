@@ -1,4 +1,5 @@
 ---
+import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import ContactForm from '../../components/ContactForm.astro';
@@ -42,6 +43,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
       </div>
     </div>
   </section>
+  <PageMore title={copy.pageMore.contact.title} paragraphs={copy.pageMore.contact.paragraphs} surface />
 </BaseLayout>
 
 <style>

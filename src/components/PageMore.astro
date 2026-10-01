@@ -1,0 +1,22 @@
+---
+// Supporting copy shown under a page's main content — practical detail that
+// also gives search engines enough text to understand the page.
+interface Props {
+  title: string;
+  paragraphs: string[];
+  surface?: boolean;
+}
+const { title, paragraphs, surface = false } = Astro.props;
+---
+
+<section class:list={['section', { 'section--surface': surface }]}>
+  <div class="container page-more">
+    <h2>{title}</h2>
+    {paragraphs.map((p) => <p>{p}</p>)}
+  </div>
+</section>
+
+<style>
+  .page-more { max-width: 760px; }
+  .page-more p { font-size: 1.02rem; }
+</style>

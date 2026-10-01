@@ -1,6 +1,7 @@
 ---
 import { localizePath, type Lang } from '../lib/languages';
 import { translations } from '../lib/translations';
+import { SITE } from '../lib/site';
 
 interface Props {
   lang: Lang;
@@ -22,10 +23,10 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
 <article class="news-card card">
   <div class="news-card__image">
     {image ? (
-      <img src={image} alt="" loading="lazy" />
+      <img src={image} alt={title} loading="lazy" />
     ) : (
       <div class="news-card__placeholder" aria-hidden="true">
-        <img src="/images/brand/icon.svg" alt="" width="64" height="64" />
+        <img src="/images/brand/icon.svg" alt={SITE.brandName} width="64" height="64" />
       </div>
     )}
   </div>

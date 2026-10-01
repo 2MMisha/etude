@@ -6,6 +6,8 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://etude.ristar.co',
   output: 'static',
+  // Matches how GitHub Pages serves directory-index pages (see localizePath).
+  trailingSlash: 'always',
   integrations: [
     sitemap({
       i18n: {
@@ -16,7 +18,7 @@ export default defineConfig({
           ru: 'ru-RU',
         },
       },
-      filter: (page) => !page.includes('/admin'),
+      filter: (page) => !page.includes('/admin') && !page.includes('/display') && page !== 'https://etude.ristar.co/',
     }),
   ],
 });

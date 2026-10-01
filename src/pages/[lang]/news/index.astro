@@ -1,4 +1,5 @@
 ---
+import PageMore from '../../../components/PageMore.astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PageIntro from '../../../components/PageIntro.astro';
 import NewsCard from '../../../components/NewsCard.astro';
@@ -40,4 +41,5 @@ const allNews = (await getCollection('news')).sort(
       )}
     </div>
   </section>
+  <PageMore title={copy.pageMore.news.title} paragraphs={copy.pageMore.news.paragraphs} surface />
 </BaseLayout>

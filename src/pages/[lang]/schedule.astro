@@ -1,10 +1,13 @@
 ---
+import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import { ALL_LANGS, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 import { getCollection } from 'astro:content';
 import { hoursDisplay } from '../../lib/site';
+import { RENTAL_COLUMN, weekOf, type Timetable } from '../../lib/timetable';
+import timetableData from '../../data/timetable.json';
 
 export function getStaticPaths() {
   return ALL_LANGS.map((lang) => ({ params: { lang } }));
@@ -36,6 +39,24 @@ const byDay = DAY_ORDER.map((day) => ({
     .filter((s) => s.data.day === day)
     .sort((a, b) => a.data.startTime.localeCompare(b.data.startTime)),
 })).filter((group) => group.slots.length > 0);
+
+// The weekly timetable uploaded as Excel via /admin/ (rental columns hidden).
+// Shows the week containing the build date, else the next uploaded week,
+// else the latest one; falls back to the per-slot entries above if empty.
+const timetable = timetableData as Timetable;
+const classesOn = (date: string) =>
+  (timetable.days.find((d) => d.date === date)?.items ?? []).filter((i) => !RENTAL_COLUMN.test(i.column));
+const datedWeeks = [...new Set(timetable.days.filter((d) => d.date).map((d) => weekOf(new Date(`${d.date}T12:00:00`))[0]))]
+  .sort()
+  .map((sunday) => weekOf(new Date(`${sunday}T12:00:00`)))
+  .filter((week) => week.some((date) => classesOn(date).length));
+const thisSunday = weekOf(new Date())[0];
+const week =
+  datedWeeks.find((w) => w[0] === thisSunday) ?? datedWeeks.find((w) => w[0] > thisSunday) ?? datedWeeks[datedWeeks.length - 1];
+const fmt = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+const ttGroups = week
+  ? week.map((date, i) => ({ day: DAY_ORDER[i], date, items: classesOn(date) })).filter((g) => g.items.length)
+  : [];
 ---
 
 <BaseLayout lang={lang} path="/schedule" title={copy.schedule.title} description={copy.schedule.intro}>
@@ -43,7 +64,27 @@ const byDay = DAY_ORDER.map((day) => ({
 
   <section class="section">
     <div class="container">
-      {byDay.length === 0 ? (
+      {ttGroups.length > 0 ? (
+        <>
+          <p class="schedule-week">{copy.schedule.weekLabel} <bdi dir="ltr">{fmt(week![0])}–{fmt(week![6])}</bdi></p>
+          <div class="schedule-grid">
+            {ttGroups.map((group) => (
+              <div class="schedule-day card">
+                <h3>{DAY_LABELS[group.day][lang]} <bdi class="schedule-date" dir="ltr">{fmt(group.date)}</bdi></h3>
+                <ul class="schedule-slots">
+                  {group.items.map((item) => (
+                    <li>
+                      <span class="schedule-time" dir="ltr">{item.start}–{item.end}</span>
+                      <span class="schedule-name" dir="auto">{item.title}</span>
+                      <span class="badge" dir="auto">{item.column}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : byDay.length === 0 ? (
         <p class="notice">{copy.schedule.placeholderNotice.replace('{hours}', hoursDisplay)}</p>
       ) : (
         <div class="schedule-grid">
@@ -65,6 +106,7 @@ const byDay = DAY_ORDER.map((day) => ({
       )}
     </div>
   </section>
+  <PageMore title={copy.pageMore.schedule.title} paragraphs={copy.pageMore.schedule.paragraphs} surface />
 </BaseLayout>
 
 <style>
@@ -101,4 +143,15 @@ const byDay = DAY_ORDER.map((day) => ({
     color: var(--color-navy-900);
   }
   .badge { width: fit-content; }
+  .schedule-week {
+    font-weight: 600;
+    color: var(--color-ink-soft);
+    margin-block-end: var(--space-sm);
+  }
+  .schedule-date {
+    font-family: var(--font-body);
+    font-size: 0.8em;
+    font-weight: 500;
+    color: var(--color-ink-soft);
+  }
 </style>
