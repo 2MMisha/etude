@@ -5,8 +5,8 @@
 // /data/timetable.json every couple of minutes, so a new Excel upload shows
 // up on the TV within a few minutes of the site redeploying — no reload.
 //
-// The language cycles he → ru → en every minute, and for 2 minutes out of
-// every 10 (hh:x8–hh:x9) the screen shows the whole week instead of today.
+// A 5-minute loop driven by the clock: today's classes in Hebrew, English,
+// Russian (one minute each), then the whole week for 2 minutes (in Hebrew).
 //
 // URL options: ?lang=he|en|ru pins one language · ?view=today|week pins a view ·
 // ?rent=0 hides rental columns · ?date=2026-10-05&time=18:20 freezes the clock
@@ -46,7 +46,7 @@ import '../styles/global.css';
         <section class="focus" id="focus" aria-live="polite"></section>
         <section class="list">
           <h2 class="list__title" id="listTitle"></h2>
-          <ol class="timeline" id="timeline"></ol>
+          <div class="fit" id="timelineBox"><ol class="timeline" id="timeline"></ol></div>
         </section>
       </main>
       <main class="weekview" id="weekView" hidden></main>
@@ -67,36 +67,38 @@ import '../styles/global.css';
           min: 'דק׳', h: 'שע׳', schedule: 'לוח השיעורים', tomorrow: 'מחר', noClasses: 'אין שיעורים היום',
           dayOver: 'השיעורים להיום הסתיימו', seeYou: 'נתראה בשיעור הבא!', template: 'לפי לוח השבוע האחרון שהועלה',
           noData: 'לוח הזמנים עדיין לא הועלה', offline: 'אין חיבור — מוצג המידע האחרון', locale: 'he-IL', dir: 'rtl',
-          thisWeek: 'לוח השבוע', today2: 'היום',
+          thisWeek: 'לוח השבוע', today2: 'היום', more: 'ועוד {n} — עד {end}',
         },
         en: {
           today: "Today's classes", now: 'Now', next: 'Up next', startsIn: 'Starts in', endsIn: 'Ends in',
           min: 'min', h: 'h', schedule: 'Schedule', tomorrow: 'Tomorrow', noClasses: 'No classes today',
           dayOver: "That's all for today", seeYou: 'See you at the next class!', template: 'Based on the latest uploaded week',
           noData: 'The schedule has not been uploaded yet', offline: 'Offline — showing the last known schedule', locale: 'en-GB', dir: 'ltr',
-          thisWeek: "This week's classes", today2: 'Today',
+          thisWeek: "This week's classes", today2: 'Today', more: '+{n} more — until {end}',
         },
         ru: {
           today: 'Занятия сегодня', now: 'Сейчас', next: 'Следующее', startsIn: 'Начало через', endsIn: 'До конца',
           min: 'мин', h: 'ч', schedule: 'Расписание', tomorrow: 'Завтра', noClasses: 'Сегодня занятий нет',
           dayOver: 'Занятия на сегодня закончились', seeYou: 'До встречи на следующем занятии!', template: 'По последней загруженной неделе',
           noData: 'Расписание ещё не загружено', offline: 'Нет связи — показано последнее расписание', locale: 'ru-RU', dir: 'ltr',
-          thisWeek: 'Расписание на неделю', today2: 'Сегодня',
+          thisWeek: 'Расписание на неделю', today2: 'Сегодня', more: 'и ещё {n} — до {end}',
         },
       } as const;
 
       const params = new URLSearchParams(location.search);
-      const ROTATION: Lang[] = ['he', 'ru', 'en'];
+      const ROTATION: Lang[] = ['he', 'en', 'ru'];
       const pinnedLang = ROTATION.find((l) => l === params.get('lang'));
       const pinnedView = ['today', 'week'].find((v) => v === params.get('view'));
       const hideRent = params.get('rent') === '0';
       const frozenDate = params.get('date');
       const frozenTime = params.get('time');
 
-      // Language: pinned via ?lang=, otherwise one minute each in turn.
-      const langFor = (d: Date): Lang => pinnedLang ?? ROTATION[(d.getHours() * 60 + d.getMinutes()) % ROTATION.length];
-      // View: the whole week for minutes x8 and x9 of every ten, otherwise today.
-      const viewFor = (d: Date) => pinnedView ?? (d.getMinutes() % 10 >= 8 ? 'week' : 'today');
+      // Loop position (0–4) from the clock, so every screen in the studio is in sync:
+      // 0 he · 1 en · 2 ru (today), 3–4 the week.
+      const LOOP = ROTATION.length + 2;
+      const step = (d: Date) => (d.getHours() * 60 + d.getMinutes()) % LOOP;
+      const viewFor = (d: Date) => pinnedView ?? (step(d) < ROTATION.length ? 'today' : 'week');
+      const langFor = (d: Date): Lang => pinnedLang ?? (step(d) < ROTATION.length ? ROTATION[step(d)] : ROTATION[0]);
       let lang: Lang = langFor(new Date());
       let t: (typeof L)[Lang] = L[lang];
       let view = '';
@@ -160,11 +162,64 @@ import '../styles/global.css';
 
       function row(item: TimetableItem, state: string) {
         return `
-          <li class="row row--${state}${isRent(item) ? ' is-rent' : ''}">
-            <span class="row__time" dir="ltr">${item.start}<small>${item.end}</small></span>
+          <li class="row row--${state}${isRent(item) ? ' is-rent' : ''}" data-end="${item.end}">
+            <span class="row__time" dir="ltr">${item.start}–${item.end}</span>
             <span class="row__title" dir="auto">${esc(item.title)}</span>
             ${chip(item.column)}
           </li>`;
+      }
+
+      // Auto-fit: if a list is taller than its box, shrink it (uniformly across
+      // the group, so all week columns stay the same size) down to MIN_FIT;
+      // the width is widened by the same factor so lines don't wrap more.
+      const MIN_FIT = 0.6;
+      function fitGroup(boxes: HTMLElement[]) {
+        const inners = boxes.map((b) => b.firstElementChild as HTMLElement | null).filter(Boolean) as HTMLElement[];
+        const origin = t.dir === 'rtl' ? 'top right' : 'top left';
+        let scale = 1;
+        for (let pass = 0; pass < 3; pass++) {
+          inners.forEach((el) => {
+            el.style.transform = scale < 1 ? `scale(${scale})` : '';
+            el.style.transformOrigin = origin;
+            el.style.width = scale < 1 ? `${100 / scale}%` : '';
+          });
+          const need = Math.min(
+            1,
+            ...boxes.map((b) => {
+              const inner = b.firstElementChild as HTMLElement | null;
+              return inner && inner.scrollHeight > 0 ? b.clientHeight / inner.scrollHeight : 1;
+            })
+          );
+          const next = Math.max(MIN_FIT, Math.min(1, need));
+          if (Math.abs(next - scale) < 0.01) break;
+          scale = next;
+        }
+        // Still too tall at the smallest size: drop the last rows and say how
+        // many more there are (with the end time of the last one).
+        for (const box of boxes) {
+          const list = box.firstElementChild as HTMLElement | null;
+          if (!list) continue;
+          const rows = [...list.children].filter((li) => !li.classList.contains('more')) as HTMLElement[];
+          const fits = () => list.scrollHeight * scale <= box.clientHeight + 1;
+          if (fits()) continue;
+          const lastEnd = rows[rows.length - 1]?.dataset.end ?? '';
+          const more = document.createElement('li');
+          more.className = 'more';
+          list.appendChild(more);
+          let hidden = 0;
+          while (!fits() && rows.length - hidden > 1) {
+            rows[rows.length - 1 - hidden].remove();
+            hidden++;
+            more.textContent = t.more.replace('{n}', String(hidden)).replace('{end}', lastEnd);
+          }
+        }
+      }
+
+      // Past classes are hidden, except the one that just ended (context).
+      function withoutPast(items: TimetableItem[], minutes: number) {
+        const past = items.filter((i) => timeToMinutes(i.end) <= minutes);
+        const keep = past[past.length - 1];
+        return items.filter((i) => timeToMinutes(i.end) > minutes || i === keep);
       }
 
       // Fade out, swap language/view, fade in — so the switch doesn't jump.
@@ -206,34 +261,42 @@ import '../styles/global.css';
         document.querySelector<HTMLElement>('.top__label')!.textContent = t.thisWeek;
         $('date').innerHTML = `<bdi dir="ltr">${dm(dates[0])} – ${dm(dates[6])}</bdi>`;
         const todayIso = dates[date.getDay()];
+        const minutes = date.getHours() * 60 + date.getMinutes();
         let fromTemplate = false;
+        // Days already over collapse to a narrow column with just a tick and count.
+        $('weekView').style.gridTemplateColumns = dates.map((iso) => (iso < todayIso ? 'minmax(0, 0.45fr)' : 'minmax(0, 1fr)')).join(' ');
         $('weekView').innerHTML = dates
           .map((iso) => {
             const d = new Date(`${iso}T12:00:00`);
-            const { items, fromTemplate: ft } = itemsOf(d);
-            fromTemplate ||= ft && items.length > 0;
+            const { items: all, fromTemplate: ft } = itemsOf(d);
+            fromTemplate ||= ft && all.length > 0;
             const past = iso < todayIso;
+            const items = iso === todayIso ? withoutPast(all, minutes) : all;
+            const body = past
+              ? `<p class="wday__done">${all.length ? `✓ ${all.length}` : '—'}</p>`
+              : items.length
+                ? `<div class="fit"><ul class="wday__list">${items
+                    .map(
+                      (i) => `
+                        <li class="wev${isRent(i) ? ' is-rent' : ` c${colorOf(i.column)}`}${iso === todayIso && timeToMinutes(i.end) <= minutes ? ' wev--past' : ''}" data-end="${i.end}">
+                          <span class="wev__time" dir="ltr">${i.start}</span>
+                          <span class="wev__title" dir="auto">${esc(i.title)}</span>
+                          <span class="wev__who" dir="auto">${isRent(i) ? '🔑 ' : ''}${esc(i.column)}</span>
+                        </li>`
+                    )
+                    .join('')}</ul></div>`
+                : '<p class="wday__none">—</p>';
             return `
               <section class="wday${iso === todayIso ? ' wday--today' : ''}${past ? ' wday--past' : ''}">
                 <h2 class="wday__head">
-                  <span>${d.toLocaleDateString(t.locale, { weekday: 'long' })}</span>
+                  <span>${d.toLocaleDateString(t.locale, { weekday: past ? 'short' : 'long' })}</span>
                   <small>${iso === todayIso ? `${t.today2} · ` : ''}${dm(iso)}</small>
                 </h2>
-                ${items.length
-                  ? `<ul class="wday__list">${items
-                      .map(
-                        (i) => `
-                          <li class="wev${isRent(i) ? ' is-rent' : ''}">
-                            <span class="wev__time" dir="ltr">${i.start}–${i.end}</span>
-                            <span class="wev__title" dir="auto">${esc(i.title)}</span>
-                            ${chip(i.column)}
-                          </li>`
-                      )
-                      .join('')}</ul>`
-                  : '<p class="wday__none">—</p>'}
+                ${body}
               </section>`;
           })
           .join('');
+        fitGroup([...$('weekView').querySelectorAll<HTMLElement>('.fit')]);
         const notes = [];
         if (fromTemplate) notes.push(t.template);
         if (offline) notes.push(t.offline);
@@ -277,7 +340,8 @@ import '../styles/global.css';
           ? `${t.tomorrow} · ${tomorrow.toLocaleDateString(t.locale, { weekday: 'long' })}`
           : t.schedule;
         const nextStart = upcoming[0]?.start;
-        $('timeline').innerHTML = list
+        const shown = showTomorrow ? list : withoutPast(list, minutes);
+        $('timeline').innerHTML = shown
           .map((i) => {
             if (showTomorrow) return row(i, 'future');
             const s = timeToMinutes(i.start), e = timeToMinutes(i.end);
@@ -285,7 +349,7 @@ import '../styles/global.css';
             return row(i, state);
           })
           .join('');
-        $('timeline').dataset.count = String(list.length);
+        fitGroup([$('timelineBox')]);
 
         const notes = [];
         if (fromTemplate && !showTomorrow) notes.push(t.template);
@@ -307,6 +371,8 @@ import '../styles/global.css';
       }
 
       load();
+      // Re-fit once the web fonts arrive (they change text widths/heights).
+      document.fonts?.ready.then(() => render());
       setInterval(load, 2 * 60 * 1000);
       setInterval(render, 5 * 1000);
       // Reload a few times a day so the TV also picks up changes to this page itself.
@@ -366,18 +432,38 @@ import '../styles/global.css';
       .display .wday__head { display: flex; flex-direction: column; gap: 0.15rem; font-family: inherit; font-size: 1.45rem; font-weight: 800; line-height: 1.15; }
       .wday__head small { font-size: 1rem; font-weight: 600; color: var(--color-silver-300); }
       .wday--today .wday__head small { color: #fff; }
-      .wday__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
-      .wev { display: grid; gap: 0.3rem; padding: 0.7rem 0.75rem; border-radius: 0.9rem; background: rgba(255, 255, 255, 0.08); }
-      .wev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; justify-self: start; }
+      .fit { flex: 1; min-height: 0; overflow: hidden; }
+      .wday__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+      /* Compact entry: time + title on one line, trainer underneath in small type. */
+      .wev {
+        --c: #7aa2ff;
+        display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.55rem; row-gap: 0.1rem;
+        padding: 0.5rem 0.65rem; border-radius: 0.75rem; background: rgba(255, 255, 255, 0.08);
+        border-inline-start: 0.3rem solid var(--c);
+      }
+      .wev__who { grid-column: 2; font-size: 0.9rem; font-weight: 600; color: var(--color-silver-300); }
+      .wev--past { opacity: 0.4; }
+      .more {
+        list-style: none; text-align: center; font-weight: 700; font-size: 1.3rem;
+        padding: 0.5rem; border-radius: 0.8rem; border: 1px dashed rgba(255, 255, 255, 0.4); color: var(--color-silver-200);
+      }
+      .wday__list .more { font-size: 0.95rem; padding: 0.35rem; }
+      .wday--past { padding-inline: 0.5rem; align-items: center; text-align: center; }
+      .display .wday--past .wday__head { font-size: 1.1rem; align-items: center; }
+      .wday__done { font-size: 1.4rem; font-weight: 700; color: var(--color-silver-300); }
+      .wev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
       .wev__title { font-weight: 700; font-size: 1.15rem; line-height: 1.2; overflow-wrap: anywhere; }
-      .wev .chip { font-size: 0.85rem; padding: 0.2rem 0.6rem; justify-self: start; white-space: normal; }
       .wev.is-rent {
         background: repeating-linear-gradient(135deg, rgba(255, 181, 71, 0.16) 0 0.6rem, rgba(255, 181, 71, 0.05) 0.6rem 1.2rem);
         border: 1px dashed rgba(255, 181, 71, 0.7);
+        border-inline-start: 0.3rem solid #ffb547;
       }
+      .wev.is-rent .wev__who { color: #ffd38f; }
       .wev.is-rent .wev__title { color: #ffd38f; }
       .wday__none { font-size: 1.6rem; color: var(--color-silver-300); }
       .display p, .display h2, .display h3 { margin: 0; color: inherit; }
+      /* .body / .weekview set display:grid, which would override the hidden attribute. */
+      .display [hidden] { display: none !important; }
 
       .screen {
         box-sizing: border-box;
@@ -437,28 +523,24 @@ import '../styles/global.css';
 
       .list { display: flex; flex-direction: column; min-height: 0; }
       .display .list__title { font-size: 1.25rem; line-height: 1.3; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-silver-300); font-weight: 600; margin-block-end: 1rem; font-family: inherit; }
-      .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8rem; min-height: 0; }
+      .list .fit { display: flex; flex-direction: column; }
+      .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8rem; }
       .row {
         display: grid;
-        grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 1.4rem;
-        padding: 1.1rem 1.5rem;
+        padding: 0.85rem 1.4rem;
         border-radius: 1.1rem;
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid transparent;
         transition: opacity 0.6s, background 0.6s;
       }
-      .row__time { font-family: 'Montserrat', sans-serif; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; line-height: 1.05; }
-      .row__time small { font-size: 1.05rem; font-weight: 500; opacity: 0.7; }
+      .row__time { font-family: 'Montserrat', sans-serif; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
       .row__title { font-size: 1.9rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
       .row--past { opacity: 0.38; }
       .row--now { background: #fff; color: var(--color-navy-900); }
       .row--next { border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.1); }
-      /* Long days: tighten rows so up to ~12 classes still fit on one screen. */
-      .timeline[data-count='8'] .row, .timeline[data-count='9'] .row { padding-block: 0.7rem; }
-      .timeline[data-count='10'] .row, .timeline[data-count='11'] .row, .timeline[data-count='12'] .row { padding-block: 0.45rem; }
-      .timeline[data-count='10'] .row__title, .timeline[data-count='11'] .row__title, .timeline[data-count='12'] .row__title { font-size: 1.5rem; }
 
       .chip {
         --c: #7aa2ff;
