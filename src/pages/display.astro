@@ -43,7 +43,7 @@ import '../styles/global.css';
       </header>
 
       <main class="body" id="todayView">
-        <section class="focus" id="focus" aria-live="polite"></section>
+        <section class="focus" id="focusBox"><div class="focus__inner" id="focus" aria-live="polite"></div></section>
         <section class="list">
           <h2 class="list__title" id="listTitle"></h2>
           <div class="fit" id="timelineBox"><ol class="timeline" id="timeline"></ol></div>
@@ -67,21 +67,21 @@ import '../styles/global.css';
           min: 'דק׳', h: 'שע׳', schedule: 'לוח השיעורים', tomorrow: 'מחר', noClasses: 'אין שיעורים היום',
           dayOver: 'השיעורים להיום הסתיימו', seeYou: 'נתראה בשיעור הבא!', template: 'לפי לוח השבוע האחרון שהועלה',
           noData: 'לוח הזמנים עדיין לא הועלה', offline: 'אין חיבור — מוצג המידע האחרון', locale: 'he-IL', dir: 'rtl',
-          thisWeek: 'לוח השבוע', today2: 'היום', more: 'ועוד {n} — עד {end}',
+          thisWeek: 'לוח השבוע', today2: 'היום',
         },
         en: {
           today: "Today's classes", now: 'Now', next: 'Up next', startsIn: 'Starts in', endsIn: 'Ends in',
           min: 'min', h: 'h', schedule: 'Schedule', tomorrow: 'Tomorrow', noClasses: 'No classes today',
           dayOver: "That's all for today", seeYou: 'See you at the next class!', template: 'Based on the latest uploaded week',
           noData: 'The schedule has not been uploaded yet', offline: 'Offline — showing the last known schedule', locale: 'en-GB', dir: 'ltr',
-          thisWeek: "This week's classes", today2: 'Today', more: '+{n} more — until {end}',
+          thisWeek: "This week's classes", today2: 'Today',
         },
         ru: {
           today: 'Занятия сегодня', now: 'Сейчас', next: 'Следующее', startsIn: 'Начало через', endsIn: 'До конца',
           min: 'мин', h: 'ч', schedule: 'Расписание', tomorrow: 'Завтра', noClasses: 'Сегодня занятий нет',
           dayOver: 'Занятия на сегодня закончились', seeYou: 'До встречи на следующем занятии!', template: 'По последней загруженной неделе',
           noData: 'Расписание ещё не загружено', offline: 'Нет связи — показано последнее расписание', locale: 'ru-RU', dir: 'ltr',
-          thisWeek: 'Расписание на неделю', today2: 'Сегодня', more: 'и ещё {n} — до {end}',
+          thisWeek: 'Расписание на неделю', today2: 'Сегодня',
         },
       } as const;
 
@@ -170,9 +170,13 @@ import '../styles/global.css';
       }
 
       // Auto-fit: if a list is taller than its box, shrink it (uniformly across
-      // the group, so all week columns stay the same size) down to MIN_FIT;
-      // the width is widened by the same factor so lines don't wrap more.
-      const MIN_FIT = 0.6;
+      // the group, so all week columns stay the same size) down to MIN_FIT —
+      // still comfortable to read across the studio. The width grows by the
+      // same factor so lines don't wrap more.
+      // Still too tall at MIN_FIT: the list scrolls slowly through the minute
+      // (pause at the top, glide down, pause at the end, back to the top on
+      // the next minute), synced to the clock so it never jumps on re-render.
+      const MIN_FIT = 0.75;
       function fitGroup(boxes: HTMLElement[]) {
         const inners = boxes.map((b) => b.firstElementChild as HTMLElement | null).filter(Boolean) as HTMLElement[];
         const origin = t.dir === 'rtl' ? 'top right' : 'top left';
@@ -194,25 +198,32 @@ import '../styles/global.css';
           if (Math.abs(next - scale) < 0.01) break;
           scale = next;
         }
-        // Still too tall at the smallest size: drop the last rows and say how
-        // many more there are (with the end time of the last one).
+        const seconds = new Date().getSeconds() + new Date().getMilliseconds() / 1000;
         for (const box of boxes) {
-          const list = box.firstElementChild as HTMLElement | null;
-          if (!list) continue;
-          const rows = [...list.children].filter((li) => !li.classList.contains('more')) as HTMLElement[];
-          const fits = () => list.scrollHeight * scale <= box.clientHeight + 1;
-          if (fits()) continue;
-          const lastEnd = rows[rows.length - 1]?.dataset.end ?? '';
-          const more = document.createElement('li');
-          more.className = 'more';
-          list.appendChild(more);
-          let hidden = 0;
-          while (!fits() && rows.length - hidden > 1) {
-            rows[rows.length - 1 - hidden].remove();
-            hidden++;
-            more.textContent = t.more.replace('{n}', String(hidden)).replace('{end}', lastEnd);
+          const inner = box.firstElementChild as HTMLElement | null;
+          if (!inner) continue;
+          const overflow = Math.ceil(inner.scrollHeight * scale - box.clientHeight);
+          const scrolls = overflow > 2;
+          box.classList.toggle('is-scrolling', scrolls);
+          inner.classList.toggle('autoscroll', scrolls);
+          if (scrolls) {
+            // Scroll a little past the end so the last row clears the bottom fade.
+            const fade = 2.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+            inner.style.setProperty('--scroll', `${-(overflow + fade)}px`);
+            inner.style.animationDelay = `${-seconds}s`;
+          } else {
+            inner.style.removeProperty('--scroll');
+            inner.style.animationDelay = '';
           }
         }
+      }
+
+      // Only touch the DOM when the content actually changed, so running
+      // scroll animations aren't restarted by the 5-second refresh.
+      function setHTML(el: HTMLElement, html: string) {
+        if ((el as any)._html === html) return;
+        (el as any)._html = html;
+        el.innerHTML = html;
       }
 
       // Past classes are hidden, except the one that just ended (context).
@@ -265,7 +276,7 @@ import '../styles/global.css';
         let fromTemplate = false;
         // Days already over collapse to a narrow column with just a tick and count.
         $('weekView').style.gridTemplateColumns = dates.map((iso) => (iso < todayIso ? 'minmax(0, 0.45fr)' : 'minmax(0, 1fr)')).join(' ');
-        $('weekView').innerHTML = dates
+        setHTML($('weekView'), dates
           .map((iso) => {
             const d = new Date(`${iso}T12:00:00`);
             const { items: all, fromTemplate: ft } = itemsOf(d);
@@ -295,7 +306,7 @@ import '../styles/global.css';
                 ${body}
               </section>`;
           })
-          .join('');
+          .join(''));
         fitGroup([...$('weekView').querySelectorAll<HTMLElement>('.fit')]);
         const notes = [];
         if (fromTemplate) notes.push(t.template);
@@ -310,8 +321,8 @@ import '../styles/global.css';
         $('date').textContent = dateText;
 
         if (!timetable) {
-          $('focus').innerHTML = `<div class="empty"><p class="empty__big">${t.noData}</p></div>`;
-          $('timeline').innerHTML = '';
+          setHTML($('focus'), `<div class="empty"><p class="empty__big">${t.noData}</p></div>`);
+          setHTML($('timeline'), '');
           $('listTitle').textContent = '';
           return;
         }
@@ -322,16 +333,23 @@ import '../styles/global.css';
         const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
         const tomorrowItems = itemsOf(tomorrow).items;
 
-        let focus = '';
-        if (current.length) focus += current.slice(0, 2).map((i) => focusCard('now', i, minutes)).join('');
-        if (upcoming.length && current.length < 2) {
-          const firstStart = upcoming[0].start;
-          focus += upcoming.filter((i) => i.start === firstStart).slice(0, 2 - current.length).map((i) => focusCard('next', i, minutes)).join('');
-        }
-        if (!focus) {
-          focus = `<div class="empty"><p class="empty__big">${items.length ? t.dayOver : t.noClasses}</p><p class="empty__small">${t.seeYou}</p></div>`;
-        }
-        $('focus').innerHTML = focus;
+        // Everything happening now (classes before rentals), then everything
+        // starting next. More than two cards → compact cards; the column is
+        // auto-fitted like the lists, so nothing is left out.
+        const byRent = (a: TimetableItem, b: TimetableItem) => Number(isRent(a)) - Number(isRent(b));
+        const nextGroup = upcoming.length ? upcoming.filter((i) => i.start === upcoming[0].start).sort(byRent) : [];
+        const cards = [
+          ...[...current].sort(byRent).map((i) => focusCard('now', i, minutes)),
+          ...nextGroup.map((i) => focusCard('next', i, minutes)),
+        ];
+        setHTML(
+          $('focus'),
+          cards.length
+            ? cards.join('')
+            : `<div class="empty"><p class="empty__big">${items.length ? t.dayOver : t.noClasses}</p><p class="empty__small">${t.seeYou}</p></div>`
+        );
+        $('focusBox').classList.toggle('focus--many', cards.length > 2);
+        fitGroup([$('focusBox')]);
 
         // Main list: today's classes; once the day is over (or empty), tomorrow's.
         const showTomorrow = !current.length && !upcoming.length && tomorrowItems.length > 0;
@@ -341,14 +359,17 @@ import '../styles/global.css';
           : t.schedule;
         const nextStart = upcoming[0]?.start;
         const shown = showTomorrow ? list : withoutPast(list, minutes);
-        $('timeline').innerHTML = shown
-          .map((i) => {
-            if (showTomorrow) return row(i, 'future');
-            const s = timeToMinutes(i.start), e = timeToMinutes(i.end);
-            const state = e <= minutes ? 'past' : s <= minutes ? 'now' : i.start === nextStart ? 'next' : 'future';
-            return row(i, state);
-          })
-          .join('');
+        setHTML(
+          $('timeline'),
+          shown
+            .map((i) => {
+              if (showTomorrow) return row(i, 'future');
+              const s = timeToMinutes(i.start), e = timeToMinutes(i.end);
+              const state = e <= minutes ? 'past' : s <= minutes ? 'now' : i.start === nextStart ? 'next' : 'future';
+              return row(i, state);
+            })
+            .join('')
+        );
         fitGroup([$('timelineBox')]);
 
         const notes = [];
@@ -437,22 +458,31 @@ import '../styles/global.css';
       /* Compact entry: time + title on one line, trainer underneath in small type. */
       .wev {
         --c: #7aa2ff;
-        display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.55rem; row-gap: 0.1rem;
+        /* Stacked: time, then the title across the full column width, then the
+           trainer — so narrow columns don't squeeze the title into a sliver. */
+        display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 0.15rem;
         padding: 0.5rem 0.65rem; border-radius: 0.75rem; background: rgba(255, 255, 255, 0.08);
         border-inline-start: 0.3rem solid var(--c);
       }
-      .wev__who { grid-column: 2; font-size: 0.9rem; font-weight: 600; color: var(--color-silver-300); }
+      .wev__who { font-size: 0.9rem; font-weight: 600; color: var(--color-silver-300); }
       .wev--past { opacity: 0.4; }
-      .more {
-        list-style: none; text-align: center; font-weight: 700; font-size: 1.3rem;
-        padding: 0.5rem; border-radius: 0.8rem; border: 1px dashed rgba(255, 255, 255, 0.4); color: var(--color-silver-200);
+      /* Auto-scroll (see fitGroup): one pass per minute, synced to the clock.
+         Uses the separate translate property so it combines with the scale. */
+      .autoscroll { animation: autoscroll 60s linear infinite; }
+      @keyframes autoscroll {
+        0%, 8% { translate: 0 0; }
+        88%, 100% { translate: 0 var(--scroll); }
       }
-      .wday__list .more { font-size: 0.95rem; padding: 0.35rem; }
+      /* Soft fade at the bottom edge so it's clear the list continues. */
+      .fit.is-scrolling, .focus.is-scrolling {
+        -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
+        mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
+      }
       .wday--past { padding-inline: 0.5rem; align-items: center; text-align: center; }
       .display .wday--past .wday__head { font-size: 1.1rem; align-items: center; }
       .wday__done { font-size: 1.4rem; font-weight: 700; color: var(--color-silver-300); }
-      .wev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
-      .wev__title { font-weight: 700; font-size: 1.15rem; line-height: 1.2; overflow-wrap: anywhere; }
+      .wev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; justify-self: start; }
+      .wev__title { font-weight: 700; font-size: 1.15rem; line-height: 1.2; overflow-wrap: break-word; hyphens: auto; }
       .wev.is-rent {
         background: repeating-linear-gradient(135deg, rgba(255, 181, 71, 0.16) 0 0.6rem, rgba(255, 181, 71, 0.05) 0.6rem 1.2rem);
         border: 1px dashed rgba(255, 181, 71, 0.7);
@@ -460,6 +490,10 @@ import '../styles/global.css';
       }
       .wev.is-rent .wev__who { color: #ffd38f; }
       .wev.is-rent .wev__title { color: #ffd38f; }
+      /* Titles keep their own text direction (dir=auto) but line up with the
+         rest of the screen: right in Hebrew, left in English/Russian. */
+      html[dir='rtl'] :is(.wev__title, .wev__who, .card__title, .row__title) { text-align: right; }
+      html[dir='ltr'] :is(.wev__title, .wev__who, .card__title, .row__title) { text-align: left; }
       .wday__none { font-size: 1.6rem; color: var(--color-silver-300); }
       .display p, .display h2, .display h3 { margin: 0; color: inherit; }
       /* .body / .weekview set display:grid, which would override the hidden attribute. */
@@ -491,12 +525,32 @@ import '../styles/global.css';
 
       .body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 2.6rem; min-height: 0; }
 
-      .focus { display: flex; flex-direction: column; gap: 1.6rem; justify-content: safe center; min-height: 0; overflow: hidden; }
+      .focus { display: flex; flex-direction: column; justify-content: safe center; min-height: 0; overflow: hidden; }
+      .focus__inner { display: flex; flex-direction: column; gap: 1.6rem; }
       /* Two cards at once (two classes now, or now + next): make them more compact. */
-      .focus:has(.card + .card) { gap: 1.1rem; }
-      .focus:has(.card + .card) .card { padding: 1.4rem 1.8rem; gap: 0.5rem; }
-      .display .focus:has(.card + .card) .card__title { font-size: 2.5rem; }
-      .focus:has(.card + .card) .card__time { font-size: 1.6rem; }
+      .focus__inner:has(.card + .card) { gap: 1.1rem; }
+      .focus__inner:has(.card + .card) .card { padding: 1.4rem 1.8rem; gap: 0.5rem; }
+      .display .focus__inner:has(.card + .card) .card__title { font-size: 2.5rem; }
+      .focus__inner:has(.card + .card) .card__time { font-size: 1.6rem; }
+      /* Three or more: title and time on one line, smaller still. */
+      .focus--many .focus__inner { gap: 0.8rem; }
+      .focus--many .card { padding: 1rem 1.4rem; gap: 0.35rem; border-radius: 1.2rem; }
+      .display .focus--many .card__title { font-size: 2rem; }
+      .focus--many .card__time { font-size: 1.35rem; }
+      .focus--many .card__kind { font-size: 1.05rem; }
+      .focus--many .card__meta { font-size: 1.15rem; }
+      .focus--many .bar { margin-block-start: 0.1rem; }
+      /* Denser layout: "NOW · 09:45–10:00" on one line, title, then trainer + countdown. */
+      .focus--many .card {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas: 'kind time' 'title title' 'meta meta' 'bar bar';
+        align-items: center; column-gap: 1rem;
+      }
+      .focus--many .card__kind { grid-area: kind; }
+      .focus--many .card__time { grid-area: time; justify-self: end; }
+      .focus--many .card__title { grid-area: title; }
+      .focus--many .card__meta { grid-area: meta; }
+      .focus--many .bar { grid-area: bar; }
       .card {
         border-radius: 1.6rem;
         padding: 2rem 2.2rem;
@@ -537,7 +591,7 @@ import '../styles/global.css';
         transition: opacity 0.6s, background 0.6s;
       }
       .row__time { font-family: 'Montserrat', sans-serif; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .row__title { font-size: 1.9rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+      .row__title { font-size: 1.9rem; font-weight: 700; line-height: 1.15; overflow-wrap: break-word; hyphens: auto; }
       .row--past { opacity: 0.38; }
       .row--now { background: #fff; color: var(--color-navy-900); }
       .row--next { border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.1); }
