@@ -51,10 +51,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
   <body class="ts">
     <header class="ts-top">
       <div class="ts-wrap ts-top__row">
-        <a href="/trainers/" class="ts-brand">
-          <img class="ts-brand__screen" src="/images/brand/logo-full-white.svg" alt="ETUDE logo" width="120" height="50" />
-          <img class="ts-brand__print" src="/images/brand/logo-full.svg" alt="" width="120" height="50" />
-        </a>
+        <a href="/trainers/" class="ts-brand"><img src="/images/brand/logo-full-white.svg" alt="ETUDE logo" width="120" height="50" /></a>
         <div class="ts-langs" role="group" aria-label="Language">
           <button type="button" data-lang="he" lang="he">עב</button>
           <button type="button" data-lang="ru" lang="ru">RU</button>
@@ -75,7 +72,6 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           <button type="button" class="ts-btn ts-btn--icon" id="nextWeek" aria-label="›"><span class="ts-arrow">›</span></button>
           <button type="button" class="ts-btn" id="thisWeek"></button>
         </div>
-        <button type="button" class="ts-btn" id="printBtn"></button>
         <details class="ts-cal">
           <summary class="ts-btn ts-btn--primary" id="calSummary"></summary>
           <div class="ts-cal__menu">
@@ -111,7 +107,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           noClasses: 'אין שיעורים', noWeek: 'אין שיעורים בשבוע הזה', noData: 'לוח הזמנים עדיין לא זמין',
           calendar: 'הוספה ליומן', calHint: 'הירשמו פעם אחת — היומן יתעדכן לבד כשהלוח משתנה.',
           subscribe: 'Apple / Outlook (מינוי)', google: 'Google Calendar (מינוי)', download: 'הורדת קובץ ICS',
-          print: '🖨 הדפסה A4', addGoogle: 'הוספה ל-Google Calendar', addIcs: 'הוספה ליומן (ICS)', rent: 'השכרה', updated: 'עודכן',
+          addGoogle: 'הוספה ל-Google Calendar', addIcs: 'הוספה ליומן (ICS)', rent: 'השכרה', updated: 'עודכן',
           locale: 'he-IL', dir: 'rtl',
         },
         en: {
@@ -121,7 +117,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           noClasses: 'No classes', noWeek: 'No classes this week', noData: 'The schedule is not available yet',
           calendar: 'Add to calendar', calHint: 'Subscribe once — your calendar updates by itself when the schedule changes.',
           subscribe: 'Apple / Outlook (subscribe)', google: 'Google Calendar (subscribe)', download: 'Download .ics file',
-          print: '🖨 Print A4', addGoogle: 'Add to Google Calendar', addIcs: 'Add to calendar (.ics)', rent: 'Rental', updated: 'Updated',
+          addGoogle: 'Add to Google Calendar', addIcs: 'Add to calendar (.ics)', rent: 'Rental', updated: 'Updated',
           locale: 'en-GB', dir: 'ltr',
         },
         ru: {
@@ -131,7 +127,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           noClasses: 'Нет занятий', noWeek: 'На этой неделе занятий нет', noData: 'Расписание пока недоступно',
           calendar: 'Добавить в календарь', calHint: 'Подпишитесь один раз — календарь сам обновится при изменениях.',
           subscribe: 'Apple / Outlook (подписка)', google: 'Google Календарь (подписка)', download: 'Скачать файл .ics',
-          print: '🖨 Печать A4', addGoogle: 'Добавить в Google Календарь', addIcs: 'Добавить в календарь (.ics)', rent: 'Аренда', updated: 'Обновлено',
+          addGoogle: 'Добавить в Google Календарь', addIcs: 'Добавить в календарь (.ics)', rent: 'Аренда', updated: 'Обновлено',
           locale: 'ru-RU', dir: 'ltr',
         },
       } as const;
@@ -244,7 +240,6 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
 
         // Week navigation
         $('thisWeek').textContent = t.thisWeek;
-        $('printBtn').textContent = t.print;
         $('prevWeek').setAttribute('aria-label', t.prev);
         $('nextWeek').setAttribute('aria-label', t.next);
         const idx = weekStarts.indexOf(week);
@@ -352,15 +347,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         if (menu.open && !menu.contains(e.target as Node)) menu.open = false;
       });
 
-      $('printBtn').addEventListener('click', () => window.print());
-
       render();
-      // ?print=1 (the admin panel's "Print A4" links): open the print dialog
-      // once the fonts are in, so the printout uses the real typefaces.
-      if (new URLSearchParams(location.search).get('print') === '1') {
-        const go = () => setTimeout(() => window.print(), 300);
-        document.fonts?.ready ? document.fonts.ready.then(go) : go();
-      }
       // Keep "today"/past styling right if the page stays open.
       setInterval(render, 5 * 60 * 1000);
     </script>
@@ -416,7 +403,6 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         justify-content: space-between; margin-block-end: 18px;
       }
       .ts-weeknav { display: flex; align-items: center; gap: 8px; }
-      @media (min-width: 640px) { #printBtn { margin-inline-start: auto; } }
       .ts-weeklabel bdi { white-space: nowrap; }
       .ts-weeklabel { font-weight: 700; font-size: 1.1rem; min-inline-size: 9.5em; text-align: center; color: var(--color-navy-900); }
       /* Phones: week arrows + label across the full width, buttons below. */
@@ -424,7 +410,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         .ts-weeknav { inline-size: 100%; flex-wrap: wrap; }
         .ts-weeklabel { flex: 1; min-inline-size: 0; font-size: 1rem; }
         #thisWeek { flex: 1; }
-        #printBtn, .ts-cal { flex: 1; }
+        .ts-cal { flex: 1; }
         .ts-cal summary { inline-size: 100%; box-sizing: border-box; }
       }
       .ts-btn {
@@ -499,51 +485,6 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       .ts-empty { margin-block-start: 16px; text-align: center; color: var(--color-ink-soft); }
       .ts-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 8px 28px; font-size: 0.85rem; color: var(--color-ink-soft); }
       .ts-foot a { color: var(--color-blue-600); }
-      .ts-brand .ts-brand__print { display: none; }
-
-      /* ---------- A4 printout: one week, 7 columns, landscape ---------- */
-      @page { size: A4 landscape; margin: 9mm; }
-      @media print {
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        body.ts { background: #fff; font-size: 9pt; }
-        .ts-wrap { max-width: none; padding-inline: 0; }
-        /* Header on one line: title (start) … logo (end). */
-        .ts-top {
-          display: flex; align-items: center; justify-content: space-between; gap: 6mm;
-          background: #fff; color: var(--color-navy-900); padding: 0 0 2mm; border-block-end: 0.5mm solid var(--color-navy-900);
-        }
-        .ts-top > .ts-wrap { margin: 0; }
-        .ts-top__row { order: 2; }
-        .ts-brand .ts-brand__screen { display: none; }
-        .ts-brand .ts-brand__print { display: block; block-size: 10mm; inline-size: auto; }
-        .ts-langs, .ts-trainers, .ts-cal, .ts-btn, .ev__add, .ts-empty { display: none !important; }
-        .ts .ts-title { color: var(--color-navy-900); font-size: 16pt; margin: 0; min-block-size: 0; }
-        .ts-main { padding-block: 2mm 0; min-block-size: 0; }
-        .ts-toolbar { margin: 0 0 2mm; display: block; }
-        .ts-weeknav { inline-size: auto; display: block; }
-        .ts-weeklabel { text-align: start; font-size: 12pt; min-inline-size: 0; }
-        .ts-week { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; gap: 2mm; }
-        /* Columns may continue on a second sheet in a very busy week instead
-           of the whole grid jumping to page 2. */
-        .day, .day--empty {
-          display: block; padding: 1.5mm; border-radius: 2mm; border: 0.3mm solid #c9cfdc; box-shadow: none;
-        }
-        .day--today { border: 0.3mm solid #c9cfdc; }
-        .day--today .day__date b { color: inherit; font-weight: 500; }
-        .ts .day__head { font-size: 9.5pt; margin-block-end: 1.5mm; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 1mm; }
-        .day__date { font-size: 7.5pt; }
-        .day__none { font-size: 7.5pt; }
-        .day__list { gap: 1mm; }
-        /* Compact entry: "time · trainer" on one line, the title under it. */
-        .ev { display: block; padding: 1mm 1.5mm; border-radius: 1.2mm; break-inside: avoid; }
-        .ev--done { opacity: 1; }
-        .ev__time { display: inline; font-size: 7.5pt; }
-        .ev__title { display: block; font-size: 8.5pt; line-height: 1.2; }
-        .chip { display: block; padding: 0; background: none !important; font-size: 7pt; font-weight: 600; color: var(--color-ink-soft); }
-        .chip--rent { color: #9a5b00; }
-        .ts-foot { padding: 3mm 0 0; font-size: 7.5pt; }
-        .ts-foot a { color: inherit; }
-      }
     </style>
   </body>
 </html>

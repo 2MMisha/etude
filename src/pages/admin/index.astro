@@ -80,9 +80,9 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       .tt-summary div { background: var(--color-silver-100); border-radius: var(--radius-sm); padding: 0.6em 0.8em; font-size: 0.85rem; }
       .tt-summary strong { display: block; font-size: 1rem; color: var(--color-navy-900); }
       .tt-weekbar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-block: var(--space-sm) 0.6rem; font-size: 0.9rem; }
-      .tt-print { display: inline-flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; margin-inline-start: auto; font-size: 0.82rem; color: var(--color-ink-soft); }
-      .tt-print a { text-decoration: none; color: var(--color-navy-900); }
-      .tt-print a.tt-rent-btn { background: #fff4e0; border-color: #f0c674; }
+      .tt-print { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; margin-block: 0 0.6rem; font-size: 0.82rem; color: var(--color-ink-soft); }
+      .tt-print select { font: inherit; padding: 0.25em 0.4em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
+      .tt-print .tt-rent-btn { background: #fff4e0; border-color: #f0c674; }
       .tt-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; font-size: 0.72rem; line-height: 1.25; }
       @media (max-width: 700px) { .tt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       .tt-col { border: 1px solid var(--color-line); border-radius: 6px; padding: 4px; min-width: 0; display: grid; gap: 3px; align-content: start; }
@@ -1156,9 +1156,6 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       let ttWeeks = [];
       let ttWeek = '';
       const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      // Same rule as slugify() in src/lib/calendar.ts (trainer page URLs).
-      const slugify = (label) =>
-        label.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'column';
 
       // One week at a time, as a compact 7-column grid, plus A4 print links.
       function renderTtWeek() {
@@ -1182,12 +1179,18 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
             <button class="btn-mini" id="ttPrev" ${idx <= 0 ? 'disabled' : ''}>‹</button>
             <strong>Week ${short(dates[0])} – ${short(dates[6])}</strong>
             <button class="btn-mini" id="ttNext" ${idx >= ttWeeks.length - 1 ? 'disabled' : ''}>›</button>
-            <span class="tt-print">🖨 Print A4:
-              <a class="btn-mini" href="/trainers/?week=${ttWeek}&print=1" target="_blank" rel="noopener">Whole studio</a>
-              ${trainers.map((name) => `<a class="btn-mini" href="/trainers/${slugify(name)}/?week=${ttWeek}&print=1" target="_blank" rel="noopener">${escapeHtml(name)}</a>`).join('')}
-              ${halls.length ? `<a class="btn-mini tt-rent-btn" href="/trainers/rentals/?week=${ttWeek}&print=1" target="_blank" rel="noopener">🔑 All rentals</a>` : ''}
-              ${halls.map((name) => `<a class="btn-mini tt-rent-btn" href="/trainers/${slugify(name)}/?week=${ttWeek}&print=1" target="_blank" rel="noopener">${escapeHtml(name)}</a>`).join('')}
-            </span>
+          </div>
+          <div class="tt-print">
+            <span>🖨 Print this week (A4):</span>
+            <select id="ttPrintLang" aria-label="Print language">
+              <option value="he"${ttPrintLang === 'he' ? ' selected' : ''}>עברית</option>
+              <option value="ru"${ttPrintLang === 'ru' ? ' selected' : ''}>Русский</option>
+              <option value="en"${ttPrintLang === 'en' ? ' selected' : ''}>English</option>
+            </select>
+            <button class="btn-mini primary" data-print="all">Whole studio</button>
+            ${trainers.map((name) => `<button class="btn-mini" data-print="col" data-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`).join('')}
+            ${halls.length ? '<button class="btn-mini tt-rent-btn" data-print="rentals">🔑 All rentals</button>' : ''}
+            ${halls.map((name) => `<button class="btn-mini tt-rent-btn" data-print="col" data-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`).join('')}
           </div>
           <div class="tt-grid">${dates
             .map((date, n) => {
@@ -1203,6 +1206,107 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
             .join('')}</div>`;
         $('ttPrev').addEventListener('click', () => { ttWeek = ttWeeks[idx - 1]; renderTtWeek(); });
         $('ttNext').addEventListener('click', () => { ttWeek = ttWeeks[idx + 1]; renderTtWeek(); });
+        $('ttPrintLang').addEventListener('change', (e) => {
+          ttPrintLang = e.target.value;
+          try { localStorage.setItem('etudePrintLang', ttPrintLang); } catch {}
+        });
+        $('ttDays').querySelectorAll('button[data-print]').forEach((b) =>
+          b.addEventListener('click', () => printWeek(dates, byDate, b.dataset.print, b.dataset.name || ''))
+        );
+      }
+
+      // ---------- A4 printout (built here, printed from a hidden frame) ----------
+      let ttPrintLang = (() => { try { return localStorage.getItem('etudePrintLang') || 'he'; } catch { return 'he'; } })();
+      const PRINT_L = {
+        he: { studio: 'לוח הזמנים של הסטודיו', trainer: 'לוח הזמנים של {name}', hall: '{name} — לוח זמנים', rentals: 'השכרות אולמות', week: 'שבוע', none: 'אין שיעורים', updated: 'הודפס', locale: 'he-IL', dir: 'rtl' },
+        ru: { studio: 'Расписание студии', trainer: 'Расписание: {name}', hall: '{name} — расписание', rentals: 'Аренда залов', week: 'Неделя', none: 'Нет занятий', updated: 'Напечатано', locale: 'ru-RU', dir: 'ltr' },
+        en: { studio: 'Studio schedule', trainer: "{name}'s schedule", hall: '{name} — schedule', rentals: 'Hall rentals', week: 'Week', none: 'No classes', updated: 'Printed', locale: 'en-GB', dir: 'ltr' },
+      };
+
+      function printWeek(dates, byDate, kind, name) {
+        const L = PRINT_L[ttPrintLang] || PRINT_L.he;
+        const columnsOf = (i) => i.column.split(' · ').map((c) => c.trim());
+        const keep = (i) =>
+          kind === 'all' ? true : kind === 'rentals' ? RENT.test(i.column) : columnsOf(i).includes(name);
+        const showColumn = kind === 'all' || kind === 'rentals' || name === '';
+        const title =
+          kind === 'all' ? L.studio : kind === 'rentals' ? L.rentals : (RENT.test(name) ? L.hall : L.trainer).replace('{name}', name);
+        const dm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+        const cols = dates
+          .map((date) => {
+            const d = new Date(`${date}T12:00:00`);
+            const items = (byDate.get(date) || []).filter(keep);
+            return `
+              <section class="day">
+                <h2><span>${d.toLocaleDateString(L.locale, { weekday: 'long' })}</span><small>${dm(date)}</small></h2>
+                ${items.length
+                  ? items
+                      .map(
+                        (i) => `
+                          <div class="ev${RENT.test(i.column) ? ' rent' : ''}">
+                            <b dir="ltr">${i.start}–${i.end}</b>
+                            <span class="t" dir="auto">${escapeHtml(i.title)}</span>
+                            ${showColumn || i.column.includes(' · ') ? `<span class="c" dir="auto">${RENT.test(i.column) ? '🔑 ' : ''}${escapeHtml(i.column)}</span>` : ''}
+                          </div>`
+                      )
+                      .join('')
+                  : `<p class="none">${L.none}</p>`}
+              </section>`;
+          })
+          .join('');
+        const html = `<!doctype html>
+          <html lang="${ttPrintLang}" dir="${L.dir}"><head><meta charset="utf-8">
+          <title>${escapeHtml(title)} — ${dm(dates[0])}–${dm(dates[6])}</title>
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Heebo:wght@500;600;700&display=swap">
+          <style>
+            @page { size: A4 landscape; margin: 9mm; }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { margin: 0; font: 9pt/1.25 ${ttPrintLang === 'he' ? "'Heebo', 'Montserrat'" : "'Montserrat', 'Heebo'"}, sans-serif; color: #1b2132; }
+            header { display: flex; align-items: center; justify-content: space-between; gap: 6mm; padding-bottom: 2mm; border-bottom: 0.5mm solid #17224a; }
+            h1 { margin: 0; font-size: 16pt; color: #17224a; }
+            header img { height: 10mm; }
+            .week { margin: 2mm 0; font-size: 12pt; font-weight: 700; color: #17224a; }
+            .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2mm; }
+            .day { border: 0.3mm solid #c9cfdc; border-radius: 2mm; padding: 1.5mm; min-height: 30mm; }
+            .day h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 1mm; margin: 0 0 1.5mm; font-size: 9.5pt; color: #17224a; }
+            .day h2 small { font-size: 7.5pt; font-weight: 500; color: #4a5367; }
+            .day h2 span { text-transform: capitalize; }
+            .ev { display: grid; gap: 0.3mm; padding: 1mm 1.5mm; margin-bottom: 1mm; border-radius: 1.2mm; background: #e6ebf7; border-inline-start: 0.8mm solid #2f4b9b; break-inside: avoid; }
+            .ev b { font-size: 7.5pt; color: #2f4b9b; justify-self: start; }
+            .ev .t { font-size: 8.5pt; font-weight: 700; overflow-wrap: break-word; }
+            .ev .c { font-size: 7pt; font-weight: 600; color: #4a5367; }
+            .ev.rent { background: repeating-linear-gradient(135deg, #fff4e0 0 2mm, #fffaf1 2mm 4mm); border-inline-start-color: #ffb547; }
+            .ev.rent b, .ev.rent .c { color: #9a5b00; }
+            html[dir='rtl'] .ev .t, html[dir='rtl'] .ev .c { text-align: right; }
+            html[dir='ltr'] .ev .t, html[dir='ltr'] .ev .c { text-align: left; }
+            .none { margin: 0; font-size: 7.5pt; color: #4a5367; }
+            footer { display: flex; justify-content: space-between; margin-top: 2mm; font-size: 7.5pt; color: #4a5367; }
+          </style></head><body>
+          <header><h1>${escapeHtml(title)}</h1><img src="${location.origin}/images/brand/logo-full.svg" alt="ETUDE"></header>
+          <p class="week">${L.week} <bdi dir="ltr">${dm(dates[0])} – ${dm(dates[6])}</bdi></p>
+          <div class="grid">${cols}</div>
+          <footer><span>etude.ristar.co</span><span>${L.updated}: ${new Date().toLocaleDateString(L.locale)}</span></footer>
+          </body></html>`;
+
+        document.getElementById('ttPrintFrame')?.remove();
+        const frame = document.createElement('iframe');
+        frame.id = 'ttPrintFrame';
+        frame.setAttribute('aria-hidden', 'true');
+        frame.style.cssText = 'position:fixed;inset-inline-end:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+        document.body.appendChild(frame);
+        const doc = frame.contentDocument;
+        doc.open();
+        doc.write(html);
+        doc.close();
+        // Print once the logo and fonts are in (with a timeout as a safety net).
+        const ready = Promise.all([
+          new Promise((r) => { const img = doc.querySelector('img'); img.complete ? r() : (img.onload = img.onerror = r); }),
+          doc.fonts ? doc.fonts.ready : Promise.resolve(),
+        ]);
+        Promise.race([ready, new Promise((r) => setTimeout(r, 2500))]).then(() => {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+        });
       }
 
       async function loadTimetable() {
