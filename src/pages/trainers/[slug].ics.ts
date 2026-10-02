@@ -3,14 +3,15 @@
 // changes in the Google Sheet reach subscribers after the next site rebuild.
 import type { APIRoute, GetStaticPaths } from 'astro';
 import { getTimetable } from '../../lib/loadTimetable';
-import { ALL_SLUG, eventsFor, trainersFrom } from '../../lib/trainers';
+import { ALL_SLUG, RENTALS_SLUG, eventsFor, hallsFrom, trainersFrom } from '../../lib/trainers';
 import { buildIcs } from '../../lib/calendar';
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const tt = await getTimetable();
   return [
     { params: { slug: ALL_SLUG }, props: { name: 'ETUDE' } },
-    ...trainersFrom(tt).map((t) => ({ params: { slug: t.slug }, props: { name: `ETUDE — ${t.name}` } })),
+    { params: { slug: RENTALS_SLUG }, props: { name: 'ETUDE — Rentals' } },
+    ...[...trainersFrom(tt), ...hallsFrom(tt)].map((t) => ({ params: { slug: t.slug }, props: { name: `ETUDE — ${t.name}` } })),
   ];
 };
 

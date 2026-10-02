@@ -79,13 +79,17 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       .tt-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin-block: var(--space-sm); }
       .tt-summary div { background: var(--color-silver-100); border-radius: var(--radius-sm); padding: 0.6em 0.8em; font-size: 0.85rem; }
       .tt-summary strong { display: block; font-size: 1rem; color: var(--color-navy-900); }
-      .tt-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; margin-block-start: var(--space-sm); }
-      .tt-day { border: 1px solid var(--color-line); border-radius: var(--radius-sm); padding: 0.6em 0.8em; font-size: 0.85rem; }
-      .tt-day h3 { font-size: 0.9rem; margin: 0 0 0.3em; font-family: var(--font-body); }
-      .tt-day ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2em; }
-      .tt-day .muted { color: var(--color-ink-soft); }
-      .tt-week { font-size: 0.95rem; margin: var(--space-md) 0 0; font-family: var(--font-body); color: var(--color-navy-900); }
-      .tt-rent { background: #fff4e0; border-inline-start: 3px solid #ffb547; padding-inline-start: 0.4em; border-radius: 3px; }
+      .tt-weekbar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-block: var(--space-sm) 0.6rem; font-size: 0.9rem; }
+      .tt-print { display: inline-flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; margin-inline-start: auto; font-size: 0.82rem; color: var(--color-ink-soft); }
+      .tt-print a { text-decoration: none; color: var(--color-navy-900); }
+      .tt-print a.tt-rent-btn { background: #fff4e0; border-color: #f0c674; }
+      .tt-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; font-size: 0.72rem; line-height: 1.25; }
+      @media (max-width: 700px) { .tt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      .tt-col { border: 1px solid var(--color-line); border-radius: 6px; padding: 4px; min-width: 0; display: grid; gap: 3px; align-content: start; }
+      .tt-col__head { font-weight: 700; font-size: 0.78rem; color: var(--color-navy-900); }
+      .tt-item { background: var(--color-blue-100); border-radius: 4px; padding: 2px 4px; overflow: hidden; text-overflow: ellipsis; }
+      .tt-item .muted { display: block; font-size: 0.66rem; color: var(--color-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tt-rent { background: #fff4e0; border-inline-start: 3px solid #ffb547; }
       .tt-rent::before { content: '🔑 '; }
 
       .rich-wrap { display: flex; flex-direction: column; gap: 0.3rem; }
@@ -1135,7 +1139,6 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       // ---------- Timetable (Google Sheet) ----------
       // Shows exactly what the deployed site serves to /display/ (built from the
       // sheet), so it always matches the screen.
-      const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const RENT = /\brent\b|השכרה|аренд/i;
 
       function fmtDate(iso) {
@@ -1147,6 +1150,59 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
         const d = new Date(`${iso}T12:00:00`);
         d.setDate(d.getDate() - d.getDay());
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      let ttDaysCache = [];
+      let ttWeeks = [];
+      let ttWeek = '';
+      const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      // Same rule as slugify() in src/lib/calendar.ts (trainer page URLs).
+      const slugify = (label) =>
+        label.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'column';
+
+      // One week at a time, as a compact 7-column grid, plus A4 print links.
+      function renderTtWeek() {
+        const days = ttDaysCache;
+        const idx = ttWeeks.indexOf(ttWeek);
+        const start = new Date(`${ttWeek}T12:00:00`);
+        const dates = Array.from({ length: 7 }, (_, n) => {
+          const d = new Date(start);
+          d.setDate(d.getDate() + n);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        });
+        const byDate = new Map(days.map((d) => [d.date, d.items]));
+        const columns = [...new Set(
+          dates.flatMap((date) => (byDate.get(date) || []).flatMap((i) => i.column.split(' · ').map((c) => c.trim())))
+        )].filter(Boolean).sort();
+        const trainers = columns.filter((c) => !RENT.test(c));
+        const halls = columns.filter((c) => RENT.test(c));
+        const short = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+        $('ttDays').innerHTML = `
+          <div class="tt-weekbar">
+            <button class="btn-mini" id="ttPrev" ${idx <= 0 ? 'disabled' : ''}>‹</button>
+            <strong>Week ${short(dates[0])} – ${short(dates[6])}</strong>
+            <button class="btn-mini" id="ttNext" ${idx >= ttWeeks.length - 1 ? 'disabled' : ''}>›</button>
+            <span class="tt-print">🖨 Print A4:
+              <a class="btn-mini" href="/trainers/?week=${ttWeek}&print=1" target="_blank" rel="noopener">Whole studio</a>
+              ${trainers.map((name) => `<a class="btn-mini" href="/trainers/${slugify(name)}/?week=${ttWeek}&print=1" target="_blank" rel="noopener">${escapeHtml(name)}</a>`).join('')}
+              ${halls.length ? `<a class="btn-mini tt-rent-btn" href="/trainers/rentals/?week=${ttWeek}&print=1" target="_blank" rel="noopener">🔑 All rentals</a>` : ''}
+              ${halls.map((name) => `<a class="btn-mini tt-rent-btn" href="/trainers/${slugify(name)}/?week=${ttWeek}&print=1" target="_blank" rel="noopener">${escapeHtml(name)}</a>`).join('')}
+            </span>
+          </div>
+          <div class="tt-grid">${dates
+            .map((date, n) => {
+              const items = byDate.get(date) || [];
+              return `
+                <div class="tt-col">
+                  <div class="tt-col__head">${SHORT_DAYS[n]} <span class="muted">${short(date)}</span></div>
+                  ${items.length
+                    ? items.map((i) => `<div class="tt-item${RENT.test(i.column) ? ' tt-rent' : ''}" title="${escapeHtml(`${i.start}–${i.end} ${i.title} · ${i.column}`)}"><b>${i.start}</b> ${escapeHtml(i.title)}<span class="muted">${escapeHtml(i.column)}</span></div>`).join('')
+                    : '<div class="muted">—</div>'}
+                </div>`;
+            })
+            .join('')}</div>`;
+        $('ttPrev').addEventListener('click', () => { ttWeek = ttWeeks[idx - 1]; renderTtWeek(); });
+        $('ttNext').addEventListener('click', () => { ttWeek = ttWeeks[idx + 1]; renderTtWeek(); });
       }
 
       async function loadTimetable() {
@@ -1164,32 +1220,16 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
             $('ttDays').innerHTML = '';
             return;
           }
-          const weeks = new Map();
-          for (const d of days) {
-            const key = sundayOf(d.date);
-            if (!weeks.has(key)) weeks.set(key, []);
-            weeks.get(key).push(d);
-          }
+          ttDaysCache = days;
+          ttWeeks = [...new Set(days.map((d) => sundayOf(d.date)))].sort();
+          const thisSunday = sundayOf(new Date().toISOString().slice(0, 10));
+          ttWeek = ttWeeks.includes(ttWeek) ? ttWeek : ttWeeks.find((w) => w >= thisSunday) ?? ttWeeks[ttWeeks.length - 1];
           const classes = days.reduce((n, d) => n + d.items.length, 0);
           $('ttCurrent').hidden = false;
           $('ttCurrent').innerHTML = `
-            <div><strong>${fmtDate(days[0].date)} – ${fmtDate(days[days.length - 1].date)}</strong>dates covered</div>
-            <div><strong>${weeks.size}</strong>weeks (sheet tabs)</div>
-            <div><strong>${classes}</strong>classes &amp; rentals</div>
+            <div><strong>${fmtDate(days[0].date)} – ${fmtDate(days[days.length - 1].date)}</strong>${ttWeeks.length} weeks · ${classes} entries</div>
             ${tt.updatedAt ? `<div><strong>${escapeHtml(new Date(tt.updatedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}</strong>last read from the sheet</div>` : ''}`;
-          $('ttDays').innerHTML = [...weeks.entries()]
-            .map(([sunday, wdays]) => `
-              <h3 class="tt-week">Week of ${fmtDate(sunday)}</h3>
-              <div class="tt-days">${wdays
-                .map((d) => `
-                  <div class="tt-day">
-                    <h3>${WEEKDAYS[d.weekday]} · ${fmtDate(d.date)}</h3>
-                    ${d.items.length
-                      ? `<ul>${d.items.map((i) => `<li${RENT.test(i.column) ? ' class="tt-rent"' : ''}><strong>${i.start}–${i.end}</strong> ${escapeHtml(i.title)} <span class="muted">· ${escapeHtml(i.column)}</span></li>`).join('')}</ul>`
-                      : '<p class="muted" style="margin:0">No classes</p>'}
-                  </div>`)
-                .join('')}</div>`)
-            .join('');
+          renderTtWeek();
           $('ttCurrentStatus').textContent = '';
           $('ttCurrentStatus').className = 'status-msg';
         } catch (err) {
