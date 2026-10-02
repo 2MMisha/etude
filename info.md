@@ -94,6 +94,10 @@ Saving anything writes a commit straight to `main`, which triggers `deploy.yml` 
 
 **`/display/`** — a full-screen "today's classes" page for the TV in the studio: clock, the class in progress with a progress bar, what's next, and the day's list (past classes dimmed). Once the day is over it shows tomorrow. It re-checks `/data/timetable.json` every 2 minutes, so the TV never needs reloading. Options: `?lang=en` / `?lang=ru` (Hebrew by default), `?rent=0` to hide rentals, `?date=2026-10-05&time=18:20` to preview a moment. If a date isn't in the sheet, it falls back to the same weekday of the latest week (and says so). Not linked anywhere, `noindex`, excluded from the sitemap and `robots.txt`.
 
+The screen cycles the language he → ru → en every minute (`?lang=` pins one), and for 2 minutes out of every 10 (minutes x8–x9) shows the whole week instead of today (`?view=today|week` pins one). Coloured background blobs drift slowly (transform-only animation, light enough for smart-TV browsers).
+
+**`/trainers/`** — weekly schedule of the whole studio, and **`/trainers/<name>/`** — one page per trainer (one per teacher column in the sheet; a new column gets its page on the next rebuild). Week-by-week navigation, language from the device (he/ru/en, switchable, remembered), responsive from phones to desktops. Each class has "Add to Google Calendar" and ".ics" buttons; the **Add to calendar** menu offers a subscription feed (`/trainers/<name>.ics`, or `/trainers/all.ics`) that calendar apps re-check, so changes in the sheet reach trainers' calendars by themselves. Not linked from the public site, `noindex`, not in the sitemap (and deliberately not blocked in `robots.txt`, so calendar apps can fetch the feeds).
+
 The public **Schedule page** is separate: it lists the **Schedule slots** managed in the admin panel.
 
 ### Adding an image (for News posts)

@@ -1,0 +1,463 @@
+---
+// Weekly schedule for one trainer (or the whole studio), from the Google Sheet
+// timetable. Rendered in the browser so the language follows the device
+// (he/ru/en, switchable) — the data is embedded at build time and the site
+// rebuilds hourly. Not linked from the public site; noindex.
+import '../styles/global.css';
+import { getTimetable } from '../lib/loadTimetable';
+import { ALL_SLUG, STUDIO_LOCATION, daysFor, trainersFrom } from '../lib/trainers';
+import { SITE } from '../lib/site';
+
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+const tt = await getTimetable();
+const trainers = trainersFrom(tt);
+const current = trainers.find((t) => t.slug === slug);
+const feedPath = `/trainers/${slug}.ics`;
+const data = {
+  slug,
+  name: current?.name ?? '',
+  trainers,
+  days: daysFor(tt, slug),
+  location: STUDIO_LOCATION,
+  feedUrl: `${SITE.siteUrl}${feedPath}`,
+  updatedAt: tt.updatedAt,
+};
+const pageTitle = current ? `${current.name} — ETUDE` : 'ETUDE — Schedule';
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#17224a" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <title>{pageTitle}</title>
+    <meta name="description" content={current ? `Weekly class schedule for ${current.name} at ETUDE Dance School.` : 'Weekly class schedule of ETUDE Dance School.'} />
+  </head>
+  <body class="ts">
+    <header class="ts-top">
+      <div class="ts-wrap ts-top__row">
+        <a href="/trainers/" class="ts-brand"><img src="/images/brand/logo-full-white.svg" alt="ETUDE logo" width="120" height="50" /></a>
+        <div class="ts-langs" role="group" aria-label="Language">
+          <button type="button" data-lang="he" lang="he">עב</button>
+          <button type="button" data-lang="ru" lang="ru">RU</button>
+          <button type="button" data-lang="en" lang="en">EN</button>
+        </div>
+      </div>
+      <div class="ts-wrap">
+        <h1 class="ts-title" id="title"></h1>
+        <nav class="ts-trainers" id="trainers" aria-label="Trainers"></nav>
+      </div>
+    </header>
+
+    <main class="ts-wrap ts-main">
+      <div class="ts-toolbar">
+        <div class="ts-weeknav">
+          <button type="button" class="ts-btn ts-btn--icon" id="prevWeek" aria-label="‹"><span class="ts-arrow">‹</span></button>
+          <p class="ts-weeklabel" id="weekLabel" aria-live="polite"></p>
+          <button type="button" class="ts-btn ts-btn--icon" id="nextWeek" aria-label="›"><span class="ts-arrow">›</span></button>
+          <button type="button" class="ts-btn" id="thisWeek"></button>
+        </div>
+        <details class="ts-cal">
+          <summary class="ts-btn ts-btn--primary" id="calSummary"></summary>
+          <div class="ts-cal__menu">
+            <p class="ts-cal__hint" id="calHint"></p>
+            <a class="ts-btn" id="calSubscribe"></a>
+            <a class="ts-btn" id="calGoogle" target="_blank" rel="noopener"></a>
+            <a class="ts-btn" id="calDownload" download></a>
+          </div>
+        </details>
+      </div>
+
+      <div class="ts-week" id="week"></div>
+      <p class="ts-empty" id="empty" hidden></p>
+    </main>
+
+    <footer class="ts-wrap ts-foot">
+      <a href="/">etude.ristar.co</a>
+      <span id="updated"></span>
+    </footer>
+
+    <script type="application/json" id="ts-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
+
+    <script>
+      import { buildIcs, googleCalendarUrl, type CalendarEvent } from '../lib/calendar';
+      import { RENTAL_COLUMN, weekOf, type TimetableItem } from '../lib/timetable';
+
+      type Lang = 'he' | 'en' | 'ru';
+      const L = {
+        he: {
+          trainer: 'לוח הזמנים של {name}', studio: 'לוח הזמנים של הסטודיו', all: 'כל הסטודיו',
+          week: 'שבוע', thisWeek: 'השבוע', prev: 'השבוע הקודם', next: 'השבוע הבא', today: 'היום',
+          noClasses: 'אין שיעורים', noWeek: 'אין שיעורים בשבוע הזה', noData: 'לוח הזמנים עדיין לא זמין',
+          calendar: 'הוספה ליומן', calHint: 'הירשמו פעם אחת — היומן יתעדכן לבד כשהלוח משתנה.',
+          subscribe: 'Apple / Outlook (מינוי)', google: 'Google Calendar (מינוי)', download: 'הורדת קובץ ICS',
+          addGoogle: 'הוספה ל-Google Calendar', addIcs: 'הוספה ליומן (ICS)', rent: 'השכרה', updated: 'עודכן',
+          locale: 'he-IL', dir: 'rtl',
+        },
+        en: {
+          trainer: "{name}'s schedule", studio: 'Studio schedule', all: 'Whole studio',
+          week: 'Week', thisWeek: 'This week', prev: 'Previous week', next: 'Next week', today: 'Today',
+          noClasses: 'No classes', noWeek: 'No classes this week', noData: 'The schedule is not available yet',
+          calendar: 'Add to calendar', calHint: 'Subscribe once — your calendar updates by itself when the schedule changes.',
+          subscribe: 'Apple / Outlook (subscribe)', google: 'Google Calendar (subscribe)', download: 'Download .ics file',
+          addGoogle: 'Add to Google Calendar', addIcs: 'Add to calendar (.ics)', rent: 'Rental', updated: 'Updated',
+          locale: 'en-GB', dir: 'ltr',
+        },
+        ru: {
+          trainer: 'Расписание: {name}', studio: 'Расписание студии', all: 'Вся студия',
+          week: 'Неделя', thisWeek: 'Эта неделя', prev: 'Предыдущая неделя', next: 'Следующая неделя', today: 'Сегодня',
+          noClasses: 'Нет занятий', noWeek: 'На этой неделе занятий нет', noData: 'Расписание пока недоступно',
+          calendar: 'Добавить в календарь', calHint: 'Подпишитесь один раз — календарь сам обновится при изменениях.',
+          subscribe: 'Apple / Outlook (подписка)', google: 'Google Календарь (подписка)', download: 'Скачать файл .ics',
+          addGoogle: 'Добавить в Google Календарь', addIcs: 'Добавить в календарь (.ics)', rent: 'Аренда', updated: 'Обновлено',
+          locale: 'ru-RU', dir: 'ltr',
+        },
+      } as const;
+      const LANGS: Lang[] = ['he', 'en', 'ru'];
+
+      interface Data {
+        slug: string;
+        name: string;
+        trainers: { slug: string; name: string }[];
+        days: { date: string; items: TimetableItem[] }[];
+        location: string;
+        feedUrl: string;
+        updatedAt: string;
+      }
+      const data: Data = JSON.parse(document.getElementById('ts-data')!.textContent || '{}');
+      const $ = (id: string) => document.getElementById(id)!;
+      const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+      const isAll = data.slug === 'all';
+
+      // ----- Language: ?lang= → saved choice → device language → Hebrew -----
+      function pickLang(): Lang {
+        const fromUrl = new URLSearchParams(location.search).get('lang');
+        if (LANGS.includes(fromUrl as Lang)) return fromUrl as Lang;
+        try {
+          const saved = localStorage.getItem('etude-lang');
+          if (LANGS.includes(saved as Lang)) return saved as Lang;
+        } catch {}
+        for (const l of navigator.languages || [navigator.language]) {
+          const code = l.slice(0, 2).toLowerCase();
+          if (code === 'iw') return 'he';
+          if (LANGS.includes(code as Lang)) return code as Lang;
+          if (['uk', 'be', 'kk'].includes(code)) return 'ru';
+        }
+        return 'he';
+      }
+      let lang = pickLang();
+      let t = L[lang];
+
+      // ----- Weeks (Sunday → Saturday) -----
+      const byDate = new Map(data.days.map((d) => [d.date, d.items]));
+      const todayIso = weekOf(new Date())[new Date().getDay()];
+      const weekStarts = [...new Set(data.days.map((d) => weekOf(new Date(`${d.date}T12:00:00`))[0]))].sort();
+      const thisSunday = weekOf(new Date())[0];
+      const defaultWeek =
+        weekStarts.find((w) => w === thisSunday) ?? weekStarts.find((w) => w > thisSunday) ?? weekStarts[weekStarts.length - 1];
+      const requested = new URLSearchParams(location.search).get('week');
+      let week = weekStarts.includes(requested || '') ? (requested as string) : defaultWeek;
+
+      const colors = new Map<string, number>();
+      const colorOf = (c: string) => {
+        if (!colors.has(c)) colors.set(c, colors.size % 6);
+        return colors.get(c)!;
+      };
+      data.trainers.forEach((tr) => colorOf(tr.name));
+
+      const fmtShort = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(t.locale, { day: 'numeric', month: 'short' });
+      const toEvent = (date: string, i: TimetableItem): CalendarEvent => ({
+        date, start: i.start, end: i.end, title: i.title, description: i.column, location: data.location,
+      });
+
+      function render() {
+        document.documentElement.lang = lang;
+        document.documentElement.dir = t.dir;
+        document.querySelectorAll<HTMLButtonElement>('.ts-langs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+
+        const title = isAll ? t.studio : t.trainer.replace('{name}', data.name);
+        $('title').textContent = title;
+        document.title = `${title} — ETUDE`;
+
+        $('trainers').innerHTML = [`<a href="/trainers/" ${isAll ? 'aria-current="page"' : ''}>${t.all}</a>`]
+          .concat(
+            data.trainers.map(
+              (tr) => `<a href="/trainers/${tr.slug}/" class="c${colorOf(tr.name)}" ${tr.slug === data.slug ? 'aria-current="page"' : ''}><span class="dot"></span>${esc(tr.name)}</a>`
+            )
+          )
+          .join('');
+
+        // Calendar menu
+        const feedHttps = data.feedUrl;
+        $('calSummary').textContent = `📅 ${t.calendar}`;
+        $('calHint').textContent = t.calHint;
+        const sub = $('calSubscribe') as HTMLAnchorElement;
+        sub.href = feedHttps.replace(/^https?:/, 'webcal:');
+        sub.textContent = t.subscribe;
+        const g = $('calGoogle') as HTMLAnchorElement;
+        g.href = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(feedHttps.replace(/^https?:/, 'webcal:'))}`;
+        g.textContent = t.google;
+        const dl = $('calDownload') as HTMLAnchorElement;
+        dl.href = new URL(feedHttps).pathname;
+        dl.textContent = t.download;
+
+        // Week navigation
+        $('thisWeek').textContent = t.thisWeek;
+        $('prevWeek').setAttribute('aria-label', t.prev);
+        $('nextWeek').setAttribute('aria-label', t.next);
+        const idx = weekStarts.indexOf(week);
+        ($('prevWeek') as HTMLButtonElement).disabled = idx <= 0;
+        ($('nextWeek') as HTMLButtonElement).disabled = idx < 0 || idx >= weekStarts.length - 1;
+        ($('thisWeek') as HTMLButtonElement).disabled = week === defaultWeek;
+
+        if (!week) {
+          $('weekLabel').textContent = '';
+          $('week').innerHTML = '';
+          $('empty').hidden = false;
+          $('empty').textContent = t.noData;
+          return;
+        }
+        const dates = weekOf(new Date(`${week}T12:00:00`));
+        const dm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+        $('weekLabel').innerHTML = `${t.week} <bdi dir="ltr">${dm(dates[0])} – ${dm(dates[6])}</bdi>`;
+
+        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+        let total = 0;
+        $('week').innerHTML = dates
+          .map((date) => {
+            const items = byDate.get(date) ?? [];
+            total += items.length;
+            const d = new Date(`${date}T12:00:00`);
+            const isToday = date === todayIso;
+            const past = date < todayIso;
+            const cards = items
+              .map((i, n) => {
+                const [eh, em] = i.end.split(':').map(Number);
+                const done = past || (isToday && eh * 60 + em <= nowMin);
+                const rent = RENTAL_COLUMN.test(i.column);
+                const chip = isAll || i.column.includes(' · ')
+                  ? `<span class="chip ${rent ? 'chip--rent' : `c${colorOf(i.column.split(' · ')[0])}`}">${rent ? '🔑 ' : ''}${esc(i.column)}</span>`
+                  : '';
+                return `
+                  <li class="ev${rent ? ' ev--rent' : ''}${done ? ' ev--done' : ''}">
+                    <span class="ev__time" dir="ltr">${i.start}–${i.end}</span>
+                    <span class="ev__title" dir="auto">${esc(i.title)}</span>
+                    ${chip}
+                    <span class="ev__add">
+                      <a href="${esc(googleCalendarUrl(toEvent(date, i)))}" target="_blank" rel="noopener" title="${t.addGoogle}" aria-label="${t.addGoogle}">G</a>
+                      <button type="button" data-ics="${date}|${n}" title="${t.addIcs}" aria-label="${t.addIcs}">＋</button>
+                    </span>
+                  </li>`;
+              })
+              .join('');
+            return `
+              <section class="day${isToday ? ' day--today' : ''}${items.length ? '' : ' day--empty'}">
+                <h2 class="day__head">
+                  <span class="day__name">${d.toLocaleDateString(t.locale, { weekday: 'long' })}</span>
+                  <span class="day__date">${isToday ? `<b>${t.today}</b> · ` : ''}${fmtShort(date)}</span>
+                </h2>
+                ${items.length ? `<ul class="day__list">${cards}</ul>` : `<p class="day__none">${t.noClasses}</p>`}
+              </section>`;
+          })
+          .join('');
+        $('empty').hidden = total > 0;
+        $('empty').textContent = t.noWeek;
+
+        $('updated').textContent = data.updatedAt
+          ? `${t.updated}: ${new Date(data.updatedAt).toLocaleString(t.locale, { dateStyle: 'medium', timeStyle: 'short' })}`
+          : '';
+      }
+
+      function setWeek(w: string | undefined) {
+        if (!w) return;
+        week = w;
+        const url = new URL(location.href);
+        url.searchParams.set('week', w);
+        history.replaceState(null, '', url);
+        render();
+      }
+
+      $('prevWeek').addEventListener('click', () => setWeek(weekStarts[weekStarts.indexOf(week) - 1]));
+      $('nextWeek').addEventListener('click', () => setWeek(weekStarts[weekStarts.indexOf(week) + 1]));
+      $('thisWeek').addEventListener('click', () => setWeek(defaultWeek));
+      document.querySelectorAll<HTMLButtonElement>('.ts-langs button').forEach((b) =>
+        b.addEventListener('click', () => {
+          lang = b.dataset.lang as Lang;
+          t = L[lang];
+          try {
+            localStorage.setItem('etude-lang', lang);
+          } catch {}
+          render();
+        })
+      );
+      // Per-class .ics download (works on iPhone/Android/desktop calendars).
+      $('week').addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-ics]');
+        if (!btn) return;
+        const [date, n] = btn.dataset.ics!.split('|');
+        const item = byDate.get(date)?.[Number(n)];
+        if (!item) return;
+        const ics = buildIcs([toEvent(date, item)], 'ETUDE');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+        a.download = `etude-${date}-${item.start.replace(':', '')}.ics`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      });
+      // Close the calendar menu when tapping elsewhere.
+      document.addEventListener('click', (e) => {
+        const menu = document.querySelector('.ts-cal') as HTMLDetailsElement;
+        if (menu.open && !menu.contains(e.target as Node)) menu.open = false;
+      });
+
+      render();
+      // Keep "today"/past styling right if the page stays open.
+      setInterval(render, 5 * 60 * 1000);
+    </script>
+
+    <style is:global>
+      body.ts {
+        margin: 0;
+        background: var(--color-ground);
+        color: var(--color-ink);
+        font-family: 'Heebo', 'Montserrat', system-ui, sans-serif;
+      }
+      :lang(en) body.ts, :lang(ru) body.ts { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
+      .ts p { margin: 0; color: inherit; }
+      .ts-wrap { max-width: 1280px; margin-inline: auto; padding-inline: 16px; box-sizing: border-box; }
+      @media (min-width: 768px) { .ts-wrap { padding-inline: 28px; } }
+
+      .ts-top { background: var(--color-navy-900); color: #fff; padding-block: 14px 0; }
+      .ts-top__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .ts-brand img { display: block; block-size: 40px; inline-size: auto; }
+      .ts-langs { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 999px; padding: 3px; }
+      .ts-langs button {
+        border: 0; background: none; color: #fff; font: inherit; font-size: 0.85rem; font-weight: 700;
+        padding: 6px 12px; border-radius: 999px; cursor: pointer; min-inline-size: 44px; min-block-size: 36px;
+      }
+      .ts-langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); }
+      .ts .ts-title {
+        color: #fff; font-family: 'Heebo', 'Montserrat', sans-serif; font-weight: 800; line-height: 1.15;
+        font-size: clamp(1.6rem, 1.2rem + 2vw, 2.6rem); margin: 18px 0 14px;
+      }
+      .ts-trainers { display: flex; gap: 8px; overflow-x: auto; padding-block-end: 14px; scrollbar-width: none; }
+      .ts-trainers::-webkit-scrollbar { display: none; }
+      .ts-trainers a {
+        --c: #9fb3e8;
+        display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+        padding: 8px 16px; border-radius: 999px; color: #fff; font-weight: 600; font-size: 0.95rem;
+        background: rgba(255, 255, 255, 0.1); text-decoration: none; border: 1px solid transparent;
+      }
+      .ts-trainers a:hover { background: rgba(255, 255, 255, 0.18); }
+      .ts-trainers a[aria-current='page'] { background: #fff; color: var(--color-navy-900); }
+      .ts-trainers .dot { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--c); }
+
+      /* The schedule is drawn by the script after load — reserve the space so
+         nothing (the footer, the week grid) jumps when it appears. */
+      .ts-main { padding-block: 20px 32px; min-block-size: calc(100vh - 160px); box-sizing: border-box; }
+      .ts .ts-title { min-block-size: 1.15em; }
+      .ts-trainers { min-block-size: 56px; box-sizing: border-box; }
+      .ts-weeklabel { min-block-size: 1.4em; }
+      .ts-toolbar {
+        position: relative; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+        justify-content: space-between; margin-block-end: 18px;
+      }
+      .ts-weeknav { display: flex; align-items: center; gap: 8px; }
+      .ts-weeklabel bdi { white-space: nowrap; }
+      .ts-weeklabel { font-weight: 700; font-size: 1.1rem; min-inline-size: 9.5em; text-align: center; color: var(--color-navy-900); }
+      /* Phones: week arrows + label across the full width, buttons below. */
+      @media (max-width: 639px) {
+        .ts-weeknav { inline-size: 100%; flex-wrap: wrap; }
+        .ts-weeklabel { flex: 1; min-inline-size: 0; font-size: 1rem; }
+        #thisWeek { flex: 1; }
+        .ts-cal { flex: 1; }
+        .ts-cal summary { inline-size: 100%; box-sizing: border-box; }
+      }
+      .ts-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        min-block-size: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--color-line);
+        background: #fff; color: var(--color-navy-900); font: inherit; font-weight: 600; font-size: 0.95rem;
+        cursor: pointer; text-decoration: none; list-style: none;
+      }
+      .ts-btn:hover { background: var(--color-silver-100); }
+      .ts-btn:disabled { opacity: 0.35; cursor: default; }
+      .ts-btn--icon { inline-size: 44px; padding: 0; font-size: 1.5rem; }
+      :dir(rtl) .ts-arrow { display: inline-block; transform: scaleX(-1); }
+      .ts-btn--primary { background: var(--color-navy-900); color: #fff; border-color: var(--color-navy-900); }
+      .ts-btn--primary:hover { background: var(--color-navy-800); }
+      .ts-cal { position: static; }
+      .ts-cal summary::-webkit-details-marker { display: none; }
+      .ts-cal__menu {
+        position: absolute; inset-inline-end: 0; inset-block-start: calc(100% + 8px); z-index: 10;
+        display: grid; gap: 8px; inline-size: min(340px, 100%); box-sizing: border-box; padding: 14px;
+        background: #fff; border: 1px solid var(--color-line); border-radius: 16px; box-shadow: 0 12px 32px rgba(23, 34, 74, 0.18);
+      }
+      .ts-cal__hint { font-size: 0.85rem; color: var(--color-ink-soft); }
+
+      .ts-week { display: grid; gap: 12px; grid-template-columns: 1fr; }
+      @media (min-width: 640px) { .ts-week { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 1100px) { .ts-week { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; } }
+      .day { background: #fff; border: 1px solid var(--color-line); border-radius: 16px; padding: 14px; min-inline-size: 0; }
+      .day--today { border: 2px solid var(--color-blue-600); box-shadow: 0 6px 20px rgba(47, 75, 155, 0.15); }
+      /* Phones/tablets: empty days shrink to one line instead of taking a card. */
+      @media (max-width: 1099px) {
+        .day--empty { padding-block: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .day--empty .day__head { margin: 0; }
+      }
+      .ts .day__head {
+        display: flex; flex-direction: column; gap: 2px; margin: 0 0 10px;
+        font-family: inherit; font-size: 1rem; line-height: 1.25; color: var(--color-navy-900);
+      }
+      .day__name { font-weight: 700; text-transform: capitalize; }
+      .day__date { font-size: 0.85rem; font-weight: 500; color: var(--color-ink-soft); }
+      .day--today .day__date b { color: var(--color-blue-600); }
+      .day__none { font-size: 0.85rem; color: var(--color-ink-soft); }
+      .day__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+      .ev {
+        position: relative; display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px;
+        background: var(--color-blue-100); border-inline-start: 4px solid var(--color-blue-600);
+      }
+      .ev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.85rem; color: var(--color-blue-600); font-variant-numeric: tabular-nums; justify-self: start; }
+      .ev__title { font-weight: 700; font-size: 0.98rem; line-height: 1.25; color: var(--color-navy-900); overflow-wrap: anywhere; }
+      .ev__add { display: flex; gap: 6px; margin-block-start: 4px; }
+      .ev__add a, .ev__add button {
+        display: inline-flex; align-items: center; justify-content: center; inline-size: 36px; block-size: 36px;
+        border-radius: 10px; border: 1px solid rgba(47, 75, 155, 0.25); background: #fff; color: var(--color-blue-600);
+        font: 700 0.95rem 'Montserrat', sans-serif; cursor: pointer; text-decoration: none;
+      }
+      .ev__add a:hover, .ev__add button:hover { background: var(--color-silver-100); }
+      .ev--done { opacity: 0.5; }
+      .ev--rent {
+        background: repeating-linear-gradient(135deg, #fff4e0 0 10px, #fffaf1 10px 20px);
+        border-inline-start-color: #ffb547;
+      }
+      .ev--rent .ev__time { color: #b36b00; }
+
+      .chip {
+        --c: #7aa2ff; justify-self: start; display: inline-flex; align-items: center; gap: 6px;
+        font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px;
+        background: color-mix(in srgb, var(--c) 25%, #fff); color: var(--color-navy-900);
+      }
+      .chip--rent { background: #ffb547; color: #3a2600; }
+      .c1 { --c: #f59ac0; } .c2 { --c: #5fd3a8; } .c3 { --c: #9ad468; } .c4 { --c: #b79cff; } .c5 { --c: #5cc8e6; }
+
+      .ts-empty { margin-block-start: 16px; text-align: center; color: var(--color-ink-soft); }
+      .ts-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 8px 28px; font-size: 0.85rem; color: var(--color-ink-soft); }
+      .ts-foot a { color: var(--color-blue-600); }
+    </style>
+  </body>
+</html>

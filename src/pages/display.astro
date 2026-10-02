@@ -5,8 +5,12 @@
 // /data/timetable.json every couple of minutes, so a new Excel upload shows
 // up on the TV within a few minutes of the site redeploying — no reload.
 //
-// URL options: ?lang=he|en|ru (default he) · ?rent=0 hides rental columns ·
-// ?date=2026-10-05&time=18:20 freezes the clock (for checking a layout).
+// The language cycles he → ru → en every minute, and for 2 minutes out of
+// every 10 (hh:x8–hh:x9) the screen shows the whole week instead of today.
+//
+// URL options: ?lang=he|en|ru pins one language · ?view=today|week pins a view ·
+// ?rent=0 hides rental columns · ?date=2026-10-05&time=18:20 freezes the clock
+// (for checking a layout).
 // Not linked anywhere, noindex, excluded from the sitemap and robots.txt.
 import '../styles/global.css';
 ---
@@ -27,23 +31,25 @@ import '../styles/global.css';
     <title>ETUDE — Today</title>
   </head>
   <body class="display">
-    <div class="screen">
+    <div class="blobs" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="screen" id="screen">
       <header class="top">
         <img class="top__logo" src="/images/brand/logo-full-white.svg" alt="ETUDE" />
         <div class="top__day">
-          <p class="top__label" data-text="today"></p>
+          <p class="top__label"></p>
           <p class="top__date" id="date"></p>
         </div>
         <p class="top__clock" id="clock" dir="ltr"></p>
       </header>
 
-      <main class="body">
+      <main class="body" id="todayView">
         <section class="focus" id="focus" aria-live="polite"></section>
         <section class="list">
           <h2 class="list__title" id="listTitle"></h2>
           <ol class="timeline" id="timeline"></ol>
         </section>
       </main>
+      <main class="weekview" id="weekView" hidden></main>
 
       <footer class="bottom">
         <span>etude.ristar.co</span>
@@ -52,7 +58,7 @@ import '../styles/global.css';
     </div>
 
     <script>
-      import { dayFor, timeToMinutes, RENTAL_COLUMN, type Timetable, type TimetableItem } from '../lib/timetable';
+      import { dayFor, timeToMinutes, weekOf, RENTAL_COLUMN, type Timetable, type TimetableItem } from '../lib/timetable';
 
       type Lang = 'he' | 'en' | 'ru';
       const L = {
@@ -61,32 +67,39 @@ import '../styles/global.css';
           min: 'דק׳', h: 'שע׳', schedule: 'לוח השיעורים', tomorrow: 'מחר', noClasses: 'אין שיעורים היום',
           dayOver: 'השיעורים להיום הסתיימו', seeYou: 'נתראה בשיעור הבא!', template: 'לפי לוח השבוע האחרון שהועלה',
           noData: 'לוח הזמנים עדיין לא הועלה', offline: 'אין חיבור — מוצג המידע האחרון', locale: 'he-IL', dir: 'rtl',
+          thisWeek: 'לוח השבוע', today2: 'היום',
         },
         en: {
           today: "Today's classes", now: 'Now', next: 'Up next', startsIn: 'Starts in', endsIn: 'Ends in',
           min: 'min', h: 'h', schedule: 'Schedule', tomorrow: 'Tomorrow', noClasses: 'No classes today',
           dayOver: "That's all for today", seeYou: 'See you at the next class!', template: 'Based on the latest uploaded week',
           noData: 'The schedule has not been uploaded yet', offline: 'Offline — showing the last known schedule', locale: 'en-GB', dir: 'ltr',
+          thisWeek: "This week's classes", today2: 'Today',
         },
         ru: {
           today: 'Занятия сегодня', now: 'Сейчас', next: 'Следующее', startsIn: 'Начало через', endsIn: 'До конца',
           min: 'мин', h: 'ч', schedule: 'Расписание', tomorrow: 'Завтра', noClasses: 'Сегодня занятий нет',
           dayOver: 'Занятия на сегодня закончились', seeYou: 'До встречи на следующем занятии!', template: 'По последней загруженной неделе',
           noData: 'Расписание ещё не загружено', offline: 'Нет связи — показано последнее расписание', locale: 'ru-RU', dir: 'ltr',
+          thisWeek: 'Расписание на неделю', today2: 'Сегодня',
         },
       } as const;
 
       const params = new URLSearchParams(location.search);
-      const lang: Lang = (['he', 'en', 'ru'] as const).find((l) => l === params.get('lang')) ?? 'he';
-      const t = L[lang];
+      const ROTATION: Lang[] = ['he', 'ru', 'en'];
+      const pinnedLang = ROTATION.find((l) => l === params.get('lang'));
+      const pinnedView = ['today', 'week'].find((v) => v === params.get('view'));
       const hideRent = params.get('rent') === '0';
       const frozenDate = params.get('date');
       const frozenTime = params.get('time');
-      document.documentElement.lang = lang;
-      document.documentElement.dir = t.dir;
-      document.querySelectorAll<HTMLElement>('[data-text]').forEach((el) => {
-        el.textContent = t[el.dataset.text as keyof typeof t] as string;
-      });
+
+      // Language: pinned via ?lang=, otherwise one minute each in turn.
+      const langFor = (d: Date): Lang => pinnedLang ?? ROTATION[(d.getHours() * 60 + d.getMinutes()) % ROTATION.length];
+      // View: the whole week for minutes x8 and x9 of every ten, otherwise today.
+      const viewFor = (d: Date) => pinnedView ?? (d.getMinutes() % 10 >= 8 ? 'week' : 'today');
+      let lang: Lang = langFor(new Date());
+      let t: (typeof L)[Lang] = L[lang];
+      let view = '';
 
       const $ = (id: string) => document.getElementById(id)!;
       let timetable: Timetable | null = null;
@@ -154,10 +167,82 @@ import '../styles/global.css';
           </li>`;
       }
 
+      // Fade out, swap language/view, fade in — so the switch doesn't jump.
+      let switching = false;
       function render() {
+        const real = new Date();
+        const nextLang = langFor(real);
+        const nextView = viewFor(real);
+        if ((nextLang !== lang || nextView !== view) && view && !switching) {
+          switching = true;
+          $('screen').classList.add('is-fading');
+          setTimeout(() => {
+            switching = false;
+            draw(nextLang, nextView);
+            $('screen').classList.remove('is-fading');
+          }, 450);
+          return;
+        }
+        if (!switching) draw(nextLang, nextView);
+      }
+
+      function draw(nextLang: Lang, nextView: string) {
+        lang = nextLang;
+        t = L[lang];
+        view = nextView;
+        document.documentElement.lang = lang;
+        document.documentElement.dir = t.dir;
         const date = now();
-        const minutes = date.getHours() * 60 + date.getMinutes();
         $('clock').textContent = date.toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+        $('todayView').hidden = view !== 'today';
+        $('weekView').hidden = view !== 'week';
+        if (view === 'week') return renderWeek(date);
+        renderToday(date);
+      }
+
+      function renderWeek(date: Date) {
+        const dates = weekOf(date);
+        const dm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+        document.querySelector<HTMLElement>('.top__label')!.textContent = t.thisWeek;
+        $('date').innerHTML = `<bdi dir="ltr">${dm(dates[0])} – ${dm(dates[6])}</bdi>`;
+        const todayIso = dates[date.getDay()];
+        let fromTemplate = false;
+        $('weekView').innerHTML = dates
+          .map((iso) => {
+            const d = new Date(`${iso}T12:00:00`);
+            const { items, fromTemplate: ft } = itemsOf(d);
+            fromTemplate ||= ft && items.length > 0;
+            const past = iso < todayIso;
+            return `
+              <section class="wday${iso === todayIso ? ' wday--today' : ''}${past ? ' wday--past' : ''}">
+                <h2 class="wday__head">
+                  <span>${d.toLocaleDateString(t.locale, { weekday: 'long' })}</span>
+                  <small>${iso === todayIso ? `${t.today2} · ` : ''}${dm(iso)}</small>
+                </h2>
+                ${items.length
+                  ? `<ul class="wday__list">${items
+                      .map(
+                        (i) => `
+                          <li class="wev${isRent(i) ? ' is-rent' : ''}">
+                            <span class="wev__time" dir="ltr">${i.start}–${i.end}</span>
+                            <span class="wev__title" dir="auto">${esc(i.title)}</span>
+                            ${chip(i.column)}
+                          </li>`
+                      )
+                      .join('')}</ul>`
+                  : '<p class="wday__none">—</p>'}
+              </section>`;
+          })
+          .join('');
+        const notes = [];
+        if (fromTemplate) notes.push(t.template);
+        if (offline) notes.push(t.offline);
+        $('note').textContent = notes.join(' · ');
+      }
+
+      function renderToday(date: Date) {
+        const minutes = date.getHours() * 60 + date.getMinutes();
+        document.querySelector<HTMLElement>('.top__label')!.textContent = t.today;
         const dateText = date.toLocaleDateString(t.locale, { weekday: 'long', day: 'numeric', month: 'long' });
         $('date').textContent = dateText;
 
@@ -223,7 +308,7 @@ import '../styles/global.css';
 
       load();
       setInterval(load, 2 * 60 * 1000);
-      setInterval(render, 15 * 1000);
+      setInterval(render, 5 * 1000);
       // Reload a few times a day so the TV also picks up changes to this page itself.
       setTimeout(() => location.reload(), 6 * 60 * 60 * 1000);
 
@@ -245,13 +330,53 @@ import '../styles/global.css';
         overflow: hidden;
         color: #fff;
         font-family: 'Heebo', 'Montserrat', system-ui, sans-serif;
-        background:
-          radial-gradient(120% 90% at 85% 0%, rgba(85, 112, 184, 0.45) 0%, transparent 60%),
-          radial-gradient(90% 80% at 0% 100%, rgba(47, 75, 155, 0.5) 0%, transparent 55%),
-          var(--color-navy-900);
+        background: var(--color-navy-900);
         cursor: none;
       }
       :lang(en) body.display, :lang(ru) body.display { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
+
+      /* Slowly drifting colour blobs behind everything. Only transform is
+         animated (no blur filter), so weak smart-TV browsers keep up. */
+      .blobs { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+      .blobs span {
+        position: absolute; inline-size: 60vmax; block-size: 60vmax; border-radius: 50%;
+        background: radial-gradient(circle at center, var(--blob) 0%, transparent 65%);
+        opacity: 0.55; will-change: transform;
+      }
+      .blobs span:nth-child(1) { --blob: rgba(85, 112, 184, 0.9); inset-block-start: -25vmax; inset-inline-start: -15vmax; animation: drift1 38s ease-in-out infinite alternate; }
+      .blobs span:nth-child(2) { --blob: rgba(124, 86, 196, 0.75); inset-block-end: -30vmax; inset-inline-end: -20vmax; animation: drift2 46s ease-in-out infinite alternate; }
+      .blobs span:nth-child(3) { --blob: rgba(47, 132, 175, 0.6); inset-block-start: 20vh; inset-inline-start: 35vw; inline-size: 45vmax; block-size: 45vmax; animation: drift3 54s ease-in-out infinite alternate; }
+      .blobs span:nth-child(4) { --blob: rgba(198, 92, 150, 0.45); inset-block-end: -10vmax; inset-inline-start: -10vmax; inline-size: 40vmax; block-size: 40vmax; animation: drift4 62s ease-in-out infinite alternate; }
+      @keyframes drift1 { to { transform: translate(28vw, 22vh) scale(1.15); } }
+      @keyframes drift2 { to { transform: translate(-30vw, -25vh) scale(0.9); } }
+      @keyframes drift3 { 50% { transform: translate(-25vw, 18vh) scale(1.2); } to { transform: translate(15vw, -20vh) scale(0.85); } }
+      @keyframes drift4 { to { transform: translate(35vw, -30vh) scale(1.25); } }
+      .screen { position: relative; z-index: 1; transition: opacity 0.45s ease; }
+      .screen.is-fading { opacity: 0; }
+
+      /* Week view (2 minutes out of every 10). */
+      .weekview { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1rem; min-height: 0; }
+      .wday {
+        display: flex; flex-direction: column; gap: 0.7rem; min-height: 0; overflow: hidden;
+        padding: 1.1rem 0.9rem; border-radius: 1.3rem;
+        background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .wday--today { background: rgba(255, 255, 255, 0.14); border: 2px solid rgba(255, 255, 255, 0.75); }
+      .wday--past { opacity: 0.45; }
+      .display .wday__head { display: flex; flex-direction: column; gap: 0.15rem; font-family: inherit; font-size: 1.45rem; font-weight: 800; line-height: 1.15; }
+      .wday__head small { font-size: 1rem; font-weight: 600; color: var(--color-silver-300); }
+      .wday--today .wday__head small { color: #fff; }
+      .wday__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+      .wev { display: grid; gap: 0.3rem; padding: 0.7rem 0.75rem; border-radius: 0.9rem; background: rgba(255, 255, 255, 0.08); }
+      .wev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; justify-self: start; }
+      .wev__title { font-weight: 700; font-size: 1.15rem; line-height: 1.2; overflow-wrap: anywhere; }
+      .wev .chip { font-size: 0.85rem; padding: 0.2rem 0.6rem; justify-self: start; white-space: normal; }
+      .wev.is-rent {
+        background: repeating-linear-gradient(135deg, rgba(255, 181, 71, 0.16) 0 0.6rem, rgba(255, 181, 71, 0.05) 0.6rem 1.2rem);
+        border: 1px dashed rgba(255, 181, 71, 0.7);
+      }
+      .wev.is-rent .wev__title { color: #ffd38f; }
+      .wday__none { font-size: 1.6rem; color: var(--color-silver-300); }
       .display p, .display h2, .display h3 { margin: 0; color: inherit; }
 
       .screen {
@@ -375,7 +500,10 @@ import '../styles/global.css';
         .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
         .top__logo { block-size: 3.4rem; }
       }
-      @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+      @media (orientation: portrait) {
+        .weekview { grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; }
+      }
+      @media (prefers-reduced-motion: reduce) { .pulse, .blobs span { animation: none; } }
     </style>
   </body>
 </html>

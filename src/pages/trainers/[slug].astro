@@ -1,0 +1,15 @@
+---
+// /trainers/<slug>/ — one trainer's weekly schedule (columns of the Google Sheet).
+import TrainerSchedule from '../../components/TrainerSchedule.astro';
+import { getTimetable } from '../../lib/loadTimetable';
+import { trainersFrom } from '../../lib/trainers';
+
+export async function getStaticPaths() {
+  const tt = await getTimetable();
+  return trainersFrom(tt).map((t) => ({ params: { slug: t.slug } }));
+}
+
+const { slug } = Astro.params as { slug: string };
+---
+
+<TrainerSchedule slug={slug} />
