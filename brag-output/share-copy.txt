@@ -1,1 +1,0 @@
-ETUDE Dance School runs on one Google Sheet. Type a class into a cell and the TV in the studio, every trainer's calendar and the Hebrew/English/Russian website all update by themselves. Hosting bill: zero. → etude.ristar.co
