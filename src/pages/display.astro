@@ -7,6 +7,9 @@
 //
 // A 5-minute loop driven by the clock: today's classes in Hebrew, English,
 // Russian (one minute each), then the whole week for 2 minutes (in Hebrew).
+// While a hall rental is on and no class is running anywhere, the screen
+// instead welcomes the guests (he/en/ru, a minute each, no week view) with the
+// rental's times and countdown on the side.
 //
 // URL options: ?lang=he|en|ru pins one language · ?view=today|week pins a view ·
 // ?rent=0 hides rental columns · ?date=2026-10-05&time=18:20 freezes the clock
@@ -50,6 +53,10 @@ import '../styles/global.css';
         </section>
       </main>
       <main class="weekview" id="weekView" hidden></main>
+      <main class="rentview" id="rentView" hidden>
+        <section class="welcome" id="welcome"></section>
+        <aside class="rentside" id="rentSide"></aside>
+      </main>
 
       <footer class="bottom">
         <span>etude.ristar.co</span>
@@ -59,6 +66,7 @@ import '../styles/global.css';
 
     <script>
       import { dayFor, timeToMinutes, weekOf, RENTAL_COLUMN, type Timetable, type TimetableItem } from '../lib/timetable';
+      import { SITE } from '../lib/site';
 
       type Lang = 'he' | 'en' | 'ru';
       const L = {
@@ -67,21 +75,21 @@ import '../styles/global.css';
           min: 'דק׳', h: 'שע׳', schedule: 'לוח השיעורים', tomorrow: 'מחר', noClasses: 'אין שיעורים היום',
           dayOver: 'השיעורים להיום הסתיימו', seeYou: 'נתראה בשיעור הבא!', template: 'לפי לוח השבוע האחרון שהועלה',
           noData: 'לוח הזמנים עדיין לא הועלה', offline: 'אין חיבור — מוצג המידע האחרון', locale: 'he-IL', dir: 'rtl',
-          thisWeek: 'לוח השבוע', today2: 'היום',
+          thisWeek: 'לוח השבוע', today2: 'היום', welcome: 'ברוכים הבאים לאטיוד', rental: 'השכרת אולם', later: 'בהמשך היום',
         },
         en: {
           today: "Today's classes", now: 'Now', next: 'Up next', startsIn: 'Starts in', endsIn: 'Ends in',
           min: 'min', h: 'h', schedule: 'Schedule', tomorrow: 'Tomorrow', noClasses: 'No classes today',
           dayOver: "That's all for today", seeYou: 'See you at the next class!', template: 'Based on the latest uploaded week',
           noData: 'The schedule has not been uploaded yet', offline: 'Offline — showing the last known schedule', locale: 'en-GB', dir: 'ltr',
-          thisWeek: "This week's classes", today2: 'Today',
+          thisWeek: "This week's classes", today2: 'Today', welcome: 'Welcome to ETUDE', rental: 'Hall rental', later: 'Later today',
         },
         ru: {
           today: 'Занятия сегодня', now: 'Сейчас', next: 'Следующее', startsIn: 'Начало через', endsIn: 'До конца',
           min: 'мин', h: 'ч', schedule: 'Расписание', tomorrow: 'Завтра', noClasses: 'Сегодня занятий нет',
           dayOver: 'Занятия на сегодня закончились', seeYou: 'До встречи на следующем занятии!', template: 'По последней загруженной неделе',
           noData: 'Расписание ещё не загружено', offline: 'Нет связи — показано последнее расписание', locale: 'ru-RU', dir: 'ltr',
-          thisWeek: 'Расписание на неделю', today2: 'Сегодня',
+          thisWeek: 'Расписание на неделю', today2: 'Сегодня', welcome: 'Добро пожаловать в Этюд', rental: 'Аренда зала', later: 'Дальше сегодня',
         },
       } as const;
 
@@ -94,12 +102,16 @@ import '../styles/global.css';
       const frozenTime = params.get('time');
 
       // Loop position (0–4) from the clock, so every screen in the studio is in sync:
-      // 0 he · 1 en · 2 ru (today), 3–4 the week.
+      // 0 he · 1 en · 2 ru (today), 3–4 the week. During a rental-only stretch
+      // it's just he · en · ru on the welcome screen.
       const LOOP = ROTATION.length + 2;
-      const step = (d: Date) => (d.getHours() * 60 + d.getMinutes()) % LOOP;
-      const viewFor = (d: Date) => pinnedView ?? (step(d) < ROTATION.length ? 'today' : 'week');
-      const langFor = (d: Date): Lang => pinnedLang ?? (step(d) < ROTATION.length ? ROTATION[step(d)] : ROTATION[0]);
-      let lang: Lang = langFor(new Date());
+      const minuteOf = (d: Date) => d.getHours() * 60 + d.getMinutes();
+      const step = (d: Date) => minuteOf(d) % LOOP;
+      const viewFor = (d: Date) => pinnedView ?? (rentalsNow(now()).length ? 'rent' : step(d) < ROTATION.length ? 'today' : 'week');
+      const langFor = (d: Date): Lang =>
+        pinnedLang ??
+        (viewFor(d) === 'rent' ? ROTATION[minuteOf(d) % ROTATION.length] : step(d) < ROTATION.length ? ROTATION[step(d)] : ROTATION[0]);
+      let lang: Lang = 'he';
       let t: (typeof L)[Lang] = L[lang];
       let view = '';
 
@@ -140,6 +152,13 @@ import '../styles/global.css';
       // Hall rentals (column label contains "rent") get their own amber, hatched
       // look so they never read as a studio class; names stay exactly as in Excel.
       const isRent = (item: TimetableItem) => RENTAL_COLUMN.test(item.column);
+
+      // Rentals running now, but only when nothing else is running anywhere.
+      function rentalsNow(date: Date) {
+        const m = minuteOf(date);
+        const current = itemsOf(date).items.filter((i) => timeToMinutes(i.start) <= m && m < timeToMinutes(i.end));
+        return current.length && current.every(isRent) ? current : [];
+      }
 
       function chip(column: string) {
         if (RENTAL_COLUMN.test(column)) return `<span class="chip chip--rent">${esc(column)}</span>`;
@@ -262,7 +281,10 @@ import '../styles/global.css';
         $('clock').textContent = date.toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit', hour12: false });
         $('todayView').hidden = view !== 'today';
         $('weekView').hidden = view !== 'week';
+        $('rentView').hidden = view !== 'rent';
+        $('screen').classList.toggle('is-rent', view === 'rent');
         if (view === 'week') return renderWeek(date);
+        if (view === 'rent') return renderRent(date);
         renderToday(date);
       }
 
@@ -376,6 +398,45 @@ import '../styles/global.css';
         if (fromTemplate && !showTomorrow) notes.push(t.template);
         if (offline) notes.push(t.offline);
         $('note').textContent = notes.join(' · ');
+      }
+
+      function renderRent(date: Date) {
+        const minutes = minuteOf(date);
+        const rentals = rentalsNow(date);
+        document.querySelector<HTMLElement>('.top__label')!.textContent = SITE.tagline[lang];
+        $('date').textContent = date.toLocaleDateString(t.locale, { weekday: 'long', day: 'numeric', month: 'long' });
+        const insta = SITE.social.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\/|\/$/g, '');
+        setHTML(
+          $('welcome'),
+          `<img class="welcome__logo" src="/images/brand/logo-full-white.svg" alt="ETUDE" />
+          <p class="welcome__hello">${t.welcome}</p>
+          <h2 class="welcome__name" dir="auto">${rentals.map((i) => esc(i.title)).join(' · ')}</h2>
+          <ul class="welcome__info">
+            <li>📍 <bdi>${esc(SITE.address.street)}, ${SITE.address.cityLocalized[lang]}</bdi></li>
+            <li>📞 <bdi dir="ltr">${SITE.phoneDisplay}</bdi></li>
+            <li>🌐 <bdi dir="ltr">${SITE.domain}</bdi></li>
+            <li>📷 <bdi dir="ltr">@${esc(insta)}</bdi></li>
+          </ul>`
+        );
+        const next = itemsOf(date).items.find((i) => timeToMinutes(i.start) > minutes);
+        setHTML(
+          $('rentSide'),
+          rentals
+            .map((i) => {
+              const s = timeToMinutes(i.start), e = timeToMinutes(i.end);
+              return `
+                <article class="card card--now is-rent">
+                  <p class="card__kind"><span class="pulse"></span>${t.rental}</p>
+                  <p class="rentcard__time" dir="ltr">${i.start} – ${i.end}</p>
+                  <p class="rentcard__left">${t.endsIn} <b>${duration(e - minutes)}</b></p>
+                  <div class="bar"><span style="inline-size:${(((minutes - s) / (e - s)) * 100).toFixed(1)}%"></span></div>
+                  <div class="card__meta">${chip(i.column)}</div>
+                </article>`;
+            })
+            .join('') +
+            (next ? `<p class="rentside__later">${t.later}: <bdi dir="ltr">${next.start}</bdi> · <bdi>${esc(next.title)}</bdi></p>` : '')
+        );
+        $('note').textContent = offline ? t.offline : '';
       }
 
       async function load() {
@@ -628,12 +689,28 @@ import '../styles/global.css';
       .card--now.is-rent .bar { background: #ffe2b0; }
       .card--now.is-rent .bar span { background: #ffb547; }
 
+      /* Rental-only stretch: welcome the guests, rental times on the side. */
+      .screen.is-rent .top__logo { visibility: hidden; }
+      .rentview { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 3.5rem; align-items: center; min-height: 0; }
+      .welcome { display: grid; gap: 1rem; justify-items: start; }
+      .welcome__logo { block-size: 7.5rem; inline-size: auto; margin-block-end: 0.5rem; }
+      .welcome__hello { font-size: 2.4rem; font-weight: 700; color: var(--color-silver-300); }
+      .display .welcome__name { font-family: inherit; font-size: 4.8rem; font-weight: 800; line-height: 1.05; color: #ffd38f; overflow-wrap: break-word; }
+      html[dir='rtl'] .welcome__name { text-align: right; }
+      html[dir='ltr'] .welcome__name { text-align: left; }
+      .welcome__info { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: auto auto; gap: 0.7rem 2.5rem; font-size: 1.6rem; font-weight: 600; }
+      .welcome__info li { display: flex; gap: 0.6rem; }
+      .rentside { display: flex; flex-direction: column; gap: 1.4rem; min-height: 0; }
+      .rentcard__time { font-family: 'Montserrat', sans-serif; font-size: 4rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; justify-self: start; }
+      .rentcard__left { font-size: 1.8rem; font-weight: 600; }
+      .rentside__later { font-size: 1.5rem; font-weight: 600; color: var(--color-silver-300); }
+
       .bottom { display: flex; justify-content: space-between; gap: 2rem; font-size: 1.05rem; color: var(--color-silver-300); }
 
       /* Portrait screens: stack the focus card above the list. */
       @media (orientation: portrait) {
         html { font-size: clamp(12px, 1.9vw, 40px); }
-        .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+        .body, .rentview { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
         .top__logo { block-size: 3.4rem; }
       }
       @media (orientation: portrait) {

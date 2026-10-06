@@ -90,24 +90,24 @@ export const translations = {
       },
     },
     home: {
-      heroEyebrow: 'ריקודי בלרום ולטיניים בראשון לציון',
+      heroEyebrow: 'ריקודי סלוניים בראשון לציון',
       heroTitle: 'ללמוד לרקוד, בקצב שלכם',
       heroSubtitle:
-        'שיעורים קבוצתיים ופרטיים בריקודי בלרום ולטיניים, לכל הגילאים והרמות — מהצעד הראשון ועד לרחבת הריקודים.',
+        'שיעורים קבוצתיים ופרטיים בריקודי סטנדרט ולטיניים, לכל הגילאים והרמות: מהצעד הראשון ועד לרחבת הריקודים.',
       heroCtaPrimary: 'שיעור ניסיון חינם',
       heroCtaTrial: 'קביעת שיעור ניסיון',
       heroCtaSecondary: 'לוח השיעורים',
       introTitle: 'סטודיו לריקוד באווירה מקצועית ונעימה',
       introBody:
-        'אצלנו לומדים ריקודי בלרום, ריקודים לטיניים ושיעורי ספורט ותנועה לכל הגילאים והרמות — מתחילים לחלוטין ועד רקדנים מתקדמים. כל שיעור בנוי כך שתרגישו התקדמות אמיתית, בליווי צמוד של הצוות.',
+        'אצלנו לומדים ריקודים ספורטיביים לכל הגילאים והרמות: מתחילים לחלוטין ועד רקדנים מתקדמים. כל שיעור בנוי כך שתרגישו התקדמות אמיתית, בליווי צמוד של הצוות.',
       introBody2:
         'אפשר ללמוד לרקוד בכל גיל ובקצב שלכם: בקבוצות לפי רמה — מתחילים, ממשיכים ומתקדמים — או בשיעורים פרטיים המותאמים למטרות האישיות שלכם. ילדים, נוער ומבוגרים מוצאים אצלנו את המסלול המתאים, ומי שרוצה יכול להמשיך גם למסלולי תחרות.',
       introBody3:
         'בשיעורי הבלרום לומדים וואלס, טנגו ופוקסטרוט, ובשיעורים הלטיניים — צ׳ה-צ׳ה, סמבה, רומבה וסלסה. לצדם מתקיימים שיעורי ספורט ותנועה המשלבים כושר, קואורדינציה ומוזיקליות. הסטודיו נמצא בראשון לציון, ולוח השיעורים המלא מתעדכן באתר באופן שוטף.',
       highlightsTitle: 'למה ETUDE',
       highlights: [
-        { title: 'לכל הרמות', body: 'קבוצות מתחילים, ממשיכים ומתקדמים, וגם שיעורים פרטיים בקצב אישי.' },
-        { title: 'סגנונות מגוונים', body: 'ריקודי בלרום, לטינית וסדנאות תנועה — במקום אחד.' },
+        { title: 'מתאים לכל הרמות', body: 'קבוצות מתחילים, ממשיכים ומתקדמים, וגם שיעורים פרטיים בקצב אישי.' },
+        { title: 'סגנונות מגוונים (בקרוב…)', body: 'ריקודי סטנדרט, לטינית וסדנאות תנועה - במקום אחד.' },
         { title: 'ליווי צמוד', body: 'קבוצות קטנות ותשומת לב אישית בכל שיעור.' },
       ],
       newsTitle: 'מה קורה בסטודיו',
@@ -117,9 +117,9 @@ export const translations = {
     },
     about: {
       title: 'אודות ETUDE',
-      intro: 'ETUDE הוא סטודיו לריקוד בראשון לציון, המלמד ריקודי בלרום ולטיניים לכל הגילאים והרמות.',
+      intro: 'ETUDE הוא סטודיו לריקוד בראשון לציון, המלמד ריקודי סטנדרט ולטיניים לכל הגילאים והרמות.',
       body1:
-        'הסטודיו הוקם מתוך אמונה שריקוד הוא לא רק ספורט אלא גם דרך להתחבר לגוף, למוזיקה ולאנשים חדשים. אנחנו מאמינים שכל אחד יכול ללמוד לרקוד — צריך רק את המקום הנכון להתחיל בו.',
+        'הסטודיו הוקם מתוך אמונה שריקוד הוא לא רק ספורט אלא גם דרך להתחבר לגוף ולמוזיקה. אנחנו מאמינים שכל אחד יכול ללמוד לרקוד, צריך רק את המקום הנכון להתחיל בו.',
       body2:
         'הצוות שלנו מלווה תלמידים החל מהצעד הראשון ממש, דרך קבוצות לפי רמה, ועד לשיעורים פרטיים ולמסלולי תחרות למי שמעוניין בכך. השיעורים משלבים טכניקה, מוזיקליות והנאה — באווירה תומכת וללא לחץ.',
       valuesTitle: 'הגישה שלנו',
@@ -134,7 +134,7 @@ export const translations = {
       intro: 'שיעורים ותוכניות לימוד בשלושה מסלולים עיקריים, לכל הגילאים והרמות. ניתן לשלב בין המסלולים בהתאם למטרות האישיות שלכם.',
       categories: [
         {
-          title: 'ריקודי בלרום',
+          title: 'ריקודי סטנדרט',
           body: 'וואלס, טנגו, פוקסטרוט ועוד — הבסיס הקלאסי של ריקודי הזוגות, נלמד בהדרגה ובדיוק.',
         },
         {
@@ -205,7 +205,7 @@ export const translations = {
       },
     },
     schemaBusinessDescription:
-      'ETUDE הוא בית ספר לריקודי בלרום ולטיניים בראשון לציון, המציע שיעורים לכל הגילאים והרמות.',
+      'ETUDE הוא בית ספר לריקודי סטנדרט ולטיניים בראשון לציון, המציע שיעורים לכל הגילאים והרמות.',
     testimonials: {
       title: 'מה אומרים אצלנו',
       placeholderNotice: 'הציטוטים שלהלן הם דוגמאות זמניות להמחשת העיצוב, ויוחלפו בהמלצות אמיתיות של תלמידים.',
@@ -445,21 +445,21 @@ export const translations = {
       heroEyebrow: 'Ballroom & Latin Dance in Rishon LeZion',
       heroTitle: 'Learn to dance, at your own pace',
       heroSubtitle:
-        'Group and private lessons in ballroom and Latin dance, for every age and level — from your first step to the dance floor.',
+        'Group and private lessons in ballroom and Latin dance, for every age and level: from your first step to the dance floor.',
       heroCtaPrimary: 'Book a free trial class',
       heroCtaTrial: 'Book a trial class',
       heroCtaSecondary: 'View the schedule',
       introTitle: 'A dance studio built on patience and progress',
       introBody:
-        'We teach ballroom dances, Latin dances, and movement-based fitness lessons for every age and level — complete beginners through advanced dancers. Every class is structured so you feel real progress, with close guidance from our team throughout.',
+        'We teach Ballroom and Latin dances for every age and level: complete beginners through advanced dancers. Every class is structured so you feel real progress, with close guidance from our team throughout.',
       introBody2:
         'Anyone can learn to dance at their own pace: in level-based groups — beginner, intermediate, and advanced — or in private lessons built around your own goals. Children, teens, and adults all find the right track here, and those who want to can go on to competition training.',
       introBody3:
         'Ballroom classes cover the waltz, tango, and foxtrot; Latin classes cover cha-cha, samba, rumba, and salsa. Alongside them, sport and movement classes combine fitness, coordination, and musicality. The studio is in Rishon LeZion, and the full class schedule is kept up to date on this site.',
       highlightsTitle: 'Why ETUDE',
       highlights: [
-        { title: 'Every level welcome', body: 'Beginner, intermediate, and advanced groups, plus private lessons at your own pace.' },
-        { title: 'A range of styles', body: 'Ballroom, Latin, and movement workshops — all under one roof.' },
+        { title: 'Every level welcome', body: 'Beginner, intermediate, and advanced groups, and private lessons at your own pace.' },
+        { title: 'A range of styles (Soon…)', body: 'Ballroom, Latin, and movement workshops - all under one roof.' },
         { title: 'Close guidance', body: 'Small groups and personal attention in every class.' },
       ],
       newsTitle: 'What\u2019s happening at the studio',
@@ -471,7 +471,7 @@ export const translations = {
       title: 'About ETUDE',
       intro: 'ETUDE is a dance studio in Rishon LeZion, teaching ballroom and Latin dance to every age and level.',
       body1:
-        'The studio was founded on the belief that dance is more than a sport — it\u2019s a way to connect with your body, with music, and with new people. We believe anyone can learn to dance; all it takes is the right place to start.',
+        'The studio was founded on the belief that dance is more than a sport, it’s a way to connect with your body and music. We believe anyone can learn to dance, all it takes is the right place to start.',
       body2:
         'Our team guides students from their very first step, through level-based groups, all the way to private lessons and competition tracks for those interested. Classes combine technique, musicality, and enjoyment — in a supportive, pressure-free atmosphere.',
       valuesTitle: 'Our approach',
@@ -797,21 +797,21 @@ export const translations = {
       heroEyebrow: 'Бальные и латиноамериканские танцы в Ришон-ле-Ционе',
       heroTitle: 'Учитесь танцевать в своём темпе',
       heroSubtitle:
-        'Групповые и индивидуальные занятия бальными и латиноамериканскими танцами для любого возраста и уровня — от первого шага до танцпола.',
+        'Групповые и индивидуальные занятия бальными и латиноамериканскими танцами для любого возраста и уровня: от первого шага до танцпола.',
       heroCtaPrimary: 'Бесплатное пробное занятие',
       heroCtaTrial: 'Записаться на пробное занятие',
       heroCtaSecondary: 'Смотреть расписание',
       introTitle: 'Студия танца с профессиональной и тёплой атмосферой',
       introBody:
-        'Мы преподаём бальные танцы, латиноамериканские танцы и спортивно-танцевальные занятия для любого возраста и уровня — от полных новичков до продвинутых танцоров. Каждое занятие построено так, чтобы вы ощущали реальный прогресс, при постоянной поддержке нашей команды.',
+        'Мы преподаём спортивные бальные танцы для любого возраста и уровня: от полных новичков до продвинутых танцоров. Каждое занятие построено так, чтобы вы ощущали реальный прогресс, при постоянной поддержке нашей команды.',
       introBody2:
         'Учитесь танцевать в своём темпе: в группах по уровню — для начинающих, продолжающих и продвинутых — или на индивидуальных занятиях, построенных вокруг ваших личных целей. Дети, подростки и взрослые находят у нас подходящее направление, а желающие могут продолжить в соревновательной программе.',
       introBody3:
         'На занятиях бальными танцами изучают вальс, танго и фокстрот, на латиноамериканских — ча-ча-ча, самбу, румбу и сальсу. Кроме того, проходят спортивно-танцевальные занятия, сочетающие физическую подготовку, координацию и музыкальность. Студия находится в Ришон-ле-Ционе, а полное расписание занятий регулярно обновляется на сайте.',
       highlightsTitle: 'Почему ETUDE',
       highlights: [
-        { title: 'Любой уровень', body: 'Группы для начинающих, продолжающих и продвинутых, а также индивидуальные занятия.' },
-        { title: 'Разные стили', body: 'Бальные, латиноамериканские танцы и танцевальные мастер-классы — в одном месте.' },
+        { title: 'Подходит любому уровню', body: 'Группы для начинающих, продолжающих и продвинутых, а также индивидуальные занятия.' },
+        { title: 'Разные стили (Скоро…)', body: 'Бальные, латиноамериканские танцы и танцевальные мастер-классы в одном месте.' },
         { title: 'Индивидуальный подход', body: 'Небольшие группы и внимание к каждому ученику на каждом занятии.' },
       ],
       newsTitle: 'Что происходит в студии',
@@ -821,11 +821,11 @@ export const translations = {
     },
     about: {
       title: 'О школе ETUDE',
-      intro: 'ETUDE — студия танца в Ришон-ле-Ционе, где преподают бальные и латиноамериканские танцы для любого возраста и уровня.',
+      intro: 'ETUDE - студия танца в Ришон-ле-Ционе, где преподают спортивные танцы для любого возраста и уровня.',
       body1:
-        'Студия была создана из убеждения, что танец — это не только спорт, но и способ почувствовать своё тело, музыку и новых людей. Мы верим, что танцевать может научиться каждый — нужно лишь найти правильное место, чтобы начать.',
+        'Студия была создана из убеждения, что танец — это не только спорт, но и способ почувствовать своё тело и музыку. Мы верим, что танцевать может научиться каждый, нужно лишь найти правильное место, чтобы начать.',
       body2:
-        'Наша команда сопровождает учеников с самого первого шага, через группы по уровням, вплоть до индивидуальных занятий и, при желании, соревновательного направления. Занятия сочетают технику, музыкальность и удовольствие — в поддерживающей и непринуждённой атмосфере.',
+        'Наша команда сопровождает учеников с самого первого шага, через группы по уровням, вплоть до индивидуальных занятий и соревнований. Занятия сочетают технику, музыкальность и удовольствие в поддерживающей и непринуждённой атмосфере.',
       valuesTitle: 'Наш подход',
       values: [
         { title: 'Профессионализм', body: 'Структурированная методика, которая развивается постепенно, соответственно уровню ученика.' },

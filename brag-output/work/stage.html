@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Marck+Script&display=block" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Another Shabby';
+  src: url('/fonts/another-shabby/another-shabby-latin.woff2') format('woff2');
+  unicode-range: U+0020-0022, U+0025, U+0027-002F, U+003A-003F, U+0041-005A, U+005F, U+0061-007A;
+  font-display: block;
+}
+:root {
+  --navy-900: #17224a; --navy-800: #1f2d5e; --blue-600: #2f4b9b; --blue-500: #5570b8; --blue-100: #e6ebf7;
+  --ground: #f7f8fb; --ink: #1b2132; --ink-soft: #4a5367; --line: #dfe3ec;
+  --brush: 'Another Shabby', 'Marck Script', cursive;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--ground); font-family: Montserrat, sans-serif; }
+#bg { position: absolute; inset: 0; }
+#pattern { position: absolute; inset: -40px; background: url('/images/brand/bg.webp') repeat; background-size: 960px auto; }
+#glow { position: absolute; inset: 0; background:
+  radial-gradient(900px 700px at 15% 10%, rgba(85,112,184,.45), transparent 70%),
+  radial-gradient(800px 600px at 90% 95%, rgba(120,80,170,.35), transparent 70%),
+  radial-gradient(700px 600px at 55% 60%, rgba(40,110,150,.25), transparent 70%); }
+.scene { position: absolute; inset: 0; opacity: 0; }
+.cap { position: absolute; left: 0; right: 0; top: 92px; text-align: center; font-family: var(--brush); font-size: 80px; line-height: 1.1; color: var(--navy-900); white-space: nowrap; }
+.cap.dark { color: #fff; }
+.cap .w { display: inline-block; margin: 0 .14em; }
+.frame { position: absolute; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 2px 4px rgba(23,34,74,.08), 0 40px 80px -30px rgba(23,34,74,.45); }
+.frame iframe { border: 0; width: 1440px; height: 810px; transform-origin: 0 0; position: absolute; left: 0; }
+.chrome { height: 46px; background: #eef1f6; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; padding: 0 18px; }
+.chrome i { width: 12px; height: 12px; border-radius: 50%; background: #cfd5e2; display: block; }
+.chrome .url { margin-left: 22px; flex: 1; max-width: 560px; height: 28px; border-radius: 14px; background: #fff; font-size: 15px; color: var(--ink-soft); display: flex; align-items: center; padding: 0 16px; }
+.chrome .url b { color: var(--ink); font-weight: 600; }
+
+/* ---------- Scene 1: spreadsheet ---------- */
+#sheet { left: 307px; top: 300px; width: 1306px; height: 734px; display: flex; flex-direction: column; font-size: 17px; color: var(--ink); }
+.sh-top { height: 56px; display: flex; align-items: center; gap: 14px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+.sh-doc { width: 26px; height: 32px; border-radius: 4px; background: var(--blue-600); position: relative; }
+.sh-doc::after { content: ''; position: absolute; left: 6px; right: 6px; top: 10px; height: 13px; border: 2px solid #fff; border-width: 2px 0; box-shadow: inset 0 -2px 0 -0px transparent; background: linear-gradient(#fff,#fff) center/2px 100% no-repeat; }
+.sh-name { font-size: 19px; font-weight: 600; }
+.sh-saved { margin-left: auto; font-size: 14px; color: var(--ink-soft); }
+.sh-fx { height: 44px; display: flex; align-items: center; border-bottom: 1px solid var(--line); font-size: 16px; }
+.sh-ref { width: 92px; text-align: center; color: var(--ink-soft); border-right: 1px solid var(--line); height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+.sh-fxlabel { padding: 0 14px; color: #9aa3b5; font-style: italic; font-weight: 600; }
+#fxText { white-space: pre; }
+table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+th, td { border: 1px solid #e6e9f0; height: 36px; padding: 0 10px; white-space: nowrap; overflow: hidden; text-align: left; font-weight: 400; }
+thead th { background: #f3f5f9; color: var(--ink-soft); font-size: 14px; height: 26px; text-align: center; font-weight: 600; }
+tr.hdr td { background: #f7f8fb; font-weight: 700; color: var(--navy-900); }
+td.rn, th.rn { width: 44px; background: #f3f5f9; color: #8a93a6; text-align: center; font-size: 13px; padding: 0; }
+td.day { color: var(--navy-900); font-weight: 600; }
+td.tm { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+td.rent { background: repeating-linear-gradient(135deg, #fffaf0 0 8px, #fff4e0 8px 16px); }
+#cell { position: relative; }
+#sel { position: absolute; border: 2.5px solid var(--blue-600); pointer-events: none; border-radius: 2px; }
+#sel::after { content: ''; position: absolute; right: -5px; bottom: -5px; width: 8px; height: 8px; background: var(--blue-600); border: 1.5px solid #fff; }
+#caret { display: inline-block; width: 2px; height: 20px; background: var(--ink); vertical-align: -4px; margin-left: 1px; }
+.sh-tabs { margin-top: auto; height: 44px; border-top: 1px solid var(--line); background: #f3f5f9; display: flex; align-items: stretch; padding-left: 60px; font-size: 15px; }
+.sh-tabs span { padding: 0 22px; display: flex; align-items: center; color: var(--ink-soft); }
+.sh-tabs span.on { background: #fff; color: var(--blue-600); font-weight: 700; border-bottom: 3px solid var(--blue-600); }
+
+/* ---------- Scene 2: TV ---------- */
+#tv { position: absolute; left: 308px; top: 290px; width: 1303px; height: 749px; border-radius: 22px; background: #070a16; padding: 18px; box-shadow: 0 0 0 1.5px #2a3360, 0 60px 120px -30px rgba(0,0,0,.7); }
+#tv .screen { position: relative; width: 1267px; height: 713px; overflow: hidden; border-radius: 6px; }
+#tv iframe { border: 0; width: 1920px; height: 1080px; transform: scale(.66); transform-origin: 0 0; }
+#tv .shine { position: absolute; inset: 18px; border-radius: 6px; background: linear-gradient(115deg, rgba(255,255,255,.07), transparent 40%); pointer-events: none; }
+
+/* ---------- Scenes 3, 4: browser ---------- */
+.browser { left: 326px; top: 288px; width: 1267px; height: 759px; }
+.browser .vp { position: absolute; top: 46px; left: 0; width: 1267px; height: 713px; overflow: hidden; }
+.browser .vp iframe { transform: scale(.88); top: 0; }
+#langTag { position: absolute; right: 22px; top: 9px; height: 28px; padding: 0 14px; border-radius: 14px; background: var(--navy-900); color: #fff; font-size: 14px; font-weight: 600; display: flex; align-items: center; letter-spacing: .04em; }
+
+/* ---------- Scene 5: outro ---------- */
+#logo { position: absolute; left: 50%; top: 150px; width: 820px; margin-left: -410px; }
+#punch { position: absolute; left: 0; right: 0; top: 590px; text-align: center; font-family: var(--brush); color: #fff; font-size: 72px; white-space: nowrap; }
+#punch .w { display: inline-block; margin: 0 .14em; }
+#tagline { position: absolute; left: 0; right: 0; top: 760px; text-align: center; color: rgba(255,255,255,.82); font-size: 32px; font-weight: 500; letter-spacing: .01em; }
+#url { position: absolute; left: 50%; top: 838px; transform: translateX(-50%); padding: 14px 34px; border-radius: 40px; background: #fff; color: var(--navy-900); font-size: 34px; font-weight: 700; }
+
+#cursor { position: absolute; left: 0; top: 0; width: 40px; height: 40px; opacity: 0; transform-origin: 4px 4px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.3)); z-index: 50; }
+#ring { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--blue-500); opacity: 0; z-index: 49; }
+</style>
+</head>
+<body>
+<div id="bg"><div id="pattern"></div><div id="glow"></div></div>
+
+<!-- 1 · spreadsheet -->
+<section class="scene" id="s1">
+  <div class="cap" data-cap>This dance school runs on one spreadsheet.</div>
+  <div class="frame" id="sheet">
+    <div class="sh-top"><span class="sh-doc"></span><span class="sh-name" dir="rtl">לוח זמנים 2026-2027</span><span class="sh-saved" id="saved">All changes saved</span></div>
+    <div class="sh-fx"><span class="sh-ref" id="ref">C4</span><span class="sh-fxlabel">fx</span><span id="fxText"></span></div>
+    <div style="position:relative">
+      <table id="grid"></table>
+      <div id="sel"></div>
+    </div>
+    <div class="sh-tabs"><span class="on">Week of 04.10</span><span>Week of 11.10</span><span>Week of 18.10</span><span>+</span></div>
+  </div>
+</section>
+
+<!-- 2 · studio TV -->
+<section class="scene" id="s2">
+  <div class="cap dark" data-cap>It runs the TV in the studio…</div>
+  <div id="tv"><div class="screen"><iframe id="tvf" src="/display/?lang=en&view=today&date=2026-10-05&time=19:20"></iframe></div><div class="shine"></div></div>
+</section>
+
+<!-- 3 · trainer page -->
+<section class="scene" id="s3">
+  <div class="cap" data-cap>…every trainer's calendar…</div>
+  <div class="frame browser" id="b3">
+    <div class="chrome"><i></i><i></i><i></i><span class="url">etude.ristar.co<b>/trainers/evgeniia/</b></span></div>
+    <div class="vp"><iframe id="trf" src="/trainers/evgeniia/?lang=en"></iframe></div>
+  </div>
+</section>
+
+<!-- 4 · website, three languages -->
+<section class="scene" id="s4">
+  <div class="cap" data-cap>…and the website, in three languages.</div>
+  <div class="frame browser" id="b4">
+    <div class="chrome"><i></i><i></i><i></i><span class="url" id="url4">etude.ristar.co<b>/he/</b></span><span id="langTag">עברית</span></div>
+    <div class="vp" id="vp4">
+      <iframe id="hef" src="/he/"></iframe>
+      <iframe id="ruf" src="/ru/"></iframe>
+      <iframe id="enf" src="/en/"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · outro -->
+<section class="scene" id="s5">
+  <img id="logo" src="/images/brand/logo-full-white.svg" alt="">
+  <div id="punch" data-cap>One spreadsheet. Three languages. Free hosting.</div>
+  <div id="tagline">Ballroom &amp; Latin dance in Rishon LeZion</div>
+  <div id="url">etude.ristar.co</div>
+</section>
+
+<svg id="cursor" viewBox="0 0 40 40"><path d="M5 3 L5 31 L12.5 24.5 L17.5 36 L22.5 33.8 L17.6 22.6 L27.5 22.6 Z" fill="#111" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg>
+<div id="ring"></div>
+
+<script>
+const BAR = 1.05;
+const S = [[0, 4 * BAR], [4 * BAR, 8 * BAR], [8 * BAR, 12 * BAR], [12 * BAR, 16 * BAR], [16 * BAR, 20 * BAR]];
+const BG = ['#eef1f8', '#121a3a', '#eef1f8', '#eef1f8', '#121a3a'];
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const eo = (x) => 1 - Math.pow(1 - x, 3);
+const eio = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const ramp = (t, a, b) => eo(clamp((t - a) / (b - a)));
+const rampIO = (t, a, b) => eio(clamp((t - a) / (b - a)));
+const lerp = (a, b, p) => a + (b - a) * p;
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, p) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], p))).join(',')})`; };
+
+// Split captions into words.
+document.querySelectorAll('[data-cap]').forEach((el) => {
+  el.innerHTML = el.textContent.split(' ').map((w) => `<span class="w">${w}</span>`).join(' ');
+});
+function words(el, lt, start, stagger = 0.06) {
+  el.querySelectorAll('.w').forEach((w, i) => {
+    const p = ramp(lt, start + i * stagger, start + i * stagger + 0.32);
+    w.style.opacity = p;
+    w.style.transform = `translateY(${(1 - p) * 26}px)`;
+    w.style.filter = `blur(${(1 - p) * 6}px)`;
+  });
+}
+
+// ---------- Spreadsheet data (real rows from the timetable) ----------
+const COLS = ['Day', 'Time', 'Evgeniia', 'Roman', 'Misha', 'Tomer', 'Big Hall (rent)', 'Small Hall (rent)'];
+const ROWS = [
+  ['Sun 04.10', '18:00', '', 'Adv Hobby Gr'],
+  ['Mon 05.10', '18:00', 'Jun Ballroom Dance Gr', ''],
+  ['', '19:00', '@', ''],
+  ['Tue 06.10', '17:15', '', "Adv Children's Gr"],
+  ['', '18:00', '', 'Adv Hobby Gr'],
+  ['Wed 07.10', '18:00', 'Jun Ballroom Dance Gr', ''],
+  ['', '19:00', 'Ballroom Dance (Standard)', ''],
+  ['Thu 08.10', '17:15', '', "Adv Children's Gr"],
+  ['', '18:00', 'Jun Ballroom Dance Gr', ''],
+  ['', '19:00', 'Ballroom Dance (Standard)', ''],
+  ['Fri 09.10', '', '', ''],
+  ['Sat 10.10', '', '', ''],
+  ['', '', '', ''],
+  ['', '', '', ''],
+];
+const TYPED = 'Ballroom Dance (Standard)';
+(function buildSheet() {
+  const letters = 'ABCDEFGH';
+  const widths = [128, 80, 276, 196, 110, 110, 160, 170];
+  let h = '<colgroup><col style="width:44px">' + widths.map((w) => `<col style="width:${w}px">`).join('') + '</colgroup>';
+  h += '<thead><tr><th class="rn"></th>' + letters.split('').map((l) => `<th>${l}</th>`).join('') + '</tr></thead><tbody>';
+  h += '<tr class="hdr"><td class="rn">1</td>' + COLS.map((c) => `<td>${c}</td>`).join('') + '</tr>';
+  ROWS.forEach((r, i) => {
+    h += `<tr><td class="rn">${i + 2}</td>`;
+    for (let c = 0; c < 8; c++) {
+      const v = r[c] || '';
+      const cls = c === 0 ? 'day' : c === 1 ? 'tm' : c >= 6 ? 'rent' : '';
+      h += v === '@' ? `<td id="cell" class="${cls}"></td>` : `<td class="${cls}">${v}</td>`;
+    }
+    h += '</tr>';
+  });
+  $('grid').innerHTML = h + '</tbody>';
+})();
+
+// ---------- iframe helpers ----------
+const doc = (id) => $(id).contentDocument;
+function freeze(id) {
+  const w = $(id).contentWindow;
+  for (let i = 0; i < 5000; i++) { w.clearInterval(i); w.clearTimeout(i); }
+  const st = w.document.createElement('style');
+  st.textContent = '.lang-banner,[class*="language-banner"],[class*="LanguageBanner"]{display:none!important} *{transition:none!important} html{scroll-behavior:auto!important}';
+  w.document.head.appendChild(st);
+}
+function seekAnims(id, ms, speed = (a) => 1) {
+  doc(id).getAnimations().forEach((a) => { a.pause(); a.currentTime = ms * speed(a); });
+}
+
+let tvBase = null;
+window.setup = async () => {
+  await document.fonts.ready;
+  await Promise.all([...document.querySelectorAll('img')].map((i) => i.complete ? 0 : new Promise((r) => (i.onload = r))));
+  for (const id of ['tvf', 'trf', 'hef', 'ruf', 'enf']) {
+    await $(id).contentDocument.fonts.ready;
+    freeze(id);
+  }
+  // Pre-open state lookups for the trainer page.
+  const d = doc('trf');
+  d.querySelector('.ts-cal').open = false;
+  const bar = doc('tvf').querySelector('.bar span');
+  tvBase = bar ? parseFloat(bar.style.inlineSize) : 22;
+  return true;
+};
+
+function cursorAt(x, y, op, press = 0) {
+  const c = $('cursor');
+  c.style.opacity = op;
+  c.style.transform = `translate(${x - 4}px, ${y - 4}px) scale(${1 - press * 0.18})`;
+}
+function ringAt(x, y, p) {
+  const r = $('ring');
+  r.style.opacity = p > 0 && p < 1 ? (1 - p) * 0.9 : 0;
+  r.style.left = x - 28 + 'px'; r.style.top = y - 28 + 'px';
+  r.style.transform = `scale(${0.4 + p * 1.1})`;
+}
+
+window.seek = (t) => {
+  // Background: dip between light and navy around each cut.
+  let col = BG[0];
+  for (let i = 0; i < S.length; i++) {
+    const [s, e] = S[i];
+    if (t >= s - 0.22 && t < e + 0.22) {
+      col = BG[i];
+      if (i > 0 && t < s + 0.22) col = mix(BG[i - 1], BG[i], rampIO(t, s - 0.22, s + 0.22));
+      if (i < S.length - 1 && t > e - 0.22) { col = mix(BG[i], BG[i + 1], rampIO(t, e - 0.22, e + 0.22)); }
+      break;
+    }
+  }
+  $('bg').style.background = col;
+  const light = [0, 2, 3].map((i) => {
+    const [s, e] = S[i];
+    return clamp(Math.min((t - (s - 0.22)) / 0.44, ((e + 0.22) - t) / 0.44));
+  });
+  $('pattern').style.opacity = Math.max(...light) * 0.5;
+  $('pattern').style.transform = `translate(${-t * 6}px, ${-t * 3}px)`;
+  const dark = [1, 4].map((i) => { const [s, e] = S[i]; return clamp(Math.min((t - (s - 0.22)) / 0.44, ((e + 0.22) - t) / 0.44)); });
+  $('glow').style.opacity = Math.max(...dark);
+  $('glow').style.transform = `translate(${Math.sin(t * 0.5) * 30}px, ${Math.cos(t * 0.4) * 20}px)`;
+
+  let curOp = 0, curX = 0, curY = 0, press = 0, ringP = -1, ringX = 0, ringY = 0;
+
+  S.forEach(([s, e], i) => {
+    const el = $('s' + (i + 1));
+    const last = i === S.length - 1;
+    const pin = ramp(t, s, s + 0.4);
+    const pout = last ? 1 : 1 - clamp((t - (e - 0.26)) / 0.26);
+    el.style.opacity = t < s - 0.01 || t > e + 0.01 ? 0 : Math.min(pin, pout);
+    const lt = t - s;
+    const frame = el.querySelector('.frame, #tv');
+    if (frame) {
+      const fp = ramp(t, s, s + 0.55);
+      frame.style.transform = `translateY(${(1 - fp) * 60}px) scale(${0.965 + 0.035 * fp + (last ? 0 : Math.max(0, lt) * 0.004)})`;
+    }
+    const cap = el.querySelector('.cap');
+    if (cap) words(cap, lt, 0.12);
+  });
+
+  // ---- Scene 1: typing into the sheet
+  {
+    const lt = t - S[0][0];
+    const cell = $('cell');
+    const tStart = 0.95, per = 0.062, enter = tStart + TYPED.length * per + 0.28;
+    const n = clamp(Math.floor((lt - tStart) / per) + 1, 0, TYPED.length);
+    const typed = lt < tStart ? '' : TYPED.slice(0, n);
+    const typing = lt >= 0.78 && lt < enter;
+    const caretOn = typing && (Math.floor(lt * 2.4) % 2 === 0 || (lt > tStart && lt < enter - 0.2));
+    cell.innerHTML = typed + (typing ? `<span id="caret" style="opacity:${caretOn ? 1 : 0}"></span>` : '');
+    cell.style.background = lt >= enter ? `rgba(85,112,184,${0.35 * (1 - ramp(lt, enter, enter + 1.0))})` : typing ? '#fff' : '';
+    cell.style.fontWeight = lt >= enter ? '600' : '400';
+    cell.style.color = lt >= enter ? 'var(--navy-900)' : '';
+    $('fxText').textContent = typing ? typed : lt >= enter ? '' : '';
+    // Selection box
+    const grid = $('grid');
+    const row = lt >= enter ? cell.parentElement.nextElementSibling : cell.parentElement;
+    const target = row.children[3];
+    const gr = grid.getBoundingClientRect(), r = target.getBoundingClientRect();
+    const sel = $('sel'), sc = parseFloat(getComputedStyle($('sheet')).transform.split(',')[0].slice(7)) || 1;
+    sel.style.left = (r.left - gr.left) / sc - 1 + 'px';
+    sel.style.top = (r.top - gr.top) / sc - 1 + 'px';
+    sel.style.width = r.width / sc + 2 + 'px';
+    sel.style.height = r.height / sc + 2 + 'px';
+    sel.style.opacity = lt >= 0.74 ? 1 : 0;
+    $('ref').textContent = lt >= enter ? 'C5' : 'C4';
+    $('saved').textContent = lt >= enter + 0.25 ? 'All changes saved' : lt >= enter ? 'Saving…' : 'All changes saved';
+    if (lt > 0 && lt < S[0][1] - 0.2) {
+      const cr = cell.getBoundingClientRect();
+      const tx = cr.left + cr.width * 0.62, ty = cr.top + cr.height * 0.55;
+      const mp = rampIO(lt, 0.15, 0.72);
+      curX = lerp(1500, tx, mp); curY = lerp(980, ty, mp);
+      curOp = ramp(lt, 0.1, 0.3) * (1 - ramp(lt, 1.0, 1.3));
+      press = lt > 0.72 && lt < 0.86 ? 1 : 0;
+      if (lt > 0.72 && lt < 1.3) { ringP = (lt - 0.72) / 0.5; ringX = tx; ringY = ty; }
+    }
+  }
+
+  // ---- Scene 2: studio TV comes alive
+  {
+    const lt = t - S[1][0];
+    const d = doc('tvf');
+    if (d && lt > -0.5 && lt < 4.6) {
+      seekAnims('tvf', 30000 + lt * 1000, (a) => (String(a.animationName || '').startsWith('drift') ? 5 : 1));
+      const top = d.querySelector('.top');
+      const pTop = ramp(lt, 0.15, 0.6);
+      top.style.opacity = pTop; top.style.transform = `translateY(${(1 - pTop) * -20}px)`;
+      const card = d.querySelector('.focus');
+      const pc = ramp(lt, 0.4, 1.0);
+      card.style.opacity = pc; card.style.transform = `translateY(${(1 - pc) * 70}px) scale(${0.94 + 0.06 * pc})`;
+      d.querySelector('.list__title').style.opacity = ramp(lt, 0.5, 0.9);
+      d.querySelectorAll('.row').forEach((r, k) => {
+        const p = ramp(lt, 0.65 + k * 0.14, 1.15 + k * 0.14);
+        r.style.opacity = p; r.style.transform = `translateX(${(1 - p) * 80}px)`;
+      });
+      const tick = lt >= 2.6;
+      $('tvf').contentDocument.getElementById('clock').textContent = tick ? '19:21' : '19:20';
+      const clock = d.getElementById('clock');
+      const tp = ramp(lt, 2.6, 2.85);
+      clock.style.transform = tick ? `translateY(${(1 - tp) * 14}px)` : '';
+      clock.style.opacity = tick ? 0.4 + 0.6 * tp : 1;
+      const meta = d.querySelector('.card__meta > span:last-child');
+      if (meta) meta.textContent = tick ? 'Ends in 1 h 9 min' : 'Ends in 1 h 10 min';
+      const bar = d.querySelector('.bar span');
+      if (bar) bar.style.inlineSize = (ramp(lt, 1.0, 1.9) * tvBase + (tick ? ramp(lt, 2.6, 3.2) * (100 / 90) : 0)).toFixed(2) + '%';
+    }
+  }
+
+  // ---- Scene 3: trainer page + Add to calendar
+  {
+    const lt = t - S[2][0];
+    const d = doc('trf');
+    if (d && lt > -0.5 && lt < 4.6) {
+      [...d.getElementById('week').children].forEach((c, k) => {
+        const p = ramp(lt, 0.35 + k * 0.07, 0.8 + k * 0.07);
+        c.style.opacity = p; c.style.transform = `translateY(${(1 - p) * 40}px)`;
+      });
+      const chips = [...d.getElementById('trainers').children];
+      chips.forEach((c, k) => { const p = ramp(lt, 0.2 + k * 0.04, 0.55 + k * 0.04); c.style.opacity = p; c.style.transform = `translateY(${(1 - p) * 12}px)`; });
+      const clickAt = 2.15;
+      d.querySelector('.ts-cal').open = lt >= clickAt + 0.05;
+      const menu = d.querySelector('.ts-cal__menu');
+      const mp = ramp(lt, clickAt + 0.05, clickAt + 0.4);
+      menu.style.opacity = mp; menu.style.transform = `translateY(${(1 - mp) * -10}px)`;
+      const sum = d.getElementById('calSummary').getBoundingClientRect();
+      const fr = $('b3').querySelector('.vp').getBoundingClientRect();
+      const zp = rampIO(lt, clickAt + 0.15, clickAt + 1.2);
+      const ifr = $('trf');
+      const Z = 1 + 0.32 * zp, cx = sum.right * 0.88, cy = sum.bottom * 0.88;
+      ifr.style.transformOrigin = '0 0';
+      ifr.style.transform = `translate(${cx * (1 - Z)}px, ${cy * (1 - Z)}px) scale(${0.88 * Z})`;
+      const px = sum.left + sum.width * 0.55, py = sum.top + sum.height * 0.6;
+      const tx = fr.left + px * 0.88 * Z + cx * (1 - Z), ty = fr.top + py * 0.88 * Z + cy * (1 - Z);
+      if (lt > 0.9 && lt < 4.0) {
+        const mpv = rampIO(lt, 1.1, clickAt - 0.05);
+        curX = lerp(1250, tx, mpv); curY = lerp(940, ty, mpv);
+        curOp = ramp(lt, 1.0, 1.2) * (1 - ramp(lt, 3.6, 3.9));
+        press = lt > clickAt - 0.05 && lt < clickAt + 0.1 ? 1 : 0;
+        if (lt > clickAt && lt < clickAt + 0.55) { ringP = (lt - clickAt) / 0.5; ringX = tx; ringY = ty; }
+      }
+    }
+  }
+
+  // ---- Scene 4: Hebrew → Russian → English
+  {
+    const lt = t - S[3][0];
+    const w1 = rampIO(lt, 1.25, 1.65), w2 = rampIO(lt, 2.5, 2.9);
+    $('ruf').style.clipPath = `inset(0 0 0 ${(1 - w1) * 100}%)`;
+    $('enf').style.clipPath = `inset(0 0 0 ${(1 - w2) * 100}%)`;
+    const cur = lt < 1.45 ? ['he', 'עברית'] : lt < 2.7 ? ['ru', 'Русский'] : ['en', 'English'];
+    $('url4').innerHTML = `etude.ristar.co<b>/${cur[0]}/</b>`;
+    $('langTag').textContent = cur[1];
+    ['hef', 'ruf', 'enf'].forEach((id, k) => {
+      const z = 1.0 + 0.03 * clamp((lt - k * 1.3) / 1.6);
+      $(id).style.transform = `scale(${0.88 * z})`;
+    });
+  }
+
+  // ---- Scene 5: outro
+  {
+    const lt = t - S[4][0];
+    const lp = ramp(lt, 0.2, 1.1);
+    $('logo').style.clipPath = `inset(0 ${(1 - lp) * 100}% 0 0)`;
+    $('logo').style.transform = `scale(${0.94 + 0.06 * ramp(lt, 0.2, 1.6)})`;
+    $('logo').style.opacity = ramp(lt, 0.15, 0.4);
+    words($('punch'), lt, 0.75, 0.07);
+    const tg = ramp(lt, 1.3, 1.7);
+    $('tagline').style.opacity = tg; $('tagline').style.transform = `translateY(${(1 - tg) * 16}px)`;
+    const up = ramp(lt, 1.5, 1.9);
+    $('url').style.opacity = up; $('url').style.transform = `translateX(-50%) translateY(${(1 - up) * 16}px) scale(${0.92 + 0.08 * up})`;
+  }
+
+  cursorAt(curX, curY, curOp, press);
+  ringAt(ringX, ringY, ringP);
+  return true;
+};
+</script>
+</body>
+</html>
