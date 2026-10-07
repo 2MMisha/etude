@@ -107,7 +107,7 @@ export const translations = {
       highlightsTitle: 'למה ETUDE',
       highlights: [
         { title: 'מתאים לכל הרמות', body: 'קבוצות מתחילים, ממשיכים ומתקדמים, וגם שיעורים פרטיים בקצב אישי.' },
-        { title: 'סגנונות מגוונים (בקרוב…)', body: 'ריקודי סטנדרט, לטינית וסדנאות תנועה - במקום אחד.' },
+        { title: 'סגנונות מגוונים', body: 'ריקודי סטנדרט, לטינית וסדנאות תנועה - במקום אחד.' },
         { title: 'ליווי צמוד', body: 'קבוצות קטנות ותשומת לב אישית בכל שיעור.' },
       ],
       newsTitle: 'מה קורה בסטודיו',
@@ -459,7 +459,7 @@ export const translations = {
       highlightsTitle: 'Why ETUDE',
       highlights: [
         { title: 'Every level welcome', body: 'Beginner, intermediate, and advanced groups, and private lessons at your own pace.' },
-        { title: 'A range of styles (Soon…)', body: 'Ballroom, Latin, and movement workshops - all under one roof.' },
+        { title: 'A range of styles', body: 'Ballroom, Latin, and movement workshops - all under one roof.' },
         { title: 'Close guidance', body: 'Small groups and personal attention in every class.' },
       ],
       newsTitle: 'What\u2019s happening at the studio',
@@ -811,7 +811,7 @@ export const translations = {
       highlightsTitle: 'Почему ETUDE',
       highlights: [
         { title: 'Подходит любому уровню', body: 'Группы для начинающих, продолжающих и продвинутых, а также индивидуальные занятия.' },
-        { title: 'Разные стили (Скоро…)', body: 'Бальные, латиноамериканские танцы и танцевальные мастер-классы в одном месте.' },
+        { title: 'Разные стили', body: 'Бальные, латиноамериканские танцы и танцевальные мастер-классы в одном месте.' },
         { title: 'Индивидуальный подход', body: 'Небольшие группы и внимание к каждому ученику на каждом занятии.' },
       ],
       newsTitle: 'Что происходит в студии',
