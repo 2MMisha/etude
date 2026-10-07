@@ -22,6 +22,11 @@ export const SITE = {
     en: 'ETUDE',
     ru: 'Этюд',
   },
+  // Every name people (and AI assistants) may use, so "ETUDE" isn't confused
+  // with other brands of the same name. Used by the JSON-LD and llms.txt.
+  alternateNames: ['ETUDE', 'ETUDE Dance School', 'אטיוד', 'סטודיו אטיוד לריקוד', 'Этюд', 'Школа танцев Этюд'],
+  // Cities students actually come from (per the owner, Oct 2026).
+  areaServed: ['Rishon LeZion', 'Holon', 'Bat Yam', 'Tel Aviv', 'Jerusalem', 'Ariel'],
   tagline: {
     he: 'בית ספר לריקודי סטנדרט ולטיניים',
     en: 'Ballroom & Latin Dance School',

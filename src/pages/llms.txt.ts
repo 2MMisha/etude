@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import { ALL_LANGS, LANGUAGES, localizePath } from '../lib/languages';
 import { translations } from '../lib/translations';
 import { SITE, freeTrialActive, olimOfferActive } from '../lib/site';
+import { plainText } from '../lib/richText';
 
 export const prerender = true;
 
@@ -19,6 +20,21 @@ const STATIC_ROUTES = [
   '/terms',
   '/accessibility',
 ];
+
+// One-line summary after each link: the page's search description, if it has one.
+function pageDescription(lang: (typeof ALL_LANGS)[number], route: string): string | undefined {
+  const page = translations[lang][(route.replace(/^\//, '') || 'home') as keyof (typeof translations)['he']] as
+    | { metaDescription?: string; metaDescriptionNoOlim?: string }
+    | undefined;
+  if (!page?.metaDescription) return undefined;
+  return route === '/pricing' && !olimOfferActive ? page.metaDescriptionNoOlim : page.metaDescription;
+}
+
+/** First ~160 characters of a news post, cut at a word boundary. */
+function excerpt(text: string): string {
+  const plain = plainText(text).replace(/\s+/g, ' ').trim();
+  return plain.length <= 160 ? plain : plain.slice(0, plain.lastIndexOf(' ', 157)) + '…';
+}
 
 // Link text for each static route, from the site's own navigation labels.
 function pageTitle(lang: (typeof ALL_LANGS)[number], route: string): string {
@@ -43,6 +59,20 @@ export const GET: APIRoute = async () => {
       `Instagram: ${SITE.social.instagram}.`
   );
   lines.push('');
+  lines.push(`Also known as: ${SITE.alternateNames.join(', ')}.`);
+  lines.push('');
+  lines.push(`Students come from ${SITE.areaServed.join(', ')}.`);
+  lines.push('');
+  lines.push(
+    'Hall rental: two halls, 135 m² and 32 m², with parquet floors, a sound system, air conditioning and stage lighting — ' +
+      'for rehearsals and practice, birthdays and parties, workshops and seminars, and photo or video shoots.'
+  );
+  lines.push('');
+  lines.push(
+    'Dance master classes for celebrations, held in the studio: birthdays, bachelorette parties, corporate team building ' +
+      'and wedding first dances, in ballroom, Latin or social dance styles.'
+  );
+  lines.push('');
   const promoParts: string[] = [];
   if (freeTrialActive) {
     promoParts.push('the first group trial class is free');
@@ -62,11 +92,12 @@ export const GET: APIRoute = async () => {
     lines.push('');
     for (const route of STATIC_ROUTES) {
       const url = `${SITE.siteUrl}${localizePath(lang, route)}`;
-      lines.push(`- [${pageTitle(lang, route)}](${url})`);
+      const desc = pageDescription(lang, route);
+      lines.push(`- [${pageTitle(lang, route)}](${url})${desc ? `: ${desc}` : ''}`);
     }
     for (const post of allNews) {
       const url = `${SITE.siteUrl}${localizePath(lang, `/news/${post.id}`)}`;
-      lines.push(`- [${post.data.title[lang]}](${url})`);
+      lines.push(`- [${post.data.title[lang]}](${url}): ${excerpt(post.data.body[lang])}`);
     }
     lines.push('');
   }
