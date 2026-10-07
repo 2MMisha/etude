@@ -24,7 +24,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h2>{copy.contact.detailsTitle}</h2>
+      <p class="footer-title">{copy.contact.detailsTitle}</p>
       <ul class="footer-list">
         <li><a href={`tel:${SITE.phone}`} dir="ltr">{SITE.phoneDisplay}</a></li>
         <li><a href={whatsappHref} target="_blank" rel="noopener noreferrer">{copy.common.whatsapp}</a></li>
@@ -34,7 +34,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h2>{copy.contact.hoursTitle}</h2>
+      <p class="footer-title">{copy.contact.hoursTitle}</p>
       <p>{hoursDisplay}</p>
       <div class="footer-social-list">
         <a href={SITE.social.instagram} target="_blank" rel="noopener noreferrer" class="footer-social">Instagram</a>
@@ -43,7 +43,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     </div>
 
     <div class="footer-col">
-      <h2>{copy.common.footerNav}</h2>
+      <p class="footer-title">{copy.common.footerNav}</p>
       <ul class="footer-list">
         <li><a href={localizePath(lang, '/about')}>{copy.nav.about}</a></li>
         <li><a href={localizePath(lang, '/classes')}>{copy.nav.classes}</a></li>
@@ -97,8 +97,12 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
     font-size: 1.6rem;
     color: #fff;
   }
-  .footer-col h2 {
+  /* Column labels are plain text, not headings: they repeat on every page
+     and would only add noise to each page's heading outline. */
+  .footer-col .footer-title {
     color: #fff;
+    line-height: 1.15;
+    margin-block-start: 0;
     font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 600;
