@@ -91,6 +91,8 @@ export const GET: APIRoute = async () => {
     lines.push(`Current offers: ${promoParts.join('; ')}.`);
     lines.push('');
   }
+  lines.push(`Full reference in one file (classes, schedule, instructors, hall rental, events, FAQ): ${SITE.siteUrl}/llms-full.txt`);
+  lines.push('');
   lines.push('The site is available in three languages: Hebrew (default), English, and Russian, at the paths below.');
   lines.push('');
 
