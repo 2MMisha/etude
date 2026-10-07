@@ -43,6 +43,7 @@ export const SITE = {
       en: 'Rishon LeZion',
       ru: 'Ришон-ле-Цион',
     },
+    postalCode: '7526645',
     country: 'Israel',
     countryCode: 'IL',
     region: 'Center District',

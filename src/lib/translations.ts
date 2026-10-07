@@ -90,10 +90,13 @@ export const translations = {
       },
     },
     home: {
-      heroEyebrow: 'ריקודי סלוניים בראשון לציון',
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'בית ספר לריקודים סלוניים ולטיניים בראשון לציון',
+      metaDescription: 'בית ספר לריקודים סלוניים ולטיניים ברוטשילד 49, ראשון לציון. קבוצות לילדים, לנוער ולמבוגרים ושיעורים פרטיים. קבעו שיעור ניסיון בוואטסאפ.',
+      heroEyebrow: 'ריקודים סלוניים בראשון לציון',
       heroTitle: 'ללמוד לרקוד, בקצב שלכם',
       heroSubtitle:
-        'שיעורים קבוצתיים ופרטיים בריקודי סטנדרט ולטיניים, לכל הגילאים והרמות: מהצעד הראשון ועד לרחבת הריקודים.',
+        'חוגי ריקודים סלוניים ולטיניים לילדים ולמבוגרים, בקבוצות ובשיעורים פרטיים: מהצעד הראשון ועד לרחבת הריקודים.',
       heroCtaPrimary: 'שיעור ניסיון חינם',
       heroCtaTrial: 'קביעת שיעור ניסיון',
       heroCtaSecondary: 'לוח השיעורים',
@@ -116,8 +119,11 @@ export const translations = {
       ctaBandButton: 'השאירו פרטים',
     },
     about: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'אודות בית הספר לריקוד בראשון לציון',
+      metaDescription: 'אטיוד הוא בית ספר לריקודים סלוניים ולטיניים בראשון לציון, לכל הגילאים והרמות. שיטת לימוד מובנית, קבוצות קטנות ואווירה חמה.',
       title: 'אודות ETUDE',
-      intro: 'ETUDE הוא סטודיו לריקוד בראשון לציון, המלמד ריקודי סטנדרט ולטיניים לכל הגילאים והרמות.',
+      intro: 'אטיוד (ETUDE) הוא בית ספר לריקודים סלוניים בראשון לציון, המלמד ריקודי סטנדרט ולטיניים לכל הגילאים והרמות.',
       body1:
         'הסטודיו הוקם מתוך אמונה שריקוד הוא לא רק ספורט אלא גם דרך להתחבר לגוף ולמוזיקה. אנחנו מאמינים שכל אחד יכול ללמוד לרקוד, צריך רק את המקום הנכון להתחיל בו.',
       body2:
@@ -130,8 +136,11 @@ export const translations = {
       ],
     },
     classes: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'חוגי ריקוד לילדים ולמבוגרים בראשון לציון',
+      metaDescription: 'חוגי ריקודי סטנדרט ולטיניים בראשון לציון: וואלס, טנגו, צ׳ה-צ׳ה, סמבה ורומבה. קבוצות למתחילים, ממשיכים ומתקדמים, לילדים ולמבוגרים.',
       title: 'שיעורים ותוכניות',
-      intro: 'שיעורים ותוכניות לימוד בשלושה מסלולים עיקריים, לכל הגילאים והרמות. ניתן לשלב בין המסלולים בהתאם למטרות האישיות שלכם.',
+      intro: 'חוגי ריקודים סלוניים ולטיניים לילדים ולמבוגרים, בשלושה מסלולים עיקריים ולכל הרמות. ניתן לשלב בין המסלולים בהתאם למטרות האישיות שלכם.',
       categories: [
         {
           title: 'ריקודי סטנדרט',
@@ -156,6 +165,9 @@ export const translations = {
       cta: 'לפרטים ולהרשמה צרו קשר או עיינו בלוח הזמנים.',
     },
     schedule: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'לוח זמנים של חוגי ריקוד בראשון לציון',
+      metaDescription: 'לוח הזמנים השבועי של חוגי הריקוד באטיוד, רוטשילד 49 ראשון לציון: ימים, שעות וקבוצות לפי גיל ורמה. הסטודיו פתוח כל יום 08:00–21:00.',
       title: 'לוח זמנים',
       intro: 'השיעורים מתקיימים במהלך כל השבוע. לוח הזמנים המלא מתעדכן מעת לעת — לאישור מקום מומלץ ליצור קשר מראש.',
       placeholderNotice: 'לוח הזמנים המלא ייטען בקרוב. בינתיים, הסטודיו פתוח בכל ימות השבוע, {hours}.',
@@ -163,11 +175,19 @@ export const translations = {
       weekLabel: 'שבוע',
     },
     instructors: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'מורים לריקודים סלוניים ולטיניים',
+      metaDescription: 'הכירו את צוות ההוראה של אטיוד: יבגניה גרומוב, רומן מוקרושוב ומיכאל מוקרושוב, מורים לריקודים סלוניים ולטיניים בראשון לציון.',
       title: 'צוות ההוראה',
       intro: 'מדריכים מוסמכים ומנוסים, שמלווים כל תלמיד באופן אישי.',
       placeholderNotice: 'פרופילי המדריכים המלאים יעלו בקרוב.',
     },
     pricing: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'הרשמה לשיעורי ריקוד ושיעור ניסיון חינם',
+      metaDescription: 'איך נרשמים לשיעורי ריקוד באטיוד, ראשון לציון. המחיר נקבע לפי מסלול, תדירות וגיל, ותנאים מיוחדים לעולים חדשים. כתבו לנו לקבלת הצעה.',
+      metaDescriptionNoOlim: 'איך נרשמים לשיעורי ריקוד באטיוד, ראשון לציון. המחיר נקבע לפי מסלול, תדירות השיעורים וגיל. כתבו לנו בוואטסאפ ונבנה עבורכם הצעה מותאמת.',
+      metaTitleNoTrial: 'הרשמה לשיעורי ריקוד בראשון לציון',
       title: 'מחירים והרשמה',
       intro: 'המחירים משתנים בהתאם למסלול, לתדירות השיעורים ולגיל. נשמח לבנות עבורכם הצעה מותאמת אישית.',
       contactForPricing: 'לקבלת פרטי מחירים ותהליך ההרשמה, צרו איתנו קשר בטלפון, בוואטסאפ או במייל.',
@@ -179,11 +199,17 @@ export const translations = {
       ],
     },
     news: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'חדשות ועדכונים מהסטודיו',
+      metaDescription: 'חדשות מבית הספר לריקוד אטיוד בראשון לציון: קבוצות חדשות, אירועים, תחרויות ועדכונים מהסטודיו.',
       title: 'חדשות ועדכונים',
       intro: 'כל מה שקורה בסטודיו — קבוצות חדשות, אירועים ועדכונים.',
       empty: 'אין עדכונים כרגע. חזרו לבקר בקרוב.',
     },
     contact: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'צור קשר: רוטשילד 49, ראשון לציון',
+      metaDescription: 'צרו קשר עם אטיוד, רוטשילד 49 ראשון לציון: טלפון ווואטסאפ 053-472-6469, מייל או טופס באתר. פתוח כל יום 08:00–21:00.',
       title: 'צור קשר',
       intro: 'נשמח לשמוע מכם ולעזור לכם למצוא את מסלול הריקוד המתאים — בטלפון, בוואטסאפ, במייל או דרך הטופס.',
       formTitle: 'השאירו הודעה',
@@ -442,6 +468,9 @@ export const translations = {
       },
     },
     home: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Ballroom & Latin Dance School in Rishon LeZion',
+      metaDescription: 'Ballroom and Latin dance school at Rothschild 49, Rishon LeZion. Groups for kids, teens and adults, plus private lessons. Book a trial class on WhatsApp.',
       heroEyebrow: 'Ballroom & Latin Dance in Rishon LeZion',
       heroTitle: 'Learn to dance, at your own pace',
       heroSubtitle:
@@ -468,8 +497,11 @@ export const translations = {
       ctaBandButton: 'Leave your details',
     },
     about: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'About Our Dance School in Rishon LeZion',
+      metaDescription: 'ETUDE is a ballroom and Latin dance school in Rishon LeZion for every age and level, with a structured teaching method, small groups and a warm atmosphere.',
       title: 'About ETUDE',
-      intro: 'ETUDE is a dance studio in Rishon LeZion, teaching ballroom and Latin dance to every age and level.',
+      intro: 'ETUDE is a dance school in Rishon LeZion, teaching ballroom and Latin dance to every age and level.',
       body1:
         'The studio was founded on the belief that dance is more than a sport, it’s a way to connect with your body and music. We believe anyone can learn to dance, all it takes is the right place to start.',
       body2:
@@ -482,8 +514,11 @@ export const translations = {
       ],
     },
     classes: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Dance Classes for Kids & Adults in Rishon LeZion',
+      metaDescription: 'Ballroom and Latin dance classes in Rishon LeZion: waltz, tango, cha-cha, samba, rumba. Groups for beginners to advanced dancers, kids and adults.',
       title: 'Classes & Programs',
-      intro: 'Programs in three main tracks, for every age and level. Mix and match according to your own goals.',
+      intro: 'Ballroom and Latin dance classes for kids and adults, in three main tracks for every level. Mix and match according to your own goals.',
       categories: [
         {
           title: 'Ballroom dances',
@@ -508,6 +543,9 @@ export const translations = {
       cta: 'Contact us or check the schedule for details and registration.',
     },
     schedule: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Dance Class Schedule in Rishon LeZion',
+      metaDescription: 'Weekly schedule of dance classes at ETUDE, Rothschild 49, Rishon LeZion: days, times and groups by age and level. The studio is open daily 08:00–21:00.',
       title: 'Schedule',
       intro: 'Classes run throughout the week. The full timetable is updated periodically — contact us in advance to confirm a spot.',
       placeholderNotice: 'The full schedule will be added soon. In the meantime, the studio is open every day, {hours}.',
@@ -515,11 +553,19 @@ export const translations = {
       weekLabel: 'Week of',
     },
     instructors: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Ballroom & Latin Dance Teachers',
+      metaDescription: 'Meet the ETUDE teaching team: Evgenia Gromova, Roman Mokrushov and Michael Mokrushov, ballroom and Latin dance teachers in Rishon LeZion.',
       title: 'Instructors',
       intro: 'Certified, experienced instructors who guide every student personally.',
       placeholderNotice: 'Full instructor profiles are coming soon.',
     },
     pricing: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Dance Class Registration & Free Trial Class',
+      metaDescription: 'How to sign up for dance classes at ETUDE, Rishon LeZion. Price depends on track, frequency and age, with special terms for new immigrants. Message us.',
+      metaDescriptionNoOlim: 'How to sign up for dance classes at ETUDE, Rishon LeZion. Price depends on track, class frequency and age. Message us on WhatsApp for a plan that fits you.',
+      metaTitleNoTrial: 'Dance Class Registration in Rishon LeZion',
       title: 'Pricing & Registration',
       intro: 'Pricing varies by track, class frequency, and age. We\u2019re happy to put together a plan tailored to you.',
       contactForPricing: 'For pricing details and the registration process, contact us by phone, WhatsApp, or email.',
@@ -531,11 +577,17 @@ export const translations = {
       ],
     },
     news: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Dance School News & Updates',
+      metaDescription: 'News from ETUDE dance school in Rishon LeZion: new groups, events, competitions and studio updates.',
       title: 'News & Updates',
       intro: 'Everything happening at the studio — new groups, events, and updates.',
       empty: 'No updates right now. Check back soon.',
     },
     contact: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Contact: Rothschild 49, Rishon LeZion',
+      metaDescription: 'Contact ETUDE dance school, Rothschild 49, Rishon LeZion: phone and WhatsApp 053-472-6469, email or the form on this page. Open daily 08:00–21:00.',
       title: 'Contact',
       intro: 'We\u2019d love to hear from you and help you find the right track.',
       formTitle: 'Send us a message',
@@ -794,10 +846,13 @@ export const translations = {
       },
     },
     home: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Школа бальных танцев в Ришон-ле-Ционе',
+      metaDescription: 'Школа бальных и латиноамериканских танцев на Ротшильд 49, Ришон-ле-Цион. Группы для детей и взрослых, индивидуальные занятия. Запишитесь на пробный урок.',
       heroEyebrow: 'Бальные и латиноамериканские танцы в Ришон-ле-Ционе',
       heroTitle: 'Учитесь танцевать в своём темпе',
       heroSubtitle:
-        'Групповые и индивидуальные занятия бальными и латиноамериканскими танцами для любого возраста и уровня: от первого шага до танцпола.',
+        'Школа танцев для детей и взрослых: групповые и индивидуальные занятия бальными и латиноамериканскими танцами — от первого шага до танцпола.',
       heroCtaPrimary: 'Бесплатное пробное занятие',
       heroCtaTrial: 'Записаться на пробное занятие',
       heroCtaSecondary: 'Смотреть расписание',
@@ -820,8 +875,11 @@ export const translations = {
       ctaBandButton: 'Оставить заявку',
     },
     about: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'О нашей школе танцев в Ришон-ле-Ционе',
+      metaDescription: '«Этюд» — школа бальных и латиноамериканских танцев в Ришон-ле-Ционе для любого возраста и уровня. Понятная методика, небольшие группы, тёплая атмосфера.',
       title: 'О школе ETUDE',
-      intro: 'ETUDE - студия танца в Ришон-ле-Ционе, где преподают спортивные танцы для любого возраста и уровня.',
+      intro: '«Этюд» (ETUDE) — школа танцев в Ришон-ле-Ционе, где преподают бальные и латиноамериканские танцы для любого возраста и уровня.',
       body1:
         'Студия была создана из убеждения, что танец — это не только спорт, но и способ почувствовать своё тело и музыку. Мы верим, что танцевать может научиться каждый, нужно лишь найти правильное место, чтобы начать.',
       body2:
@@ -834,8 +892,11 @@ export const translations = {
       ],
     },
     classes: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Танцы для детей и взрослых в Ришон-ле-Ционе',
+      metaDescription: 'Бальные и латиноамериканские танцы в Ришон-ле-Ционе: вальс, танго, ча-ча-ча, самба, румба. Группы для начинающих и продвинутых, детей и взрослых.',
       title: 'Занятия и программы',
-      intro: 'Программы по трём основным направлениям для любого возраста и уровня. Их можно сочетать в зависимости от ваших целей.',
+      intro: 'Бальные и латиноамериканские танцы для детей и взрослых: три основных направления для любого уровня. Их можно сочетать в зависимости от ваших целей.',
       categories: [
         {
           title: 'Бальные танцы',
@@ -860,6 +921,9 @@ export const translations = {
       cta: 'Свяжитесь с нами или посмотрите расписание для подробностей и записи.',
     },
     schedule: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Расписание занятий танцами в Ришон-ле-Ционе',
+      metaDescription: 'Расписание занятий в школе танцев «Этюд», Ришон-ле-Цион: дни, время и группы по возрасту и уровню. Студия открыта ежедневно с 08:00 до 21:00.',
       title: 'Расписание',
       intro: 'Занятия проходят в течение всей недели. Полное расписание периодически обновляется — для подтверждения места рекомендуем связаться заранее.',
       placeholderNotice: 'Полное расписание будет добавлено в ближайшее время. Пока что студия открыта каждый день, {hours}.',
@@ -867,11 +931,19 @@ export const translations = {
       weekLabel: 'Неделя',
     },
     instructors: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Преподаватели бальных танцев',
+      metaDescription: 'Преподаватели школы танцев «Этюд»: Евгения Громова, Роман Мокрушов и Михаил Мокрушов. Бальные и латиноамериканские танцы в Ришон-ле-Ционе.',
       title: 'Преподаватели',
       intro: 'Сертифицированные, опытные преподаватели, которые сопровождают каждого ученика лично.',
       placeholderNotice: 'Полные профили преподавателей будут добавлены в ближайшее время.',
     },
     pricing: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Запись на танцы и бесплатное пробное занятие',
+      metaDescription: 'Как записаться на танцы в «Этюд», Ришон-ле-Цион. Стоимость зависит от направления, частоты и возраста; особые условия для репатриантов. Напишите нам.',
+      metaDescriptionNoOlim: 'Как записаться на танцы в «Этюд», Ришон-ле-Цион. Стоимость зависит от направления, частоты занятий и возраста. Напишите нам в WhatsApp — подберём вариант.',
+      metaTitleNoTrial: 'Запись на танцы в Ришон-ле-Ционе',
       title: 'Цены и запись',
       intro: 'Стоимость зависит от направления, частоты занятий и возраста. Будем рады подобрать для вас индивидуальное предложение.',
       contactForPricing: 'Для уточнения цен и процесса записи свяжитесь с нами по телефону, WhatsApp или email.',
@@ -883,11 +955,17 @@ export const translations = {
       ],
     },
     news: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Новости школы танцев',
+      metaDescription: 'Новости школы танцев «Этюд» в Ришон-ле-Ционе: новые группы, мероприятия, соревнования и события студии.',
       title: 'Новости и обновления',
       intro: 'Всё, что происходит в студии — новые группы, мероприятия и обновления.',
       empty: 'Пока нет обновлений. Загляните позже.',
     },
     contact: {
+      // Search-result title (<title>); the on-page H1 stays `title`.
+      metaTitle: 'Контакты: Ротшильд 49, Ришон-ле-Цион',
+      metaDescription: 'Контакты школы танцев «Этюд»: Ротшильд 49, Ришон-ле-Цион. Телефон и WhatsApp 053-472-6469, e-mail или форма на сайте. Ежедневно 08:00–21:00.',
       title: 'Контакты',
       intro: 'Будем рады услышать вас и помочь подобрать подходящее направление.',
       formTitle: 'Написать нам',

@@ -16,7 +16,7 @@ const copy = translations[lang];
 const allInstructors = (await getCollection('instructors')).sort((a, b) => a.data.order - b.data.order);
 ---
 
-<BaseLayout lang={lang} path="/instructors" title={copy.instructors.title} description={copy.instructors.intro}>
+<BaseLayout lang={lang} path="/instructors" title={copy.instructors.metaTitle} description={copy.instructors.metaDescription}>
   <PageIntro title={copy.instructors.title} intro={copy.instructors.intro} />
 
   <section class="section">

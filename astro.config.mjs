@@ -34,10 +34,12 @@ export default defineConfig({
     sitemap({
       i18n: {
         defaultLocale: 'he',
+        // Same language-only codes as the pages' <link hreflang> tags (Seo.astro);
+        // the two must agree or Google may ignore the pair.
         locales: {
-          he: 'he-IL',
-          en: 'en-US',
-          ru: 'ru-RU',
+          he: 'he',
+          en: 'en',
+          ru: 'ru',
         },
       },
       filter: (page) => !page.includes('/admin') && !page.includes('/display') && !page.includes('/trainers') && page !== 'https://etude.ristar.co/',

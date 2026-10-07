@@ -5,7 +5,7 @@ import PromoBanner from '../../components/PromoBanner.astro';
 import Faq from '../../components/Faq.astro';
 import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
-import { SITE } from '../../lib/site';
+import { SITE, freeTrialActive, olimOfferActive } from '../../lib/site';
 
 export function getStaticPaths() {
   return ALL_LANGS.map((lang) => ({ params: { lang } }));
@@ -15,7 +15,7 @@ const copy = translations[lang];
 const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
 ---
 
-<BaseLayout lang={lang} path="/pricing" title={copy.pricing.title} description={copy.pricing.intro}>
+<BaseLayout lang={lang} path="/pricing" title={freeTrialActive ? copy.pricing.metaTitle : copy.pricing.metaTitleNoTrial} description={olimOfferActive ? copy.pricing.metaDescription : copy.pricing.metaDescriptionNoOlim}>
   <PageIntro title={copy.pricing.title} intro={copy.pricing.intro} />
 
   <section class="section--tight">

@@ -19,7 +19,7 @@ const allNews = (await getCollection('news')).sort(
 );
 ---
 
-<BaseLayout lang={lang} path="/news" title={copy.news.title} description={copy.news.intro}>
+<BaseLayout lang={lang} path="/news" title={copy.news.metaTitle} description={copy.news.metaDescription}>
   <PageIntro title={copy.news.title} intro={copy.news.intro} />
 
   <section class="section">

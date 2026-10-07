@@ -1,7 +1,7 @@
 ---
 import { SITE } from '../lib/site';
 import { translations } from '../lib/translations';
-import type { Lang } from '../lib/languages';
+import { localizePath, type Lang } from '../lib/languages';
 
 interface Props {
   lang: Lang;
@@ -13,8 +13,13 @@ const schema = {
   '@context': 'https://schema.org',
   '@type': 'DanceSchool',
   name: SITE.brandNameLocalized[lang],
+  // Every name people (and AI assistants) may use, so "ETUDE" isn't confused
+  // with other brands of the same name.
+  alternateName: ['ETUDE', 'ETUDE Dance School', 'אטיוד', 'סטודיו אטיוד לריקוד', 'Этюд', 'Школа танцев Этюд'].filter(
+    (n) => n !== SITE.brandNameLocalized[lang]
+  ),
   description: copy.schemaBusinessDescription,
-  url: SITE.siteUrl,
+  url: `${SITE.siteUrl}${localizePath(lang, '/')}`,
   telephone: SITE.phone,
   email: SITE.email,
   image: `${SITE.siteUrl}/images/logo-mark-512.png`,
@@ -23,6 +28,8 @@ const schema = {
     '@type': 'PostalAddress',
     streetAddress: SITE.address.street,
     addressLocality: SITE.address.city,
+    addressRegion: SITE.address.region,
+    postalCode: SITE.address.postalCode,
     addressCountry: SITE.address.countryCode,
   },
   geo: {
@@ -36,7 +43,10 @@ const schema = {
     opens: SITE.hours.opens,
     closes: SITE.hours.closes,
   },
-  sameAs: [SITE.social.instagram],
+  hasMap: SITE.googleMapsUrl,
+  // Cities students actually come from (per the owner, Oct 2026).
+  areaServed: ['Rishon LeZion', 'Holon', 'Bat Yam', 'Tel Aviv', 'Jerusalem', 'Ariel'].map((name) => ({ '@type': 'City', name })),
+  sameAs: [SITE.social.instagram, SITE.googleMapsUrl],
 };
 ---
 

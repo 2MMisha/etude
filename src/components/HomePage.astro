@@ -26,14 +26,17 @@ const latestNews = allNews
 ---
 
 
-<BaseLayout lang={lang} path="/" title={copy.home.heroTitle} description={copy.home.heroSubtitle}>
+<BaseLayout lang={lang} path="/" title={copy.home.metaTitle} description={copy.home.metaDescription}>
   {/* The hero background is the LCP element; a CSS url() is found late, so preload it. */}
   <link slot="head" rel="preload" as="image" href="/images/brand/bg.webp" type="image/webp" fetchpriority="high" />
   <section class="hero">
     <div class="container hero__inner">
       <div class="hero__content">
-        <span class="eyebrow">{copy.home.heroEyebrow}</span>
-        <h1 class="hero__title">{copy.home.heroTitle}</h1>
+        {/* One h1 holds both lines so the keyword line (city + style) counts as the page heading. */}
+        <h1 class="hero__heading">
+          <span class="eyebrow">{copy.home.heroEyebrow}</span>
+          <span class="hero__title">{copy.home.heroTitle}</span>
+        </h1>
         <svg class="hero__stroke" viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <path d="M4 26 C 90 8, 170 34, 250 22 S 420 6, 500 20 S 575 30, 596 14" pathLength="1" />
         </svg>
@@ -129,7 +132,11 @@ const latestNews = allNews
     align-items: center;
     gap: var(--space-lg);
   }
+  .hero__heading {
+    margin: 0;
+  }
   .hero__title {
+    display: block;
     font-size: clamp(3rem, 2rem + 4.4vw, 5.6rem);
     line-height: 1.02;
     margin-block-end: 0.15em;

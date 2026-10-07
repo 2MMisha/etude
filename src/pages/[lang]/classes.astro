@@ -12,7 +12,7 @@ const { lang } = Astro.params as { lang: Lang };
 const copy = translations[lang];
 ---
 
-<BaseLayout lang={lang} path="/classes" title={copy.classes.title} description={copy.classes.intro}>
+<BaseLayout lang={lang} path="/classes" title={copy.classes.metaTitle} description={copy.classes.metaDescription}>
   <PageIntro title={copy.classes.title} intro={copy.classes.intro} />
 
   <section class="section">
