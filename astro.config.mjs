@@ -10,7 +10,9 @@ const newsDates = Object.fromEntries(
     .filter((f) => f.endsWith('.json'))
     .map((f) => [f.replace(/\.json$/, ''), JSON.parse(readFileSync(`src/content/news/${f}`, 'utf8')).date])
 );
-const latestNews = Object.values(newsDates).sort().pop();
+// Future-dated posts aren't built yet (src/lib/news.ts), so leave them out.
+const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
+const latestNews = Object.values(newsDates).filter((d) => d <= today).sort().pop();
 
 // Relative weight and expected change rate per page (path without language).
 const SITEMAP_RULES = [

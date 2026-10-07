@@ -4,10 +4,11 @@ import { ALL_LANGS, localizePath, type Lang } from '../../../lib/languages';
 import { translations } from '../../../lib/translations';
 import { SITE } from '../../../lib/site';
 import { getCollection } from 'astro:content';
+import { getPublishedNews } from '../../../lib/news';
 import { renderRichText, excerpt } from '../../../lib/richText';
 
 export async function getStaticPaths() {
-  const allNews = await getCollection('news');
+  const allNews = await getPublishedNews();
   return ALL_LANGS.flatMap((lang) =>
     allNews.map((post) => ({
       params: { lang, slug: post.id },

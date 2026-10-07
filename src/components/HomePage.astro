@@ -10,7 +10,7 @@ import PromoBanner from './PromoBanner.astro';
 import { localizePath, type Lang } from '../lib/languages';
 import { translations } from '../lib/translations';
 import { SITE, freeTrialActive } from '../lib/site';
-import { getCollection } from 'astro:content';
+import { getPublishedNews } from '../lib/news';
 
 interface Props {
   lang: Lang;
@@ -20,7 +20,7 @@ const copy = translations[lang];
 // "Free trial" wording only while the free-trial promo is switched on.
 const trialCta = freeTrialActive ? copy.home.heroCtaPrimary : copy.home.heroCtaTrial;
 
-const allNews = await getCollection('news');
+const allNews = await getPublishedNews();
 const latestNews = allNews
   .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
   .slice(0, 3);

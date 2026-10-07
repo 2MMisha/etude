@@ -6,7 +6,7 @@ import PageIntro from '../../../components/PageIntro.astro';
 import NewsCard from '../../../components/NewsCard.astro';
 import { ALL_LANGS, type Lang } from '../../../lib/languages';
 import { translations } from '../../../lib/translations';
-import { getCollection } from 'astro:content';
+import { getPublishedNews } from '../../../lib/news';
 
 export function getStaticPaths() {
   return ALL_LANGS.map((lang) => ({ params: { lang } }));
@@ -14,7 +14,7 @@ export function getStaticPaths() {
 const { lang } = Astro.params as { lang: Lang };
 const copy = translations[lang];
 
-const allNews = (await getCollection('news')).sort(
+const allNews = (await getPublishedNews()).sort(
   (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
 );
 ---

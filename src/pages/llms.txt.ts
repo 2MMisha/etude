@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getCollection } from 'astro:content';
+import { getPublishedNews } from '../lib/news';
 import { ALL_LANGS, LANGUAGES, localizePath } from '../lib/languages';
 import { translations } from '../lib/translations';
 import { SITE, freeTrialActive, olimOfferActive } from '../lib/site';
@@ -53,7 +53,7 @@ function pageTitle(lang: (typeof ALL_LANGS)[number], route: string): string {
 }
 
 export const GET: APIRoute = async () => {
-  const allNews = await getCollection('news');
+  const allNews = await getPublishedNews();
 
   const lines: string[] = [];
   lines.push(`# ${SITE.brandNameLocalized.en} (${SITE.brandNameLocalized.he} / ${SITE.brandNameLocalized.ru})`);

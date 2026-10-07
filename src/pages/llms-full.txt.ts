@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
+import { getPublishedNews } from '../lib/news';
 import { localizePath } from '../lib/languages';
 import { translations } from '../lib/translations';
 import { SITE, freeTrialActive, olimOfferActive } from '../lib/site';
@@ -73,7 +74,7 @@ export const GET: APIRoute = async () => {
   qa(t.hallRental.faq.items);
   qa(t.events.faq.items);
 
-  const news = (await getCollection('news')).sort((a, b) => b.data.date.localeCompare(a.data.date));
+  const news = (await getPublishedNews()).sort((a, b) => b.data.date.localeCompare(a.data.date));
   if (news.length) {
     h(`News (${url('/news')})`);
     news.forEach((n) => L.push(`### ${n.data.title.en} (${n.data.date}, ${url(`/news/${n.id}`)})`, '', plainText(n.data.body.en), ''));
