@@ -2,7 +2,8 @@
 import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
-import { ALL_LANGS, type Lang } from '../../lib/languages';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { SITE } from '../../lib/site';
 import { translations } from '../../lib/translations';
 import { getCollection } from 'astro:content';
 
@@ -14,10 +15,31 @@ const copy = translations[lang];
 
 // Written/updated via the hidden /admin/ panel — see README.
 const allInstructors = (await getCollection('instructors')).sort((a, b) => a.data.order - b.data.order);
+
+// One Person per teacher, tied to the school, so search engines and AI
+// assistants can connect the names and titles to ETUDE.
+const JOB_TITLE: Record<Lang, string> = {
+  he: 'מורה לריקודים סלוניים ולטיניים',
+  en: 'Ballroom and Latin dance teacher',
+  ru: 'Преподаватель бальных и латиноамериканских танцев',
+};
+const peopleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': allInstructors.map((person) => ({
+    '@type': 'Person',
+    name: person.data.name[lang],
+    jobTitle: JOB_TITLE[lang],
+    description: person.data.bio[lang].replace(/●\s*/g, '').replace(/\s*\n\s*/g, ' ').trim(),
+    // Only photos hosted on the site itself; hotlinked ones can vanish.
+    ...(person.data.photo?.startsWith('/') && { image: `${SITE.siteUrl}${person.data.photo}` }),
+    worksFor: { '@type': 'DanceSchool', name: SITE.brandNameLocalized[lang], url: `${SITE.siteUrl}${localizePath(lang, '/')}` },
+  })),
+};
 ---
 
 <BaseLayout lang={lang} path="/instructors" title={copy.instructors.metaTitle} description={copy.instructors.metaDescription}>
   <PageIntro title={copy.instructors.title} intro={copy.instructors.intro} />
+  {allInstructors.length > 0 && <script type="application/ld+json" set:html={JSON.stringify(peopleSchema)} />}
 
   <section class="section">
     <div class="container">
