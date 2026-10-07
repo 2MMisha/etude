@@ -88,7 +88,7 @@ export const SITE = {
 
   // Analytics — inert until a real ID is supplied. Leave as-is to ship with
   // analytics disabled; replace with a real G-XXXXXXX ID to activate.
-  ga4MeasurementId: '', // e.g. 'G-XXXXXXXXXX'
+  ga4MeasurementId: 'G-PYNX9TKS20',
 
   // Contact form relay (FormSubmit — no backend required)
   formSubmitEndpoint: 'https://formsubmit.co/2mmedia.il@gmail.com',
