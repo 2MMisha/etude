@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # brag video renders
 brag-output*/
+
+# Raw photo shoot — only the optimized picks in public/images/studio/ are committed
+photos/
