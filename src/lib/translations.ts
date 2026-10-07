@@ -35,6 +35,10 @@ export const translations = {
       viewOnGoogleMaps: 'ניווט ב-Google Maps',
       skipToContent: 'דילוג לתוכן',
       photoBy: 'צילום',
+      cookieText: 'אנחנו משתמשים בעוגיות של Google Analytics כדי להבין איך משתמשים באתר. אפשר לאשר או לסרב.',
+      cookieAccept: 'אישור',
+      cookieDecline: 'לא, תודה',
+      cookieSettings: 'הגדרות עוגיות',
       menu: 'תפריט',
       closeMenu: 'סגירת התפריט',
       footerNav: 'ניווט',
@@ -316,7 +320,7 @@ export const translations = {
         },
         {
           title: 'עוגיות (Cookies)',
-          body: 'האתר עשוי להשתמש בעוגיות בסיסיות הנדרשות לתפעולו, ובעוגיות אנליטיקה כאשר Google Analytics מופעל, לצורך הבנת השימוש הכללי באתר.',
+          body: 'האתר משתמש בעוגיות אנליטיקה של Google Analytics רק אם אישרתם זאת בחלון העוגיות, לצורך הבנת השימוש הכללי באתר. אם סירבתם, Google Analytics לא נטען. אפשר לשנות את הבחירה בכל עת בקישור "הגדרות עוגיות" בתחתית האתר.',
         },
         {
           title: 'כיצד אנו משתמשים במידע',
@@ -502,6 +506,10 @@ export const translations = {
       viewOnGoogleMaps: 'Get directions on Google Maps',
       skipToContent: 'Skip to content',
       photoBy: 'Photo',
+      cookieText: 'We use Google Analytics cookies to understand how the site is used. You can accept or decline.',
+      cookieAccept: 'Accept',
+      cookieDecline: 'Decline',
+      cookieSettings: 'Cookie settings',
       menu: 'Menu',
       closeMenu: 'Close menu',
       footerNav: 'Explore',
@@ -781,7 +789,7 @@ export const translations = {
         },
         {
           title: 'Cookies',
-          body: 'The site may use basic cookies required for it to function, and analytics cookies when Google Analytics is enabled, to understand general site usage.',
+          body: 'The site uses Google Analytics cookies only if you accept them in the cookie banner, to understand general site usage. If you decline, Google Analytics does not load. You can change your choice at any time with the "Cookie settings" link at the bottom of the site.',
         },
         {
           title: 'How we use your information',
@@ -967,6 +975,10 @@ export const translations = {
       viewOnGoogleMaps: 'Маршрут на Google Maps',
       skipToContent: 'Перейти к содержанию',
       photoBy: 'Фото',
+      cookieText: 'Мы используем cookies Google Analytics, чтобы понимать, как посетители пользуются сайтом. Вы можете согласиться или отказаться.',
+      cookieAccept: 'Принять',
+      cookieDecline: 'Отказаться',
+      cookieSettings: 'Настройки cookies',
       menu: 'Меню',
       closeMenu: 'Закрыть меню',
       footerNav: 'Разделы',
@@ -1246,7 +1258,7 @@ export const translations = {
         },
         {
           title: 'Файлы cookie',
-          body: 'Сайт может использовать базовые cookie-файлы, необходимые для его работы, а также аналитические cookie при включённом Google Analytics — для понимания общей статистики использования сайта.',
+          body: 'Сайт использует cookie Google Analytics, только если вы согласились на это в окне о cookies, — чтобы понимать общую статистику посещений. Если вы отказались, Google Analytics не загружается. Изменить выбор можно в любой момент по ссылке «Настройки cookies» внизу сайта.',
         },
         {
           title: 'Как мы используем вашу информацию',

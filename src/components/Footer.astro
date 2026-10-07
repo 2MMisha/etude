@@ -64,6 +64,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
       <a href={localizePath(lang, '/terms')}>{copy.common.terms}</a>
       <a href={localizePath(lang, '/privacy')}>{copy.common.privacy}</a>
       <a href={localizePath(lang, '/accessibility')}>{copy.common.accessibility}</a>
+      {SITE.ga4MeasurementId && <a href="#" data-cookie-settings>{copy.common.cookieSettings}</a>}
     </div>
   </div>
 </footer>
@@ -162,6 +163,7 @@ const whatsappHref = `https://wa.me/${SITE.whatsapp}`;
   .footer-bottom p { margin: 0; color: inherit; }
   .footer-legal {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-sm);
   }
   .footer-legal a {

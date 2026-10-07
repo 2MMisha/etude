@@ -5,6 +5,7 @@ import Seo from '../components/Seo.astro';
 import LocalBusinessSchema from '../components/LocalBusinessSchema.astro';
 import Analytics from '../components/Analytics.astro';
 import AccessibilityWidget from '../components/AccessibilityWidget.astro';
+import CookieConsent from '../components/CookieConsent.astro';
 import LanguageBanner from '../components/LanguageBanner.astro';
 import WhatsAppFloat from '../components/WhatsAppFloat.astro';
 import { LANGUAGES, type Lang } from '../lib/languages';
@@ -61,5 +62,6 @@ const GOOGLE_FONTS =
     <Footer lang={lang} />
     <AccessibilityWidget lang={lang} />
     <WhatsAppFloat lang={lang} />
+    <CookieConsent lang={lang} />
   </body>
 </html>
