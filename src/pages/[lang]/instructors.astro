@@ -4,6 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
 import { SITE } from '../../lib/site';
+import { PHOTO_CREDIT } from '../../data/photos';
 import { translations } from '../../lib/translations';
 import { getCollection } from 'astro:content';
 
@@ -69,6 +70,9 @@ const peopleSchema = {
                   <span>{person.data.name[lang].charAt(0)}</span>
                 </div>
               )}
+              {person.data.photo?.startsWith('/images/') && (
+                <p class="photo-credit">{copy.common.photoBy}: {PHOTO_CREDIT[lang]}</p>
+              )}
               <div>
                 <h2 class="h3">{person.data.name[lang]}</h2>
                 <p class="instructor-card__bio">{person.data.bio[lang].trim()}</p>
@@ -97,6 +101,13 @@ const peopleSchema = {
   }
   .instructor-card__photo-img {
     object-fit: cover;
+    object-position: center 35%;
+  }
+  .photo-credit {
+    margin: 0;
+    padding: 0.4rem var(--space-md) 0;
+    font-size: 0.75rem;
+    color: var(--color-ink-soft);
   }
   .instructor-card__photo {
     background: repeating-linear-gradient(

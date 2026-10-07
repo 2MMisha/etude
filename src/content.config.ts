@@ -11,6 +11,9 @@ const news = defineCollection({
     // Same id is used as the URL slug for every language
     date: z.string(), // ISO date, e.g. "2026-08-01"
     image: z.string().optional(), // URL; falls back to a placeholder when absent
+    // What the photo shows (alt text + caption) and who took it, per language.
+    imageAlt: z.object({ he: z.string(), en: z.string(), ru: z.string() }).partial().optional(),
+    imageCredit: z.object({ he: z.string(), en: z.string(), ru: z.string() }).partial().optional(),
     title: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
     body: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
   }),

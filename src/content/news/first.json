@@ -1,6 +1,16 @@
 {
   "date": "2026-10-07",
   "image": "/images/studio/news-first-kids-group.jpg",
+  "imageAlt": {
+    "he": "ילדים מקבוצת הריקוד של אטיוד בתלבושות הופעה, ראשון לציון",
+    "en": "Children from an ETUDE dance group in performance costumes, Rishon LeZion",
+    "ru": "Дети из танцевальной группы «Этюда» в концертных костюмах, Ришон-ле-Цион"
+  },
+  "imageCredit": {
+    "he": "מיכאל מוקרושוב (2M Photo)",
+    "en": "Michael Mokrushov (2M Photo)",
+    "ru": "Михаил Мокрушов (2M Photo)"
+  },
   "title": {
     "he": "הכירו את אטיוד: ריקודים סלוניים ולטיניים בראשון לציון",
     "en": "Meet ETUDE: ballroom & Latin dance in Rishon LeZion",

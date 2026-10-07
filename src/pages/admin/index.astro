@@ -183,6 +183,22 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
                 <input type="text" id="newsImage" placeholder="https://…" />
               </div>
               <div>
+                <label>Photo description (alt text, shown under the photo)</label>
+                <div class="lang-grid">
+                  <input type="text" id="newsImageAltHe" placeholder="עברית" dir="rtl" />
+                  <input type="text" id="newsImageAltEn" placeholder="English" />
+                  <input type="text" id="newsImageAltRu" placeholder="Русский" />
+                </div>
+              </div>
+              <div>
+                <label>Photo by (optional)</label>
+                <div class="lang-grid">
+                  <input type="text" id="newsImageCreditHe" placeholder="מיכאל מוקרושוב (2M Photo)" dir="rtl" />
+                  <input type="text" id="newsImageCreditEn" placeholder="Michael Mokrushov (2M Photo)" />
+                  <input type="text" id="newsImageCreditRu" placeholder="Михаил Мокрушов (2M Photo)" />
+                </div>
+              </div>
+              <div>
                 <label>Title</label>
                 <div class="lang-grid">
                   <input type="text" id="newsTitleHe" placeholder="עברית" dir="rtl" />
@@ -694,6 +710,10 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           $('newsId').disabled = true;
           $('newsDate').value = post.data.date || '';
           $('newsImage').value = post.data.image || '';
+          for (const l of ['He', 'En', 'Ru']) {
+            $('newsImageAlt' + l).value = post.data.imageAlt?.[l.toLowerCase()] || '';
+            $('newsImageCredit' + l).value = post.data.imageCredit?.[l.toLowerCase()] || '';
+          }
           $('newsTitleHe').value = post.data.title?.he || '';
           $('newsTitleEn').value = post.data.title?.en || '';
           $('newsTitleRu').value = post.data.title?.ru || '';
@@ -708,6 +728,10 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           $('newsId').disabled = false;
           $('newsDate').value = '';
           $('newsImage').value = '';
+          for (const l of ['He', 'En', 'Ru']) {
+            $('newsImageAlt' + l).value = '';
+            $('newsImageCredit' + l).value = '';
+          }
           $('newsTitleHe').value = '';
           $('newsTitleEn').value = '';
           $('newsTitleRu').value = '';
@@ -736,6 +760,8 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
         const post = {
           date,
           image: $('newsImage').value.trim(),
+          imageAlt: { he: $('newsImageAltHe').value.trim(), en: $('newsImageAltEn').value.trim(), ru: $('newsImageAltRu').value.trim() },
+          imageCredit: { he: $('newsImageCreditHe').value.trim(), en: $('newsImageCreditEn').value.trim(), ru: $('newsImageCreditRu').value.trim() },
           title: { he: $('newsTitleHe').value, en: $('newsTitleEn').value, ru: $('newsTitleRu').value },
           body: { he: $('newsBodyHe').value, en: $('newsBodyEn').value, ru: $('newsBodyRu').value },
         };

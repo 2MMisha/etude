@@ -3,6 +3,13 @@
 // confirmed by the owner (Oct 2026).
 import type { Lang } from '../lib/languages';
 
+/** The photographer of every photo on the site so far (2M Photo). */
+export const PHOTO_CREDIT: Record<Lang, string> = {
+  he: 'מיכאל מוקרושוב (2M Photo)',
+  en: 'Michael Mokrushov (2M Photo)',
+  ru: 'Михаил Мокрушов (2M Photo)',
+};
+
 export interface Photo {
   src: string;
   width: number;
