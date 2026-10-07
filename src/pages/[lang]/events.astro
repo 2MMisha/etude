@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import Faq from '../../components/Faq.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { SITE } from '../../lib/site';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang].events;
+const whatsappHref = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(copy.whatsappText)}`;
+
+const serviceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  serviceType: 'Dance master classes for events and weddings',
+  name: copy.title,
+  description: copy.intro,
+  provider: { '@type': 'DanceSchool', name: SITE.brandNameLocalized[lang], url: `${SITE.siteUrl}${localizePath(lang, '/')}` },
+  areaServed: SITE.areaServed.map((name) => ({ '@type': 'City', name })),
+};
+---
+
+<BaseLayout lang={lang} path="/events" title={copy.metaTitle} description={copy.metaDescription}>
+  <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  <PageIntro title={copy.title} intro={copy.intro} />
+
+  <section class="section">
+    <div class="container">
+      <h2>{copy.occasionsTitle}</h2>
+      <div class="grid grid--2">
+        {copy.occasions.map((o) => (
+          <div class="card">
+            <h3>{o.title}</h3>
+            <p>{o.body}</p>
+          </div>
+        ))}
+      </div>
+      <h2 class="styles-title">{copy.stylesTitle}</h2>
+      <ul class="styles">
+        {copy.styles.map((s) => <li>{s}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section--surface">
+    <div class="container how">
+      <h2>{copy.howTitle}</h2>
+      <ol>
+        {copy.how.map((step) => <li>{step}</li>)}
+      </ol>
+      <p>
+        <a href={whatsappHref} class="btn btn--primary" target="_blank" rel="noopener noreferrer">{copy.cta}</a>
+      </p>
+      <p class="how__links">
+        <a href={`tel:${SITE.phone}`} dir="ltr">{SITE.phoneDisplay}</a>
+        {' · '}
+        <a href={localizePath(lang, '/hall-rental')}>{copy.hallLink}</a>
+      </p>
+    </div>
+  </section>
+
+  <Faq lang={lang} faq={copy.faq} />
+</BaseLayout>
+
+<style>
+  .styles-title {
+    margin-block-start: var(--space-lg);
+  }
+  .styles {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .styles li {
+    padding: 0.45em 1em;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    font-weight: 600;
+    color: var(--color-navy-900);
+  }
+  .how {
+    max-width: 70ch;
+  }
+  .how ol {
+    display: grid;
+    gap: var(--space-xs);
+    padding-inline-start: 1.3em;
+    margin-block-end: var(--space-md);
+  }
+  .how__links {
+    font-weight: 600;
+  }
+  .how__links a {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+</style>

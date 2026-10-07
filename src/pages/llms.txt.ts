@@ -15,6 +15,7 @@ const STATIC_ROUTES = [
   '/instructors',
   '/pricing',
   '/hall-rental',
+  '/events',
   '/news',
   '/contact',
   '/privacy',
