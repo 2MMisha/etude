@@ -79,12 +79,9 @@ export const SITE = {
   promo: settings.promo,
 
   // Accessibility widget (Tabnav) — same provider used on law.ristar.co.
-  // Inert until a real embed snippet is issued for this domain. Sign up at
-  // https://tabnav.com/get-free-widget with etude.ristar.co as the domain;
-  // they'll email a ready-to-paste <script> snippet — paste it verbatim
-  // into tabnavEmbedCode below (see README section on the accessibility
-  // widget for details). Left blank, no accessibility widget loads.
-  tabnavEmbedCode: '',
+  // The request key from the embed snippet issued for etude.ristar.co; the
+  // widget language follows the page (see AccessibilityWidget.astro).
+  tabnavReq: 'qpW9foMfxTXWGKBm8tUELM3lhjYtKw',
 
   // Analytics — inert until a real ID is supplied. Leave as-is to ship with
   // analytics disabled; replace with a real G-XXXXXXX ID to activate.

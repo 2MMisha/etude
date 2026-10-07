@@ -1,10 +1,33 @@
 ---
-// Renders the Tabnav accessibility widget embed snippet verbatim once the
-// client has signed up at tabnav.com and pasted their code into
-// SITE.tabnavEmbedCode (see README). Inert (renders nothing) until then —
-// same pattern as the GA4 component.
+// Tabnav accessibility widget, in the page's language. Same embed snippet
+// Tabnav issued for etude.ristar.co, with only the "language" switched.
 import { SITE } from '../lib/site';
-const embedCode = SITE.tabnavEmbedCode;
+import { LANGUAGES, type Lang } from '../lib/languages';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+// Tabnav's own language codes (from its widget script).
+const TABNAV_LANG: Record<Lang, string> = { he: 'he', en: 'us-en', ru: 'ru' };
+const config = JSON.stringify({
+  language: TABNAV_LANG[lang],
+  color: '#17224a',
+  buttonColor: '#17224a',
+  buttonSize: 'small',
+  widgetSize: 'small',
+  // Opposite side to the WhatsApp button (which sits at the inline end).
+  widgetLocation: LANGUAGES[lang].dir === 'rtl' ? 'right' : 'left',
+  buttonLocation: 'bottom',
+});
+const src = `https://widget.tabnav.com/limited-widget.min.js.gz?req=${SITE.tabnavReq}`;
 ---
 
-{embedCode && <Fragment set:html={embedCode} />}
+{SITE.tabnavReq && (
+  <>
+    <script is:inline src={src} tnv-data-config={config} defer></script>
+    <noscript>
+      JavaScript is required for <a href="https://tabnav.com/accessibility-widget">accessibility widget</a> to work properly.
+    </noscript>
+  </>
+)}
