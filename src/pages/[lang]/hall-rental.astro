@@ -1,0 +1,109 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import Faq from '../../components/Faq.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { translations } from '../../lib/translations';
+import { SITE } from '../../lib/site';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = translations[lang].hallRental;
+const whatsappHref = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(copy.whatsappText)}`;
+
+const serviceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  serviceType: 'Dance hall rental',
+  name: copy.title,
+  description: copy.intro,
+  provider: { '@type': 'DanceSchool', name: SITE.brandNameLocalized[lang], url: `${SITE.siteUrl}${localizePath(lang, '/')}` },
+  areaServed: SITE.areaServed.map((name) => ({ '@type': 'City', name })),
+  hoursAvailable: {
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: SITE.hours.days,
+    opens: SITE.hours.opens,
+    closes: SITE.hours.closes,
+  },
+};
+---
+
+<BaseLayout lang={lang} path="/hall-rental" title={copy.metaTitle} description={copy.metaDescription}>
+  <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  <PageIntro title={copy.title} intro={copy.intro} />
+
+  <section class="section">
+    <div class="container">
+      <h2>{copy.hallsTitle}</h2>
+      <div class="grid grid--2">
+        {copy.halls.map((h) => (
+          <div class="card">
+            <h3>{h.title}</h3>
+            <p>{h.body}</p>
+          </div>
+        ))}
+      </div>
+      <h2 class="equipment-title">{copy.equipmentTitle}</h2>
+      <ul class="equipment">
+        {copy.equipment.map((e) => <li>{e}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section--surface">
+    <div class="container">
+      <h2>{copy.usesTitle}</h2>
+      <div class="grid grid--2">
+        {copy.uses.map((u) => (
+          <div class="card">
+            <h3>{u.title}</h3>
+            <p>{u.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container booking">
+      <h2>{copy.bookingTitle}</h2>
+      <p>{copy.bookingBody}</p>
+      <p>
+        <a href={whatsappHref} class="btn btn--primary" target="_blank" rel="noopener noreferrer">{copy.cta}</a>
+      </p>
+      <p class="booking__phone"><a href={`tel:${SITE.phone}`} dir="ltr">{SITE.phoneDisplay}</a></p>
+    </div>
+  </section>
+
+  <Faq lang={lang} faq={copy.faq} />
+</BaseLayout>
+
+<style>
+  .equipment-title {
+    margin-block-start: var(--space-lg);
+  }
+  .equipment {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .equipment li {
+    padding: 0.45em 1em;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    font-weight: 600;
+    color: var(--color-navy-900);
+  }
+  .booking {
+    max-width: 70ch;
+  }
+  .booking__phone {
+    font-weight: 600;
+  }
+</style>

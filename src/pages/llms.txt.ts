@@ -14,6 +14,7 @@ const STATIC_ROUTES = [
   '/schedule',
   '/instructors',
   '/pricing',
+  '/hall-rental',
   '/news',
   '/contact',
   '/privacy',
@@ -21,9 +22,14 @@ const STATIC_ROUTES = [
   '/accessibility',
 ];
 
+/** '/hall-rental' -> 'hallRental', '/' -> 'home' (the translations key for a route). */
+function routeKey(route: string): string {
+  return route.replace(/^\//, '').replace(/-(\w)/g, (_, c: string) => c.toUpperCase()) || 'home';
+}
+
 // One-line summary after each link: the page's search description, if it has one.
 function pageDescription(lang: (typeof ALL_LANGS)[number], route: string): string | undefined {
-  const page = translations[lang][(route.replace(/^\//, '') || 'home') as keyof (typeof translations)['he']] as
+  const page = translations[lang][routeKey(route) as keyof (typeof translations)['he']] as
     | { metaDescription?: string; metaDescriptionNoOlim?: string }
     | undefined;
   if (!page?.metaDescription) return undefined;
@@ -39,7 +45,7 @@ function excerpt(text: string): string {
 // Link text for each static route, from the site's own navigation labels.
 function pageTitle(lang: (typeof ALL_LANGS)[number], route: string): string {
   const t = translations[lang];
-  const key = route.replace(/^\//, '') || 'home';
+  const key = routeKey(route);
   if (key in t.nav) return t.nav[key as keyof typeof t.nav];
   if (key in t.common) return t.common[key as keyof typeof t.common] as string;
   return key;

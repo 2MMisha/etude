@@ -16,7 +16,7 @@ const latestNews = Object.values(newsDates).sort().pop();
 const SITEMAP_RULES = [
   { match: /^\/$/, priority: 1.0, changefreq: 'weekly' },
   { match: /^\/(classes|schedule|pricing)\/$/, priority: 0.9, changefreq: 'weekly' },
-  { match: /^\/(contact|instructors|about)\/$/, priority: 0.8, changefreq: 'monthly' },
+  { match: /^\/(contact|instructors|about|hall-rental)\/$/, priority: 0.8, changefreq: 'monthly' },
   { match: /^\/news\/$/, priority: 0.7, changefreq: 'daily' },
   { match: /^\/news\/[^/]+\/$/, priority: 0.6, changefreq: 'monthly' },
   { match: /^\/(privacy|terms|accessibility)\/$/, priority: 0.3, changefreq: 'yearly' },
