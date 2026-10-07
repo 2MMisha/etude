@@ -3,6 +3,7 @@ import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import PhotoGrid from '../../components/PhotoGrid.astro';
+import Faq from '../../components/Faq.astro';
 import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 
@@ -32,6 +33,20 @@ const copy = translations[lang];
     </div>
   </section>
 
+  <section class="section">
+    <div class="container">
+      <h2>{copy.classes.audiencesTitle}</h2>
+      <div class="grid grid--2">
+        {copy.classes.audiences.map((a) => (
+          <div class="card">
+            <h3>{a.title}</h3>
+            <p>{a.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
   <section class="section section--surface">
     <div class="container">
       <h2>{copy.classes.levelsTitle}</h2>
@@ -52,6 +67,7 @@ const copy = translations[lang];
       </p>
     </div>
   </section>
+  <Faq lang={lang} faq={copy.classes.faq} />
   <PageMore title={copy.pageMore.classes.title} paragraphs={copy.pageMore.classes.paragraphs} />
 </BaseLayout>
 

@@ -106,7 +106,7 @@ export const translations = {
       introBody2:
         'אפשר ללמוד לרקוד בכל גיל ובקצב שלכם: בקבוצות לפי רמה — מתחילים, ממשיכים ומתקדמים — או בשיעורים פרטיים המותאמים למטרות האישיות שלכם. ילדים, נוער ומבוגרים מוצאים אצלנו את המסלול המתאים, ומי שרוצה יכול להמשיך גם למסלולי תחרות.',
       introBody3:
-        'בשיעורי הבלרום לומדים וואלס, טנגו ופוקסטרוט, ובשיעורים הלטיניים — צ׳ה-צ׳ה, סמבה, רומבה וסלסה. לצדם מתקיימים שיעורי ספורט ותנועה המשלבים כושר, קואורדינציה ומוזיקליות. הסטודיו נמצא בראשון לציון, ולוח השיעורים המלא מתעדכן באתר באופן שוטף.',
+        'בשיעורי הסטנדרט לומדים את כל חמשת הריקודים: ואלס אנגלי, טנגו, ואלס וינאי, פוקסטרוט וקוויקסטפ, ובשיעורים הלטיניים — סמבה, צ׳ה-צ׳ה, רומבה, פאסו דובלה וג׳ייב. לצדם מתקיימים שיעורי ספורט ותנועה המשלבים כושר, קואורדינציה ומוזיקליות. הסטודיו נמצא בראשון לציון, ולוח השיעורים המלא מתעדכן באתר באופן שוטף.',
       highlightsTitle: 'למה ETUDE',
       highlights: [
         { title: 'מתאים לכל הרמות', body: 'קבוצות מתחילים, ממשיכים ומתקדמים, וגם שיעורים פרטיים בקצב אישי.' },
@@ -144,11 +144,11 @@ export const translations = {
       categories: [
         {
           title: 'ריקודי סטנדרט',
-          body: 'וואלס, טנגו, פוקסטרוט ועוד — הבסיס הקלאסי של ריקודי הזוגות, נלמד בהדרגה ובדיוק.',
+          body: 'כל חמשת ריקודי הסטנדרט: ואלס אנגלי, טנגו, ואלס וינאי, פוקסטרוט וקוויקסטפ — הבסיס הקלאסי של ריקודי הזוגות, נלמד בהדרגה ובדיוק.',
         },
         {
           title: 'ריקודים לטיניים',
-          body: 'צ׳ה-צ׳ה, סמבה, רומבה וסלסה — קצב, אנרגיה ותחושת מוזיקה בכל תנועה.',
+          body: 'כל חמשת הריקודים הלטיניים: סמבה, צ׳ה-צ׳ה, רומבה, פאסו דובלה וג׳ייב — קצב, אנרגיה ותחושת מוזיקה בכל תנועה.',
         },
         {
           title: 'שיעורי ספורט ותנועה',
@@ -162,6 +162,21 @@ export const translations = {
         { title: 'מתקדמים', body: 'עבודה טכנית מדויקת, כולל אפשרות למסלולי תחרות.' },
         { title: 'שיעורים פרטיים', body: 'ליווי אישי בקצב שלכם, לכל רמה ומטרה.' },
       ],
+      audiencesTitle: 'לילדים ולמבוגרים',
+      audiences: [
+        { title: 'ילדים ונוער', body: 'קבוצות ילדים לפי רמה: קבוצת קטנים, קבוצת ילדים מתקדמים וקבוצת בוגרים. הילדים לומדים ריקודי סטנדרט ולטיניים, קואורדינציה ועבודה בזוג, ומי שרוצה ממשיך למסלול תחרותי ומופיע במופע סוף השנה.' },
+        { title: 'מבוגרים', body: 'קבוצת הובי למבוגרים (18+) למתחילים ולממשיכים, וגם שיעורים פרטיים. לא צריך ניסיון קודם ולא צריך להגיע עם בן או בת זוג.' },
+      ],
+      faq: {
+        title: 'שאלות על השיעורים',
+        items: [
+          { q: 'צריך ניסיון קודם?', a: 'לא. בקבוצות המתחילים מתחילים מהצעד הראשון, והמורים מתאימים את הקצב לכל תלמיד.' },
+          { q: 'צריך להגיע עם בן או בת זוג?', a: 'לא. אפשר להגיע לבד.' },
+          { q: 'מה לובשים לשיעור הראשון?', a: 'בגדים נוחים שקל לזוז בהם ונעליים נקיות. נעלי ריקוד מיוחדות אפשר לקנות בהמשך, והמורים ימליצו מה מתאים.' },
+          { q: 'אילו ריקודים לומדים?', a: 'את כל חמשת ריקודי הסטנדרט (ואלס אנגלי, טנגו, ואלס וינאי, פוקסטרוט וקוויקסטפ) ואת כל חמשת הריקודים הלטיניים (סמבה, צ׳ה-צ׳ה, רומבה, פאסו דובלה וג׳ייב), וגם שיעורי ספורט ותנועה.' },
+          { q: 'יש שיעורים פרטיים?', a: 'כן, לכל רמה ולכל מטרה. כתבו לנו בוואטסאפ ונמצא זמן מתאים.' },
+        ],
+      },
       cta: 'לפרטים ולהרשמה צרו קשר או עיינו בלוח הזמנים.',
     },
     schedule: {
@@ -484,7 +499,7 @@ export const translations = {
       introBody2:
         'Anyone can learn to dance at their own pace: in level-based groups — beginner, intermediate, and advanced — or in private lessons built around your own goals. Children, teens, and adults all find the right track here, and those who want to can go on to competition training.',
       introBody3:
-        'Ballroom classes cover the waltz, tango, and foxtrot; Latin classes cover cha-cha, samba, rumba, and salsa. Alongside them, sport and movement classes combine fitness, coordination, and musicality. The studio is in Rishon LeZion, and the full class schedule is kept up to date on this site.',
+        'Ballroom classes cover all five standard dances: slow waltz, tango, Viennese waltz, slow foxtrot and quickstep; Latin classes cover samba, cha-cha, rumba, paso doble and jive. Alongside them, sport and movement classes combine fitness, coordination, and musicality. The studio is in Rishon LeZion, and the full class schedule is kept up to date on this site.',
       highlightsTitle: 'Why ETUDE',
       highlights: [
         { title: 'Every level welcome', body: 'Beginner, intermediate, and advanced groups, and private lessons at your own pace.' },
@@ -522,11 +537,11 @@ export const translations = {
       categories: [
         {
           title: 'Ballroom dances',
-          body: 'Waltz, tango, foxtrot and more — the classic foundation of partner dancing, taught gradually and precisely.',
+          body: 'All five standard dances: slow waltz, tango, Viennese waltz, slow foxtrot and quickstep — the classic foundation of partner dancing, taught gradually and precisely.',
         },
         {
           title: 'Latin dances',
-          body: 'Cha-cha, samba, rumba and salsa — rhythm, energy, and musicality in every move.',
+          body: 'All five Latin dances: samba, cha-cha, rumba, paso doble and jive — rhythm, energy, and musicality in every move.',
         },
         {
           title: 'Sport & movement lessons',
@@ -540,6 +555,21 @@ export const translations = {
         { title: 'Advanced', body: 'Precise technical work, including an optional competition track.' },
         { title: 'Private lessons', body: 'One-on-one guidance at your own pace, for any level or goal.' },
       ],
+      audiencesTitle: 'For kids and adults',
+      audiences: [
+        { title: 'Children & teens', body: 'Children\'s groups by level: a junior group, an advanced children\'s group and a youth group. Kids learn ballroom and Latin, coordination and partnering, and those who want to can move on to the competition track and dance in the year-end recital.' },
+        { title: 'Adults', body: 'An adult hobby group (18+) for beginners and improvers, plus private lessons. No experience needed, and no partner needed.' },
+      ],
+      faq: {
+        title: 'Questions about classes',
+        items: [
+          { q: 'Do I need dance experience?', a: 'No. Beginner groups start from the very first step, and teachers adjust the pace to each student.' },
+          { q: 'Do I need to bring a partner?', a: 'No. You can come on your own.' },
+          { q: 'What should I wear to the first class?', a: 'Comfortable clothes you can move in and clean shoes. Proper dance shoes can come later; the teachers will advise what suits you.' },
+          { q: 'Which dances do you teach?', a: 'All five standard dances (slow waltz, tango, Viennese waltz, slow foxtrot and quickstep), all five Latin dances (samba, cha-cha, rumba, paso doble and jive), and sport & movement classes.' },
+          { q: 'Do you offer private lessons?', a: 'Yes, for every level and goal. Message us on WhatsApp and we will find a time that works.' },
+        ],
+      },
       cta: 'Contact us or check the schedule for details and registration.',
     },
     schedule: {
@@ -862,7 +892,7 @@ export const translations = {
       introBody2:
         'Учитесь танцевать в своём темпе: в группах по уровню — для начинающих, продолжающих и продвинутых — или на индивидуальных занятиях, построенных вокруг ваших личных целей. Дети, подростки и взрослые находят у нас подходящее направление, а желающие могут продолжить в соревновательной программе.',
       introBody3:
-        'На занятиях бальными танцами изучают вальс, танго и фокстрот, на латиноамериканских — ча-ча-ча, самбу, румбу и сальсу. Кроме того, проходят спортивно-танцевальные занятия, сочетающие физическую подготовку, координацию и музыкальность. Студия находится в Ришон-ле-Ционе, а полное расписание занятий регулярно обновляется на сайте.',
+        'На занятиях европейской программой изучают все пять танцев: медленный вальс, танго, венский вальс, медленный фокстрот и квикстеп, на латиноамериканских — самбу, ча-ча-ча, румбу, пасодобль и джайв. Кроме того, проходят спортивно-танцевальные занятия, сочетающие физическую подготовку, координацию и музыкальность. Студия находится в Ришон-ле-Ционе, а полное расписание занятий регулярно обновляется на сайте.',
       highlightsTitle: 'Почему ETUDE',
       highlights: [
         { title: 'Подходит любому уровню', body: 'Группы для начинающих, продолжающих и продвинутых, а также индивидуальные занятия.' },
@@ -900,11 +930,11 @@ export const translations = {
       categories: [
         {
           title: 'Бальные танцы',
-          body: 'Вальс, танго, фокстрот и другие — классическая основа парного танца, изучается постепенно и точно.',
+          body: 'Все пять танцев европейской программы: медленный вальс, танго, венский вальс, медленный фокстрот и квикстеп — классическая основа парного танца, изучается постепенно и точно.',
         },
         {
           title: 'Латиноамериканские танцы',
-          body: 'Ча-ча-ча, самба, румба и сальса — ритм, энергия и музыкальность в каждом движении.',
+          body: 'Все пять латиноамериканских танцев: самба, ча-ча-ча, румба, пасодобль и джайв — ритм, энергия и музыкальность в каждом движении.',
         },
         {
           title: 'Спортивно-танцевальные занятия',
@@ -918,6 +948,21 @@ export const translations = {
         { title: 'Продвинутые', body: 'Точная техническая работа, включая возможность соревновательного направления.' },
         { title: 'Индивидуальные занятия', body: 'Персональное сопровождение в вашем темпе, для любого уровня и цели.' },
       ],
+      audiencesTitle: 'Для детей и взрослых',
+      audiences: [
+        { title: 'Дети и подростки', body: 'Детские группы по уровню: младшая, продвинутая детская и старшая конкурсная. Дети изучают европейскую и латиноамериканскую программы, координацию и работу в паре, а желающие переходят в конкурсное направление и выступают на отчётном концерте.' },
+        { title: 'Взрослые', body: 'Хобби-группа для взрослых (18+) — для начинающих и продолжающих, а также индивидуальные занятия. Опыт не нужен, партнёр не нужен.' },
+      ],
+      faq: {
+        title: 'Вопросы о занятиях',
+        items: [
+          { q: 'Нужен ли опыт?', a: 'Нет. В группах для начинающих учат с самого первого шага, а педагоги подстраивают темп под каждого ученика.' },
+          { q: 'Нужно ли приходить с партнёром?', a: 'Нет, можно прийти одному или одной.' },
+          { q: 'Что надеть на первое занятие?', a: 'Удобную одежду, в которой легко двигаться, и чистую обувь. Танцевальную обувь можно купить позже — педагоги подскажут, какая подойдёт.' },
+          { q: 'Какие танцы вы преподаёте?', a: 'Все пять танцев европейской программы (медленный вальс, танго, венский вальс, медленный фокстрот и квикстеп), все пять латиноамериканских (самба, ча-ча-ча, румба, пасодобль и джайв), а также спортивно-танцевальные занятия.' },
+          { q: 'Есть ли индивидуальные занятия?', a: 'Да, для любого уровня и любой цели. Напишите нам в WhatsApp — подберём удобное время.' },
+        ],
+      },
       cta: 'Свяжитесь с нами или посмотрите расписание для подробностей и записи.',
     },
     schedule: {

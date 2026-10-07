@@ -5,12 +5,16 @@ import { freeTrialActive, olimOfferActive } from '../lib/site';
 
 interface Props {
   lang: Lang;
+  /** A page's own questions; omitted, the general (pricing) FAQ is shown. */
+  faq?: { title: string; items: readonly { q: string; a: string }[] };
 }
-const { lang } = Astro.props;
-const copy = translations[lang].faq;
-// items[0] is the free-trial question, items[1] the Olim one — drop each
-// when that offer is switched off in the admin panel.
-const items = copy.items.filter((_, i) => (i === 0 ? freeTrialActive : i === 1 ? olimOfferActive : true));
+const { lang, faq } = Astro.props;
+const copy = faq ?? translations[lang].faq;
+// In the general FAQ, items[0] is the free-trial question and items[1] the
+// Olim one — drop each when that offer is switched off in the admin panel.
+const items = faq
+  ? faq.items
+  : copy.items.filter((_, i) => (i === 0 ? freeTrialActive : i === 1 ? olimOfferActive : true));
 
 const faqSchema = {
   '@context': 'https://schema.org',
