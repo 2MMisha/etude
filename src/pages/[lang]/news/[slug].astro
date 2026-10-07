@@ -33,7 +33,7 @@ const articleSchema = {
   '@type': 'NewsArticle',
   headline: title,
   datePublished: post.data.date,
-  image: post.data.image || `${SITE.siteUrl}/images/og-default.jpg`,
+  image: post.data.image ? new URL(post.data.image, SITE.siteUrl).href : `${SITE.siteUrl}/images/og-default.jpg`,
   author: { '@type': 'Organization', name: SITE.brandNameLocalized[lang] },
   publisher: {
     '@type': 'Organization',

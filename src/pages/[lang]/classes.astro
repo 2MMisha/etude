@@ -2,6 +2,7 @@
 import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
+import PhotoGrid from '../../components/PhotoGrid.astro';
 import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 
@@ -24,6 +25,9 @@ const copy = translations[lang];
             <p>{c.body}</p>
           </div>
         ))}
+      </div>
+      <div class="classes-photos">
+        <PhotoGrid lang={lang} photos={['standardCoupleGreen', 'latinPair', 'girlGold', 'redDress']} />
       </div>
     </div>
   </section>
@@ -52,6 +56,7 @@ const copy = translations[lang];
 </BaseLayout>
 
 <style>
+  .classes-photos { margin-block-start: var(--space-lg); }
   .card--level { background: var(--color-ground); }
   .classes-cta {
     margin-block-start: var(--space-md);

@@ -1,0 +1,48 @@
+---
+import { PHOTOS, type PhotoKey } from '../data/photos';
+import type { Lang } from '../lib/languages';
+
+interface Props {
+  lang: Lang;
+  photos: PhotoKey[];
+  /** Crop shape for every tile: tall for dancers, wide for group shots. */
+  shape?: 'tall' | 'wide';
+}
+const { lang, photos, shape = 'tall' } = Astro.props;
+---
+
+<ul class={`photo-grid photo-grid--${shape}`}>
+  {photos.map((key) => {
+    const p = PHOTOS[key];
+    return (
+      <li>
+        <img src={p.src} alt={p.alt[lang]} width={p.width} height={p.height} loading="lazy" decoding="async" />
+      </li>
+    );
+  })}
+</ul>
+
+<style>
+  .photo-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+  .photo-grid--tall { grid-template-columns: repeat(4, 1fr); }
+  .photo-grid--wide { grid-template-columns: repeat(3, 1fr); }
+  .photo-grid img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+  }
+  .photo-grid--tall img { aspect-ratio: 3 / 4; }
+  .photo-grid--wide img { aspect-ratio: 3 / 2; }
+  @media (max-width: 820px) {
+    .photo-grid--tall { grid-template-columns: repeat(2, 1fr); }
+    .photo-grid--wide { grid-template-columns: 1fr; }
+  }
+</style>

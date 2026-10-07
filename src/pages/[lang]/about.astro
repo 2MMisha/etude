@@ -2,6 +2,7 @@
 import PageMore from '../../components/PageMore.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
+import PhotoGrid from '../../components/PhotoGrid.astro';
 import { ALL_LANGS, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
 
@@ -19,6 +20,9 @@ const copy = translations[lang];
     <div class="container about-body">
       <p>{copy.about.body1}</p>
       <p>{copy.about.body2}</p>
+    </div>
+    <div class="container about-photos">
+      <PhotoGrid lang={lang} photos={['recitalGroup', 'kidsGroup', 'kidsMedals']} shape="wide" />
     </div>
   </section>
 
@@ -39,6 +43,9 @@ const copy = translations[lang];
 </BaseLayout>
 
 <style>
+  .about-photos {
+    margin-block-start: var(--space-lg);
+  }
   .about-body {
     max-width: 70ch;
     font-size: 1.05rem;

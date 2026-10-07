@@ -3,6 +3,7 @@
 // Hebrew default directly — GitHub Pages can't send HTTP redirects, and a
 // meta-refresh is treated as a thin "doorway" page by SEO tools).
 import { excerpt } from '../lib/richText';
+import PhotoGrid from './PhotoGrid.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import NewsCard from './NewsCard.astro';
 import PromoBanner from './PromoBanner.astro';
@@ -80,6 +81,9 @@ const latestNews = allNews
           </li>
         ))}
       </ul>
+      <div class="home-photos">
+        <PhotoGrid lang={lang} photos={['standardCouple', 'latinCouple', 'girlLatin', 'teacherWithStudent']} />
+      </div>
     </div>
   </section>
 
@@ -131,6 +135,9 @@ const latestNews = allNews
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
     align-items: center;
     gap: var(--space-lg);
+  }
+  .home-photos {
+    margin-block-start: var(--space-lg);
   }
   .hero__heading {
     margin: 0;
