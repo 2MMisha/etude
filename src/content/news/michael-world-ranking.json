@@ -1,7 +1,21 @@
 {
   "date": "2026-10-07",
+<<<<<<< HEAD
   "image": "/images/news/michael.webp",
   "imageCredit": { "he": "2M Photo", "en": "2M Photo", "ru": "2M Photo" },
+=======
+  "image": "https://etude.ristar.co/images/news/michael.webp",
+  "imageAlt": {
+    "he": "",
+    "en": "",
+    "ru": ""
+  },
+  "imageCredit": {
+    "he": "",
+    "en": "",
+    "ru": ""
+  },
+>>>>>>> fc6e4f10ac598d4e32b2c67df3e04827c3ecdcd4
   "title": {
     "he": "המורה שלנו מיכאל מוקרושוב במקום ה-8 בדירוג העולמי",
     "en": "Our teacher Michael Mokrushov is #8 in the world ranking",
