@@ -6,12 +6,14 @@
 // "etude-cookie-consent": "granted" | "denied".
 import { SITE } from '../lib/site';
 const id = SITE.ga4MeasurementId;
+const adsId = SITE.googleAdsId;
+const adsConversion = SITE.googleAdsContactConversion;
 ---
 
 {id && (
   <>
     <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${id}`}></script>
-    <script is:inline define:vars={{ id }}>
+    <script is:inline define:vars={{ id, adsId, adsConversion }}>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       window.gtag = gtag;
@@ -25,6 +27,18 @@ const id = SITE.ga4MeasurementId;
       });
       gtag('js', new Date());
       gtag('config', id);
+      if (adsId) gtag('config', adsId);
+      // Google Ads contact conversion: WhatsApp / phone clicks and form submits.
+      if (adsConversion) {
+        var convert = function () { gtag('event', 'conversion', { send_to: adsConversion }); };
+        document.addEventListener('click', function (e) {
+          var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href*="wa.me/"]');
+          if (a) convert();
+        });
+        document.addEventListener('submit', function (e) {
+          if (e.target.closest && e.target.closest('.contact-form')) convert();
+        });
+      }
       window.etudeLoadAnalytics = function () {
         gtag('consent', 'update', { analytics_storage: 'granted' });
       };

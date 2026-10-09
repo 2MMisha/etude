@@ -86,6 +86,10 @@ export const SITE = {
   // Google Analytics 4 ID; loads only after cookie consent (Analytics.astro).
   // Empty string disables analytics.
   ga4MeasurementId: 'G-PYNX9TKS20',
+  // Google Ads "יצירת קשר" conversion — fired on WhatsApp/phone clicks and
+  // contact-form submits (Analytics.astro). Empty string disables it.
+  googleAdsId: 'AW-16981195994',
+  googleAdsContactConversion: 'AW-16981195994/1EQbCLLH9LYaENr5oaE_',
 
   // Contact form relay (FormSubmit — no backend required)
   formSubmitEndpoint: 'https://formsubmit.co/2mmedia.il@gmail.com',
