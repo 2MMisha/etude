@@ -83,8 +83,8 @@ export const SITE = {
   // widget language follows the page (see AccessibilityWidget.astro).
   tabnavReq: 'qpW9foMfxTXWGKBm8tUELM3lhjYtKw',
 
-  // Analytics — inert until a real ID is supplied. Leave as-is to ship with
-  // analytics disabled; replace with a real G-XXXXXXX ID to activate.
+  // Google Analytics 4 ID; loads only after cookie consent (Analytics.astro).
+  // Empty string disables analytics.
   ga4MeasurementId: 'G-PYNX9TKS20',
 
   // Contact form relay (FormSubmit — no backend required)

@@ -1,27 +1,33 @@
 ---
-// Google Analytics 4, loaded only after the visitor accepts cookies in the
-// consent banner (CookieConsent.astro). The choice lives in localStorage
-// under "etude-cookie-consent": "granted" | "denied".
+// Google Analytics 4 with Consent Mode v2. The tag is always in the page (so
+// Google's tag check sees it), but consent defaults to "denied": no cookies,
+// only cookieless pings. Accepting in the consent banner (CookieConsent.astro)
+// flips it to "granted". The choice lives in localStorage under
+// "etude-cookie-consent": "granted" | "denied".
 import { SITE } from '../lib/site';
 const id = SITE.ga4MeasurementId;
 ---
 
 {id && (
-  <script is:inline define:vars={{ id }}>
-    window.etudeLoadAnalytics = function () {
-      if (window.etudeAnalyticsLoaded) return;
-      window.etudeAnalyticsLoaded = true;
-      var s = document.createElement('script');
-      s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
-      document.head.appendChild(s);
+  <>
+    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${id}`}></script>
+    <script is:inline define:vars={{ id }}>
       window.dataLayer = window.dataLayer || [];
-      window.gtag = function () { window.dataLayer.push(arguments); };
-      window.gtag('js', new Date());
-      window.gtag('config', id);
-    };
-    try {
-      if (localStorage.getItem('etude-cookie-consent') === 'granted') window.etudeLoadAnalytics();
-    } catch (e) {}
-  </script>
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      var granted = false;
+      try { granted = localStorage.getItem('etude-cookie-consent') === 'granted'; } catch (e) {}
+      gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: granted ? 'granted' : 'denied'
+      });
+      gtag('js', new Date());
+      gtag('config', id);
+      window.etudeLoadAnalytics = function () {
+        gtag('consent', 'update', { analytics_storage: 'granted' });
+      };
+    </script>
+  </>
 )}
