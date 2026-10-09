@@ -1,6 +1,7 @@
 {
   "date": "2026-10-07",
-  "image": "",
+  "image": "/images/news/michael.webp",
+  "imageCredit": { "he": "2M Photo", "en": "2M Photo", "ru": "2M Photo" },
   "title": {
     "he": "המורה שלנו מיכאל מוקרושוב במקום ה-8 בדירוג העולמי",
     "en": "Our teacher Michael Mokrushov is #8 in the world ranking",

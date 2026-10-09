@@ -24,7 +24,7 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
 ---
 
 <article class="news-card card">
-  <div class="news-card__image">
+  <div class="news-card__image" style={image ? `--src:url(${image})` : undefined}>
     {image ? (
       <img src={image} alt={title} loading="lazy" />
     ) : (
@@ -49,13 +49,24 @@ const formattedDate = new Date(date).toLocaleDateString(lang === 'he' ? 'he-IL' 
     flex-direction: column;
   }
   .news-card__image {
+    position: relative;
     aspect-ratio: 16 / 9;
+    overflow: hidden;
     background: var(--color-silver-100);
   }
+  /* Blurred copy fills the edges when the photo isn't 16:9 */
+  .news-card__image::before {
+    content: "";
+    position: absolute;
+    inset: -30px;
+    background: var(--src) center / cover;
+    filter: blur(12px) saturate(1.4);
+  }
   .news-card__image img {
+    position: relative;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
   .news-card__placeholder {
     width: 100%;

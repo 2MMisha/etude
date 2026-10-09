@@ -73,7 +73,9 @@ const articleSchema = {
       <h1>{title}</h1>
       {post.data.image ? (
         <figure class="news-article__figure">
-          <img src={post.data.image} alt={imageAlt} class="news-article__image" />
+          <div class="news-article__frame" style={`--src:url(${post.data.image})`}>
+            <img src={post.data.image} alt={imageAlt} class="news-article__image" />
+          </div>
           {(post.data.imageAlt?.[lang] || imageCredit) && (
             <figcaption>
               {post.data.imageAlt?.[lang]}
@@ -113,9 +115,25 @@ const articleSchema = {
     margin-block: var(--space-md);
     margin-inline: 0;
   }
-  .news-article__image {
-    width: 100%;
+  .news-article__frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
     border-radius: var(--radius-lg);
+  }
+  /* Blurred copy fills the edges when the photo isn't 16:9 */
+  .news-article__frame::before {
+    content: "";
+    position: absolute;
+    inset: -30px;
+    background: var(--src) center / cover;
+    filter: blur(12px) saturate(1.4);
+  }
+  .news-article__image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
   .news-article__figure figcaption {
     margin-block-start: 0.5rem;
