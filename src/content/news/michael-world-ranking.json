@@ -1,6 +1,16 @@
 {
   "date": "2026-10-07",
-  "image": "",
+  "image": "https://etude.ristar.co/images/news/michael.webp",
+  "imageAlt": {
+    "he": "",
+    "en": "",
+    "ru": ""
+  },
+  "imageCredit": {
+    "he": "",
+    "en": "",
+    "ru": ""
+  },
   "title": {
     "he": "המורה שלנו מיכאל מוקרושוב במקום ה-8 בדירוג העולמי",
     "en": "Our teacher Michael Mokrushov is #8 in the world ranking",
