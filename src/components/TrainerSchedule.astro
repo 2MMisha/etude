@@ -272,8 +272,11 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
                 const [eh, em] = i.end.split(':').map(Number);
                 const done = past || (isToday && eh * 60 + em <= nowMin);
                 const rent = RENTAL_COLUMN.test(i.column);
-                const chip = isAll || isRentals || i.column.includes(' · ')
-                  ? `<span class="chip ${rent ? 'chip--rent' : `c${colorOf(i.column.split(' · ')[0])}`}">${rent ? '🔑 ' : ''}${esc(i.column)}</span>`
+                // Who (on shared pages) plus the hall, unless the label already names it.
+                const who = isAll || isRentals || i.column.includes(' · ') ? i.column : '';
+                const label = [who, i.hall && !who.includes(i.hall) ? i.hall : ''].filter(Boolean).join(' · ');
+                const chip = label
+                  ? `<span class="chip ${rent ? 'chip--rent' : `c${colorOf(i.column.split(' · ')[0])}`}">${rent ? '🔑 ' : ''}${esc(label)}</span>`
                   : '';
                 return `
                   <li class="ev${rent ? ' ev--rent' : ''}${done ? ' ev--done' : ''}">

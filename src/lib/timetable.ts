@@ -3,17 +3,19 @@
 //
 // The spreadsheet is the studio's own weekly grid: one sheet per week, a row
 // of day names (SUNDAY…SATURDAY, each merged across several columns), a row
-// of dates under it, a row of column labels (teachers / halls), then one row
-// per 15-minute slot with the time in the first column. A class is a filled
-// cell; its length is the height of its merged range. Titles and labels are
-// kept exactly as typed in the sheet.
+// of dates under it, optionally a row of halls (BIG HALL / SMALL HALL, each
+// merged across its columns), a row of column labels (teachers / RENT), then
+// one row per 15-minute slot with the time in the first column. A class is a
+// filled cell; its length is the height of its merged range. Titles and
+// teacher names are kept exactly as typed in the sheet.
 import type { WorkBook, WorkSheet, CellObject, Range } from 'xlsx';
 
 export interface TimetableItem {
   start: string; // "18:00"
   end: string; // "19:00"
   title: string; // cell text, e.g. "Adv Hobby Gr"
-  column: string; // column label(s), e.g. "Roman" or "Small Hall (rent)"
+  column: string; // teacher(s), e.g. "Roman"; a rental "Big Hall (RENT 1)"; a whole-hall block "Big Hall"
+  hall?: string; // "Big Hall" / "Small Hall", when the sheet has a hall row
 }
 
 export interface TimetableDay {
@@ -161,11 +163,26 @@ function parseSheet(ws: WorkSheet, sheetName: string, utils: Utils, warnings: st
   for (let r = headerRow + 1; r <= headerRow + 2 && dateRow < 0; r++) {
     if (headers.some((h) => dateOf(cell(r, h.c0), yearHint))) dateRow = r;
   }
-  const labelRow = (dateRow >= 0 ? dateRow : headerRow) + 1;
+  // The label row is the one just above the first row with a time; a hall row
+  // may sit between it and the dates.
+  const afterDates = (dateRow >= 0 ? dateRow : headerRow) + 1;
+  let firstDataRow = afterDates + 1;
+  for (let r = afterDates + 1; r <= afterDates + 3; r++) {
+    if (rowTimeOf(cell(r, timeCol), r + 1) != null) { firstDataRow = r; break; }
+  }
+  const labelRow = firstDataRow - 1;
+  const hallRow = labelRow > afterDates ? labelRow - 1 : -1;
   const labelOf = (c: number) => textOf(cell(labelRow, c)) || `#${c - firstDayCol + 1}`;
+  // Hall of a column: the merged hall-row cell covering it, "BIG HALL" → "Big Hall".
+  const hallOf = (c: number) => {
+    if (hallRow < 0) return null;
+    const m = merges.find((m) => m.s.r <= hallRow && hallRow <= m.e.r && m.s.c <= c && c <= m.e.c);
+    const c0 = m ? m.s.c : c;
+    const name = textOf(cell(hallRow, c0)).toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
+    return name ? { name, c0, c1: m ? m.e.c : c } : null;
+  };
 
   // 3. Slot times for every row below the labels; fill gaps from the step.
-  const firstDataRow = labelRow + 1;
   const times: (number | null)[] = [];
   for (let r = firstDataRow; r <= range.e.r + 1; r++) times[r] = rowTimeOf(cell(r, timeCol), r + 1);
   let step = 15;
@@ -200,9 +217,19 @@ function parseSheet(ws: WorkSheet, sheetName: string, utils: Utils, warnings: st
         const lastCol = m ? Math.min(m.e.c, h.c1) : c;
         const labels: string[] = [];
         for (let cc = c; cc <= lastCol; cc++) labels.push(labelOf(cc));
+        const hall = hallOf(c);
+        // A block over every column of a hall (e.g. PRACTICE) belongs to the
+        // hall, not to a teacher; a rental column is named after its hall.
+        const column = !hall
+          ? labels.join(' · ')
+          : c === hall.c0 && lastCol >= Math.min(hall.c1, h.c1)
+            ? hall.name
+            : labels.length === 1 && RENTAL_COLUMN.test(labels[0])
+              ? `${hall.name} (${labels[0]})`
+              : labels.join(' · ');
         const start = times[r] as number;
         const end = (times[lastRow + 1] ?? (times[lastRow] as number) + step) as number;
-        days[i].items.push({ start: minutesToTime(start), end: minutesToTime(end), title, column: labels.join(' · ') });
+        days[i].items.push({ start: minutesToTime(start), end: minutesToTime(end), title, column, ...(hall && { hall: hall.name }) });
       }
     }
     days[i].items.sort((a, b) => a.start.localeCompare(b.start) || a.column.localeCompare(b.column));

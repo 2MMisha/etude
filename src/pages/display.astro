@@ -5,17 +5,53 @@
 // /data/timetable.json every couple of minutes, so a new Excel upload shows
 // up on the TV within a few minutes of the site redeploying — no reload.
 //
-// A 5-minute loop driven by the clock: today's classes in Hebrew, English,
-// Russian (one minute each), then the whole week for 2 minutes (in Hebrew).
-// While a hall rental is on and no class is running anywhere, the screen
-// instead welcomes the guests (he/en/ru, a minute each, no week view) with the
-// rental's times and countdown on the side.
+// A playlist with one full block per language, he → ru → en, each:
+// today's classes (1 min) → the week (1 min) → that language's next ad video
+// from public/display/ads/ (muted, played to the end; "-he-"/"-ru-"/"-en-" in
+// the file name, untagged = every language) → the next of the latest 3 news
+// posts (15 s, QR to the post) → Instagram or Google-review QR (15 s). See
+// buildPlaylist(). While a hall rental is on and no class is running anywhere,
+// the screen instead welcomes the guests (he/en/ru, a minute each) with the
+// rental's times and countdown on the side, and the promo slides are skipped.
 //
 // URL options: ?lang=he|en|ru pins one language · ?view=today|week pins a view ·
-// ?rent=0 hides rental columns · ?date=2026-10-05&time=18:20 freezes the clock
-// (for checking a layout).
+// ?view=promo shows every promo slide (?slide=N starts at slide N) ·
+// ?promo=0 schedule only · ?rent=0 hides rental columns ·
+// ?date=2026-10-05&time=18:20 freezes the clock (for checking a layout).
+// New videos/news reach the TV with the next deploy + its 6-hourly reload.
 // Not linked anywhere, noindex, excluded from the sitemap and robots.txt.
+import { readdirSync } from 'node:fs';
+import QRCode from 'qrcode';
 import '../styles/global.css';
+import { getPublishedNews } from '../lib/news';
+import { excerpt } from '../lib/richText';
+import { SITE } from '../lib/site';
+
+const GOOGLE_REVIEW_URL = 'https://g.page/r/CeBxKXmKBI4FEAE/review';
+const qr = (url: string) => QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+const langs = ['he', 'en', 'ru'] as const;
+
+const videos = readdirSync('public/display/ads')
+  .filter((f) => /\.(mp4|webm|mov|m4v)$/i.test(f))
+  .sort()
+  .map((f) => `/display/ads/${encodeURIComponent(f)}`);
+const news = await Promise.all(
+  (await getPublishedNews())
+    .sort((a, b) => b.data.date.localeCompare(a.data.date))
+    .slice(0, 3)
+    .map(async (post) => ({
+      image: post.data.image || '',
+      title: post.data.title,
+      text: Object.fromEntries(langs.map((l) => [l, excerpt(post.data.body[l], 220)])),
+      qr: Object.fromEntries(await Promise.all(langs.map(async (l) => [l, await qr(`${SITE.siteUrl}/${l}/news/${post.id}/`)]))),
+    }))
+);
+const promo = {
+  videos,
+  news,
+  instagram: { qr: await qr(SITE.social.instagram), handle: SITE.social.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\/|\/$/g, '') },
+  review: { qr: await qr(GOOGLE_REVIEW_URL) },
+};
 ---
 
 <!doctype html>
@@ -57,6 +93,7 @@ import '../styles/global.css';
         <section class="welcome" id="welcome"></section>
         <aside class="rentside" id="rentSide"></aside>
       </main>
+      <main class="promoview" id="promoView" hidden></main>
 
       <footer class="bottom">
         <span>etude.ristar.co</span>
@@ -64,6 +101,7 @@ import '../styles/global.css';
       </footer>
     </div>
 
+    <script type="application/json" id="promoData" set:html={JSON.stringify(promo).replace(/</g, '\\u003c')} />
     <script>
       import { dayFor, timeToMinutes, weekOf, RENTAL_COLUMN, type Timetable, type TimetableItem } from '../lib/timetable';
       import { SITE } from '../lib/site';
@@ -76,6 +114,8 @@ import '../styles/global.css';
           dayOver: 'השיעורים להיום הסתיימו', seeYou: 'נתראה בשיעור הבא!', template: 'לפי לוח השבוע האחרון שהועלה',
           noData: 'לוח הזמנים עדיין לא הועלה', offline: 'אין חיבור — מוצג המידע האחרון', locale: 'he-IL', dir: 'rtl',
           thisWeek: 'לוח השבוע', today2: 'היום', welcome: 'ברוכים הבאים לאטיוד', rental: 'השכרת אולם', later: 'בהמשך היום',
+          news: 'חדשות הסטודיו', scanRead: 'סרקו לקריאת הכתבה', follow: 'עקבו אחרינו באינסטגרם', followSub: 'סרטונים, תמונות ועדכונים מהסטודיו',
+          review: 'נהניתם בשיעור? נשמח לביקורת בגוגל', reviewSub: 'סרקו את הקוד, זה לוקח דקה', scan: 'סרקו עם מצלמת הטלפון',
         },
         en: {
           today: "Today's classes", now: 'Now', next: 'Up next', startsIn: 'Starts in', endsIn: 'Ends in',
@@ -83,6 +123,8 @@ import '../styles/global.css';
           dayOver: "That's all for today", seeYou: 'See you at the next class!', template: 'Based on the latest uploaded week',
           noData: 'The schedule has not been uploaded yet', offline: 'Offline — showing the last known schedule', locale: 'en-GB', dir: 'ltr',
           thisWeek: "This week's classes", today2: 'Today', welcome: 'Welcome to ETUDE', rental: 'Hall rental', later: 'Later today',
+          news: 'Studio news', scanRead: 'Scan to read the full story', follow: 'Follow us on Instagram', followSub: 'Videos, photos and studio news',
+          review: 'Enjoyed your class? Leave us a Google review', reviewSub: 'Scan the code, it takes a minute', scan: 'Scan with your phone camera',
         },
         ru: {
           today: 'Занятия сегодня', now: 'Сейчас', next: 'Следующее', startsIn: 'Начало через', endsIn: 'До конца',
@@ -90,27 +132,84 @@ import '../styles/global.css';
           dayOver: 'Занятия на сегодня закончились', seeYou: 'До встречи на следующем занятии!', template: 'По последней загруженной неделе',
           noData: 'Расписание ещё не загружено', offline: 'Нет связи — показано последнее расписание', locale: 'ru-RU', dir: 'ltr',
           thisWeek: 'Расписание на неделю', today2: 'Сегодня', welcome: 'Добро пожаловать в Этюд', rental: 'Аренда зала', later: 'Дальше сегодня',
+          news: 'Новости студии', scanRead: 'Сканируйте, чтобы прочитать', follow: 'Подписывайтесь в Instagram', followSub: 'Видео, фото и новости студии',
+          review: 'Понравилось занятие? Оставьте отзыв в Google', reviewSub: 'Отсканируйте код, это займёт минуту', scan: 'Наведите камеру телефона',
         },
       } as const;
 
       const params = new URLSearchParams(location.search);
       const ROTATION: Lang[] = ['he', 'en', 'ru'];
       const pinnedLang = ROTATION.find((l) => l === params.get('lang'));
-      const pinnedView = ['today', 'week'].find((v) => v === params.get('view'));
+      const pinnedView = ['today', 'week', 'promo'].find((v) => v === params.get('view'));
+      const promoOff = params.get('promo') === '0';
       const hideRent = params.get('rent') === '0';
       const frozenDate = params.get('date');
       const frozenTime = params.get('time');
 
-      // Loop position (0–4) from the clock, so every screen in the studio is in sync:
-      // 0 he · 1 en · 2 ru (today), 3–4 the week. During a rental-only stretch
-      // it's just he · en · ru on the welcome screen.
-      const LOOP = ROTATION.length + 2;
+      // ---- Playlist: one full block per language, he → ru → en ----
+      // Each block: today (1 min) → week (1 min) → that language's next video
+      // (played to the end) → next news post (15 s) → Instagram or Google QR
+      // (15 s). Videos are matched by "-he-" / "-ru-" / "-en-" in the file
+      // name; an untagged file plays in every block. While only a hall rental
+      // is on, the screen shows the welcome view instead (he · en · ru by the
+      // minute) and the promo slides are skipped.
+      type Promo = {
+        videos: string[];
+        news: { image: string; title: Record<Lang, string>; text: Record<Lang, string>; qr: Record<Lang, string> }[];
+        instagram: { qr: string; handle: string };
+        review: { qr: string };
+      };
+      type Slide = { lang: Lang } & ({ kind: 'today' | 'week' | 'instagram' | 'review' } | { kind: 'video'; src: string } | { kind: 'news'; n: number });
+      const PROMO = JSON.parse(document.getElementById('promoData')!.textContent || '{}') as Promo;
+      const BLOCK_ORDER: Lang[] = ['he', 'ru', 'en'];
+      const PER_BLOCK = { videos: 1, news: 1, qr: 1 };
+      const MS = { today: 60 * 1000, week: 60 * 1000, news: 15 * 1000, instagram: 15 * 1000, review: 15 * 1000, video: 10 * 60 * 1000 }; // video: safety net only
+      const videoLang = (src: string) => BLOCK_ORDER.find((l) => new RegExp(`[-_.]${l}[-_.]`, 'i').test(src));
+
+      let slides: Slide[] = [];
+      let slideAt = -1;
+      let slideTimer = 0;
+      let round = 0; // full playlists played, so each round takes the next video/news/QR
+      const take = <T,>(list: T[], n: number) =>
+        list.length ? Array.from({ length: Math.min(n, list.length) }, (_, i) => list[(round * n + i) % list.length]) : [];
+      const isPromo = (slide?: Slide) => !!slide && slide.kind !== 'today' && slide.kind !== 'week';
+
+      function buildPlaylist(): Slide[] {
+        const langs = pinnedLang ? [pinnedLang] : BLOCK_ORDER;
+        return langs.flatMap((lang): Slide[] => {
+          if (pinnedView === 'today' || pinnedView === 'week') return [{ kind: pinnedView, lang }];
+          const videos = PROMO.videos.filter((src) => (videoLang(src) ?? lang) === lang).map((src): Slide => ({ kind: 'video', src, lang }));
+          const news = PROMO.news.map((_, n): Slide => ({ kind: 'news', n, lang }));
+          const qr: Slide[] = [{ kind: 'instagram', lang }, { kind: 'review', lang }];
+          // ?view=promo: every promo slide, for checking layouts.
+          if (pinnedView === 'promo') return [...videos, ...news, ...qr];
+          const schedule: Slide[] = [{ kind: 'today', lang }, { kind: 'week', lang }];
+          if (promoOff) return schedule;
+          return [...schedule, ...take(videos, PER_BLOCK.videos), ...take(news, PER_BLOCK.news), ...take(qr, PER_BLOCK.qr)];
+        });
+      }
+
+      function nextSlide() {
+        clearTimeout(slideTimer);
+        slideAt++;
+        if (slideAt >= slides.length) {
+          if (slides.length) round++;
+          slides = buildPlaylist();
+          slideAt = !round && pinnedView === 'promo' ? Math.min(Number(params.get('slide')) || 0, slides.length - 1) : 0;
+        }
+        // During a rental-only stretch, skip the promo slides.
+        if (isPromo(slides[slideAt]) && pinnedView !== 'promo' && rentalsNow(now()).length) return nextSlide();
+        // A video moves on when it ends; its timer is only a safety net.
+        slideTimer = window.setTimeout(nextSlide, MS[slides[slideAt].kind]);
+        render();
+      }
+
       const minuteOf = (d: Date) => d.getHours() * 60 + d.getMinutes();
-      const step = (d: Date) => minuteOf(d) % LOOP;
-      const viewFor = (d: Date) => pinnedView ?? (rentalsNow(now()).length ? 'rent' : step(d) < ROTATION.length ? 'today' : 'week');
+      const slide = () => slides[slideAt];
+      const viewFor = (_d: Date) =>
+        isPromo(slide()) ? 'promo' : !pinnedView && rentalsNow(now()).length ? 'rent' : slide()?.kind ?? 'today';
       const langFor = (d: Date): Lang =>
-        pinnedLang ??
-        (viewFor(d) === 'rent' ? ROTATION[minuteOf(d) % ROTATION.length] : step(d) < ROTATION.length ? ROTATION[step(d)] : ROTATION[0]);
+        pinnedLang ?? (viewFor(d) === 'rent' ? ROTATION[minuteOf(d) % ROTATION.length] : slide()?.lang ?? 'he');
       let lang: Lang = 'he';
       let t: (typeof L)[Lang] = L[lang];
       let view = '';
@@ -171,9 +270,22 @@ import '../styles/global.css';
       const icon = (name: keyof typeof ICONS) =>
         `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 
-      function chip(column: string) {
-        if (RENTAL_COLUMN.test(column)) return `<span class="chip chip--rent">${esc(column)}</span>`;
-        return `<span class="chip c${colorOf(column)}">${esc(column)}</span>`;
+      const HALLS: Record<string, Record<Lang, string>> = {
+        'Big Hall': { he: 'אולם גדול', en: 'Big Hall', ru: 'Большой зал' },
+        'Small Hall': { he: 'אולם קטן', en: 'Small Hall', ru: 'Малый зал' },
+      };
+      const hallName = (hall: string) => HALLS[hall]?.[lang] ?? hall;
+
+      // "Roman · אולם גדול"; a whole-hall block or a rental is named after its hall.
+      function whoOf(item: TimetableItem) {
+        if (!item.hall) return item.column;
+        if (item.column.startsWith(item.hall)) return hallName(item.hall) + item.column.slice(item.hall.length);
+        return `${item.column} · ${hallName(item.hall)}`;
+      }
+
+      function chip(item: TimetableItem) {
+        if (isRent(item)) return `<span class="chip chip--rent">${esc(whoOf(item))}</span>`;
+        return `<span class="chip c${colorOf(item.column)}">${esc(whoOf(item))}</span>`;
       }
 
       function focusCard(kind: 'now' | 'next', item: TimetableItem, minutes: number) {
@@ -185,7 +297,7 @@ import '../styles/global.css';
             <p class="card__kind">${kind === 'now' ? `<span class="pulse"></span>${t.now}` : t.next}</p>
             <h3 class="card__title" dir="auto">${esc(item.title)}</h3>
             <p class="card__time" dir="ltr">${item.start} – ${item.end}</p>
-            <div class="card__meta">${chip(item.column)}<span>${left}</span></div>
+            <div class="card__meta">${chip(item)}<span>${left}</span></div>
             ${kind === 'now' ? `<div class="bar"><span style="inline-size:${progress.toFixed(1)}%"></span></div>` : ''}
           </article>`;
       }
@@ -195,7 +307,7 @@ import '../styles/global.css';
           <li class="row row--${state}${isRent(item) ? ' is-rent' : ''}" data-end="${item.end}">
             <span class="row__time" dir="ltr">${item.start}–${item.end}</span>
             <span class="row__title" dir="auto">${esc(item.title)}</span>
-            ${chip(item.column)}
+            ${chip(item)}
           </li>`;
       }
 
@@ -267,20 +379,27 @@ import '../styles/global.css';
       let switching = false;
       function render() {
         const real = new Date();
+        if (!slides.length) return nextSlide();
         const nextLang = langFor(real);
         const nextView = viewFor(real);
-        if ((nextLang !== lang || nextView !== view) && view && !switching) {
+        const key = `${nextView}|${nextLang}|${slideAt}`;
+        if (key !== drawn && drawn && !switching) {
           switching = true;
           $('screen').classList.add('is-fading');
           setTimeout(() => {
             switching = false;
-            draw(nextLang, nextView);
+            drawn = `${viewFor(new Date())}|${langFor(new Date())}|${slideAt}`;
+            draw(langFor(new Date()), viewFor(new Date()));
             $('screen').classList.remove('is-fading');
           }, 450);
           return;
         }
-        if (!switching) draw(nextLang, nextView);
+        if (!switching) {
+          drawn = key;
+          draw(nextLang, nextView);
+        }
       }
+      let drawn = '';
 
       function draw(nextLang: Lang, nextView: string) {
         lang = nextLang;
@@ -293,7 +412,11 @@ import '../styles/global.css';
         $('todayView').hidden = view !== 'today';
         $('weekView').hidden = view !== 'week';
         $('rentView').hidden = view !== 'rent';
+        $('promoView').hidden = view !== 'promo';
         $('screen').classList.toggle('is-rent', view === 'rent');
+        $('screen').classList.toggle('is-video', view === 'promo' && slides[slideAt]?.kind === 'video');
+        if (view !== 'promo') setHTML($('promoView'), ''); // stop any video
+        if (view === 'promo') return renderPromo(date);
         if (view === 'week') return renderWeek(date);
         if (view === 'rent') return renderRent(date);
         renderToday(date);
@@ -325,7 +448,7 @@ import '../styles/global.css';
                         <li class="wev${isRent(i) ? ' is-rent' : ` c${colorOf(i.column)}`}${iso === todayIso && timeToMinutes(i.end) <= minutes ? ' wev--past' : ''}" data-end="${i.end}">
                           <span class="wev__time" dir="ltr">${i.start}</span>
                           <span class="wev__title" dir="auto">${esc(i.title)}</span>
-                          <span class="wev__who" dir="auto">${isRent(i) ? icon('key') : ''}${esc(i.column)}</span>
+                          <span class="wev__who" dir="auto">${isRent(i) ? icon('key') : ''}${esc(whoOf(i))}</span>
                         </li>`
                     )
                     .join('')}</ul></div>`
@@ -441,13 +564,74 @@ import '../styles/global.css';
                   <p class="rentcard__time" dir="ltr">${i.start} – ${i.end}</p>
                   <p class="rentcard__left">${t.endsIn} <b>${duration(e - minutes)}</b></p>
                   <div class="bar"><span style="inline-size:${(((minutes - s) / (e - s)) * 100).toFixed(1)}%"></span></div>
-                  <div class="card__meta">${chip(i.column)}</div>
+                  <div class="card__meta">${chip(i)}</div>
                 </article>`;
             })
             .join('') +
             (next ? `<p class="rentside__later">${t.later}: <bdi dir="ltr">${next.start}</bdi> · <bdi>${esc(next.title)}</bdi></p>` : '')
         );
         $('note').textContent = offline ? t.offline : '';
+      }
+
+      function renderPromo(date: Date) {
+        const slide = slides[slideAt];
+        $('note').textContent = '';
+        $('date').textContent = date.toLocaleDateString(t.locale, { weekday: 'long', day: 'numeric', month: 'long' });
+        if (slide.kind === 'video') {
+          setHTML($('promoView'), `<video class="promo__video" src="${esc(slide.src)}" muted autoplay playsinline preload="auto"></video>`);
+          const video = $('promoView').querySelector('video')!;
+          video.onended = video.onerror = () => nextSlide();
+          // Safety net: the video's own length + 5 s, in case it stalls.
+          video.onloadedmetadata = () => {
+            clearTimeout(slideTimer);
+            slideTimer = window.setTimeout(nextSlide, (video.duration + 5) * 1000);
+          };
+          // Blocked or unplayable → skip; other interruptions (e.g. a paused
+          // background tab) are left to the safety net above.
+          video.play().catch((e) => ['NotAllowedError', 'NotSupportedError'].includes(e?.name) && nextSlide());
+          return;
+        }
+        const qrBox = (svg: string, caption: string) => `<figure class="qr"><div class="qr__code">${svg}</div><figcaption>${caption}</figcaption></figure>`;
+        if (slide.kind === 'news') {
+          const post = PROMO.news[slide.n];
+          document.querySelector<HTMLElement>('.top__label')!.textContent = t.news;
+          setHTML(
+            $('promoView'),
+            `<div class="promo promo--news">
+              <div class="promo__media">${post.image ? `<img src="${esc(post.image)}" alt="" />` : '<img class="promo__logo" src="/images/brand/logo-full-white.svg" alt="" />'}</div>
+              <div class="promo__text">
+                <h2 class="promo__title" dir="auto">${esc(post.title[slide.lang])}</h2>
+                <p class="promo__body" dir="auto">${esc(post.text[slide.lang])}</p>
+                ${qrBox(post.qr[slide.lang], t.scanRead)}
+              </div>
+            </div>`
+          );
+          fitText($('promoView').querySelector('.promo__text'));
+          return;
+        }
+        document.querySelector<HTMLElement>('.top__label')!.textContent = SITE.tagline[lang];
+        const insta = slide.kind === 'instagram';
+        setHTML(
+          $('promoView'),
+          `<div class="promo promo--qr">
+            <div class="promo__text">
+              <p class="promo__icon">${insta ? icon('instagram') : '<span class="stars">★★★★★</span>'}</p>
+              <h2 class="promo__title">${insta ? t.follow : t.review}</h2>
+              <p class="promo__body">${insta ? `<bdi dir="ltr">@${esc(PROMO.instagram.handle)}</bdi> · ${t.followSub}` : t.reviewSub}</p>
+            </div>
+            ${qrBox(insta ? PROMO.instagram.qr : PROMO.review.qr, t.scan)}
+          </div>`
+        );
+        fitText($('promoView').querySelector('.promo__text'));
+      }
+
+      // Shrink a slide's text block until it fits its box — long titles never spill out.
+      function fitText(el: HTMLElement | null) {
+        if (!el || el.style.getPropertyValue('--k')) return; // fitted already (slide unchanged)
+        for (let k = 1; k >= 0.5; k -= 0.05) {
+          el.style.setProperty('--k', k.toFixed(2));
+          if (el.scrollHeight <= el.clientHeight + 1) break;
+        }
       }
 
       async function load() {
@@ -709,6 +893,29 @@ import '../styles/global.css';
 
       /* Rental-only stretch: welcome the guests, rental times on the side. */
       .screen.is-rent .top__logo { visibility: hidden; }
+      /* Promo block: full-screen video, or a news / QR slide. */
+      .screen.is-video .top, .screen.is-video .bottom { visibility: hidden; }
+      .promoview { min-height: 0; overflow: hidden; display: grid; }
+      .promo__video { position: fixed; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; background: #000; z-index: 5; }
+      .promo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 3.5rem; align-items: center; min-height: 0; block-size: 100%; }
+      .promo--qr { grid-template-columns: minmax(0, 1.4fr) auto; }
+      .promo__media { block-size: 100%; min-height: 0; border-radius: 1.6rem; overflow: hidden; background: rgba(255, 255, 255, 0.06); display: grid; place-items: center; }
+      .promo__media img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+      .promo__media .promo__logo { inline-size: 60%; block-size: auto; object-fit: contain; }
+      /* Sized in em of --k, which fitText() lowers until the block fits. */
+      .promo__text { font-size: calc(1rem * var(--k, 1)); display: flex; flex-direction: column; justify-content: safe center; gap: 1.4em; min-width: 0; max-block-size: 100%; overflow: hidden; }
+      .display .promo__title { margin: 0; font-family: inherit; letter-spacing: normal; font-size: 3.4em; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; hyphens: auto; }
+      .promo__body { margin: 0; font-size: 1.7em; line-height: 1.45; opacity: 0.85; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+      .promo__icon { margin: 0; font-size: 4em; line-height: 1; }
+      .promo__icon .icon { inline-size: 1em; block-size: 1em; }
+      .stars { color: #fbbc05; letter-spacing: 0.1em; }
+      .qr { margin: 0; display: flex; align-items: center; gap: 1.4rem; font-size: 1.5rem; font-weight: 600; }
+      .promo__text .qr { font-size: 1.5em; gap: 0.9em; flex: none; }
+      .promo--qr .qr { flex-direction: column; text-align: center; }
+      .qr__code { inline-size: 12rem; padding: 0.6rem; background: #fff; border-radius: 1rem; line-height: 0; flex: none; }
+      .promo__text .qr__code { inline-size: 7em; }
+      .promo--qr .qr__code { inline-size: min(22rem, 55vh); }
+      .qr__code svg { inline-size: 100%; block-size: auto; }
       .rentview { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 3.5rem; align-items: center; min-height: 0; }
       .welcome { display: grid; gap: 1rem; justify-items: start; }
       .welcome__logo { block-size: 7.5rem; inline-size: auto; margin-block-end: 0.5rem; }
@@ -728,7 +935,7 @@ import '../styles/global.css';
       /* Portrait screens: stack the focus card above the list. */
       @media (orientation: portrait) {
         html { font-size: clamp(12px, 1.9vw, 40px); }
-        .body, .rentview { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+        .body, .rentview, .promo { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
         .top__logo { block-size: 3.4rem; }
       }
       @media (orientation: portrait) {

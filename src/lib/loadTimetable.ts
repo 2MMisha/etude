@@ -15,8 +15,8 @@ import { parseTimetableWorkbook, type Timetable } from './timetable';
 /** The shared "לוח זמנים" spreadsheet. It must stay viewable by anyone with the link. */
 export const TIMETABLE_SHEET_ID = '1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0';
 
-/** Weeks before this date in the sheet are ignored. */
-const FIRST_DATE = '2026-10-04';
+/** Weeks before this date in the sheet are ignored (older tabs use the pre-hall-row layout). */
+const FIRST_DATE = '2026-10-18';
 
 let cached: Promise<Timetable> | undefined;
 
@@ -32,6 +32,7 @@ async function fromSheet(): Promise<Timetable> {
   const res = await fetch(`https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/export?format=xlsx`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const wb = XLSX.read(new Uint8Array(await res.arrayBuffer()), { cellFormula: true, sheetStubs: true });
+  wb.SheetNames = wb.SheetNames.filter((name) => !/test/i.test(name)); // drafts like "TEST SCHEDULE"
   const { timetable, warnings } = parseTimetableWorkbook(wb, XLSX.utils, 'Google Sheet');
   for (const w of warnings) console.warn(`[timetable] ${w}`);
   // A tab copied from the previous week without updating its "Week of" cell

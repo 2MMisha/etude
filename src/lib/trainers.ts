@@ -17,7 +17,9 @@ export const RENTALS_SLUG = 'rentals';
 
 export const STUDIO_LOCATION = `ETUDE, ${SITE.address.street}, ${SITE.address.city}`;
 
-const columnsOf = (item: TimetableItem) => item.column.split(' · ').map((c) => c.trim()).filter(Boolean);
+// A block over a whole hall (column === hall, e.g. PRACTICE) has no trainer.
+const columnsOf = (item: TimetableItem) =>
+  item.column === item.hall ? [] : item.column.split(' · ').map((c) => c.trim()).filter(Boolean);
 
 function columnsFrom(tt: Timetable, rentals: boolean): Trainer[] {
   const names = new Set<string>();
