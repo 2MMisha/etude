@@ -1,0 +1,87 @@
+---
+// GitHub Pages serves this one /404.html for every missing URL, in any
+// language — so all three versions are rendered and the script below shows
+// the one matching the URL prefix (/ru/…, /en/…, otherwise Hebrew).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ALL_LANGS, LANGUAGES, localizePath, type Lang } from '../lib/languages';
+import { waHref } from '../lib/site';
+
+const COPY: Record<Lang, { title: string; body: string; home: string; schedule: string; whatsapp: string }> = {
+  he: {
+    title: 'העמוד לא נמצא',
+    body: 'ייתכן שהקישור שגוי או שהעמוד הועבר. אפשר לחזור לדף הבית, לעיין בלוח השיעורים או לכתוב לנו — ונעזור.',
+    home: 'לדף הבית',
+    schedule: 'ללוח השיעורים',
+    whatsapp: 'כתבו לנו בוואטסאפ',
+  },
+  en: {
+    title: 'Page not found',
+    body: 'The link may be wrong or the page has moved. Head back home, check the class schedule, or message us — we’ll help.',
+    home: 'Back to home',
+    schedule: 'View the schedule',
+    whatsapp: 'Message us on WhatsApp',
+  },
+  ru: {
+    title: 'Страница не найдена',
+    body: 'Возможно, ссылка неверна или страница переехала. Вернитесь на главную, загляните в расписание или напишите нам — поможем.',
+    home: 'На главную',
+    schedule: 'Расписание занятий',
+    whatsapp: 'Написать в WhatsApp',
+  },
+};
+---
+
+<BaseLayout lang="he" path="/404" title={COPY.he.title} description={COPY.he.body} langs={['he']} noindex>
+  <section class="section">
+    <div class="container">
+      {ALL_LANGS.map((l) => (
+        <div
+          class="card nf"
+          data-lang={l}
+          lang={LANGUAGES[l].htmlLang}
+          dir={LANGUAGES[l].dir}
+          hidden={l !== 'he'}
+        >
+          <p class="nf__code" aria-hidden="true">404</p>
+          <h1>{COPY[l].title}</h1>
+          <p>{COPY[l].body}</p>
+          <div class="nf__cta">
+            <a href={localizePath(l, '/')} class="btn btn--primary">{COPY[l].home}</a>
+            <a href={localizePath(l, '/schedule')} class="btn btn--secondary">{COPY[l].schedule}</a>
+            <a href={waHref()} target="_blank" rel="noopener noreferrer" class="btn btn--wa">{COPY[l].whatsapp}</a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const lang = location.pathname.split('/')[1];
+  if (lang === 'en' || lang === 'ru') {
+    document.querySelectorAll<HTMLElement>('.nf').forEach((el) => (el.hidden = el.dataset.lang !== lang));
+    document.title = document.querySelector('.nf:not([hidden]) h1')?.textContent ?? document.title;
+  }
+</script>
+
+<style>
+  .nf {
+    max-width: 620px;
+    margin-inline: auto;
+    text-align: center;
+  }
+  .nf__code {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 15vw, 7rem);
+    line-height: 1;
+    color: var(--color-blue-500);
+    margin: 0 0 var(--space-xs);
+  }
+  .nf__cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-block-start: var(--space-md);
+  }
+</style>
