@@ -9,9 +9,10 @@ interface Props {
   description: string;
   ogImage?: string;
   type?: 'website' | 'article';
+  langs?: Lang[];
 }
 
-const { lang, path, title, description: rawDescription, ogImage, type = 'website' } = Astro.props;
+const { lang, path, title, description: rawDescription, ogImage, type = 'website', langs = ALL_LANGS } = Astro.props;
 
 // Search engines cut snippets at ~160 characters; trim long page intros at a
 // word boundary instead of letting Google cut mid-word.
@@ -31,7 +32,7 @@ const fullTitle = `${title} | ${SITE.brandNameLocalized[lang]}`;
 <meta name="description" content={description} />
 <link rel="canonical" href={canonicalUrl} />
 
-{ALL_LANGS.map((l) => (
+{langs.map((l) => (
   <link rel="alternate" hreflang={LANGUAGES[l].htmlLang} href={`${SITE.siteUrl}${localizePath(l, cleanPath || '/')}`} />
 ))}
 <link rel="alternate" hreflang="x-default" href={`${SITE.siteUrl}${localizePath('he', cleanPath || '/')}`} />
@@ -42,7 +43,7 @@ const fullTitle = `${title} | ${SITE.brandNameLocalized[lang]}`;
 <meta property="og:url" content={canonicalUrl} />
 <meta property="og:image" content={ogImageUrl} />
 <meta property="og:locale" content={LANGUAGES[lang].locale} />
-{ALL_LANGS.filter((l) => l !== lang).map((l) => (
+{langs.filter((l) => l !== lang).map((l) => (
   <meta property="og:locale:alternate" content={LANGUAGES[l].locale} />
 ))}
 <meta property="og:site_name" content={SITE.brandNameLocalized[lang]} />

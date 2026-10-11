@@ -5,14 +5,23 @@ import { localizePath, type Lang } from '../lib/languages';
 
 interface Props {
   lang: Lang;
+  /** Ad landing-page mode: name + phone only. `source` labels the lead in the email. */
+  lead?: { source: string; submit: string; phoneHint: string };
 }
-const { lang } = Astro.props;
+const { lang, lead } = Astro.props;
 const copy = translations[lang];
 const consent = copy.contact.consent;
+// Every form lands on the thank-you page, which fires the Ads conversion
+// (Analytics.astro). `from=lp` lets it show the landing page's WhatsApp number.
+const next = `${SITE.siteUrl}${localizePath(lang, '/thanks')}${lead ? '?from=lp' : ''}`;
 ---
 
 <form class="contact-form" action={SITE.formSubmitEndpoint} method="POST">
-  <input type="hidden" name="_subject" value={`New website inquiry — ${SITE.brandNameLocalized[lang]}`} />
+  <input type="hidden" name="_subject" value={lead ? `Lead: ${lead.source}` : `New website inquiry — ${SITE.brandNameLocalized[lang]}`} />
+  <input type="hidden" name="_next" value={next} />
+  <input type="hidden" name="page" value={Astro.url.pathname} />
+  {/* utm_* / gclid / fbclid from the ad click, filled in by the script below */}
+  <input type="hidden" name="utm" value="" />
   <input type="hidden" name="_template" value="table" />
   <input type="hidden" name="_captcha" value="true" />
   <input type="hidden" name="_language" value={lang} />
@@ -24,20 +33,28 @@ const consent = copy.contact.consent;
     <input id="name" name="name" type="text" required autocomplete="name" />
   </div>
 
-  <div class="field">
-    <label for="email">{copy.contact.formEmail}</label>
-    <input id="email" name="email" type="email" required autocomplete="email" />
-  </div>
+  {!lead && (
+    <div class="field">
+      <label for="email">{copy.contact.formEmail}</label>
+      <input id="email" name="email" type="email" required autocomplete="email" />
+    </div>
+  )}
 
   <div class="field">
     <label for="phone">{copy.contact.formPhone}</label>
-    <input id="phone" name="phone" type="tel" autocomplete="tel" />
+    {lead ? (
+      <input id="phone" name="phone" type="tel" required autocomplete="tel" inputmode="tel" dir="ltr" pattern="[0-9 +\-\(\)]{9,}" title={lead.phoneHint} />
+    ) : (
+      <input id="phone" name="phone" type="tel" autocomplete="tel" />
+    )}
   </div>
 
-  <div class="field">
-    <label for="message">{copy.contact.formMessage}</label>
-    <textarea id="message" name="message" rows="5" required></textarea>
-  </div>
+  {!lead && (
+    <div class="field">
+      <label for="message">{copy.contact.formMessage}</label>
+      <textarea id="message" name="message" rows="5" required></textarea>
+    </div>
+  )}
 
   {/* Required consent; the submitted value is kept in the emailed form as a record of agreement. */}
   <div class="consent">
@@ -58,7 +75,7 @@ const consent = copy.contact.consent;
     </label>
   </div>
 
-  <button type="submit" class="btn btn--primary">{copy.contact.formSubmit}</button>
+  <button type="submit" class="btn btn--primary">{lead ? lead.submit : copy.contact.formSubmit}</button>
 </form>
 
 <style>
@@ -127,5 +144,16 @@ const consent = copy.contact.consent;
     const message = box.dataset.requiredMessage || '';
     box.addEventListener('invalid', () => box.setCustomValidity(box.checked ? '' : message));
     box.addEventListener('change', () => box.setCustomValidity(''));
+  });
+
+  const params = new URLSearchParams(location.search);
+  const utm = [...params].filter(([k]) => /^(utm_|gclid|fbclid)/.test(k)).map(([k, v]) => `${k}=${v}`).join('; ');
+  document.querySelectorAll<HTMLFormElement>('.contact-form').forEach((form) => {
+    const field = form.querySelector<HTMLInputElement>('input[name="utm"]');
+    if (field) field.value = utm;
+    // Read on the thank-you page so a reload or direct visit isn't counted.
+    form.addEventListener('submit', () => {
+      try { sessionStorage.setItem('etude-lead', '1'); } catch (e) { /* storage blocked */ }
+    });
   });
 </script>

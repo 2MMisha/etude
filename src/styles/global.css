@@ -207,6 +207,15 @@ img { max-width: 100%; display: block; }
   color: var(--color-surface);
 }
 
+/* WhatsApp green, darkened so white text passes WCAG AA contrast. */
+.btn--wa {
+  background: #117a3e;
+  color: #fff;
+}
+.btn--wa:hover {
+  background: #0d6131;
+}
+
 .btn--ghost {
   background: var(--color-silver-100);
   color: var(--color-navy-900);

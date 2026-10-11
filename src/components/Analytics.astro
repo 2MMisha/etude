@@ -28,16 +28,21 @@ const adsConversion = SITE.googleAdsContactConversion;
       gtag('js', new Date());
       gtag('config', id);
       if (adsId) gtag('config', adsId);
-      // Google Ads contact conversion: WhatsApp / phone clicks and form submits.
+      // Google Ads contact conversion: WhatsApp / phone clicks and form leads.
       if (adsConversion) {
         var convert = function () { gtag('event', 'conversion', { send_to: adsConversion }); };
         document.addEventListener('click', function (e) {
           var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href*="wa.me/"]');
           if (a) convert();
         });
-        document.addEventListener('submit', function (e) {
-          if (e.target.closest && e.target.closest('.contact-form')) convert();
-        });
+        // Form leads count on the thank-you page (set by ContactForm on submit),
+        // so a submit abandoned at FormSubmit's captcha isn't counted.
+        try {
+          if (/\/thanks\/$/.test(location.pathname) && sessionStorage.getItem('etude-lead')) {
+            sessionStorage.removeItem('etude-lead');
+            convert();
+          }
+        } catch (e) {}
       }
       window.etudeLoadAnalytics = function () {
         gtag('consent', 'update', { analytics_storage: 'granted' });

@@ -1,14 +1,15 @@
 ---
-import { SITE } from '../lib/site';
+import { waHref } from '../lib/site';
 import { translations } from '../lib/translations';
 import type { Lang } from '../lib/languages';
 
 interface Props {
   lang: Lang;
+  whatsapp?: { number: string; text?: string };
 }
-const { lang } = Astro.props;
+const { lang, whatsapp } = Astro.props;
 const copy = translations[lang];
-const href = `https://wa.me/${SITE.whatsapp}`;
+const href = waHref(whatsapp);
 ---
 
 <a href={href} target="_blank" rel="noopener noreferrer" class="whatsapp-float" aria-label={copy.common.whatsapp}>

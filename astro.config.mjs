@@ -19,6 +19,8 @@ const SITEMAP_RULES = [
   { match: /^\/$/, priority: 1.0, changefreq: 'weekly' },
   { match: /^\/(classes|schedule|pricing)\/$/, priority: 0.9, changefreq: 'weekly' },
   { match: /^\/(contact|instructors|about|hall-rental|events)\/$/, priority: 0.8, changefreq: 'monthly' },
+  // Ad landing pages (he/ru only) — not in the menu, so the sitemap is how they're found.
+  { match: /^\/(kids|adults)\/$/, priority: 0.8, changefreq: 'monthly' },
   { match: /^\/news\/$/, priority: 0.7, changefreq: 'daily' },
   { match: /^\/news\/[^/]+\/$/, priority: 0.6, changefreq: 'monthly' },
   { match: /^\/(privacy|terms|accessibility)\/$/, priority: 0.3, changefreq: 'yearly' },
@@ -44,7 +46,7 @@ export default defineConfig({
           ru: 'ru',
         },
       },
-      filter: (page) => !page.includes('/admin') && !page.includes('/display') && !page.includes('/brand/') && !page.includes('/trainers') && page !== 'https://etude.ristar.co/',
+      filter: (page) => !page.includes('/admin') && !page.includes('/display') && !page.includes('/brand/') && !page.includes('/trainers') && !page.includes('/thanks/') && page !== 'https://etude.ristar.co/',
       serialize(item) {
         const path = new URL(item.url).pathname.replace(/^\/(he|en|ru)(?=\/)/, '');
         const rule = SITEMAP_RULES.find((r) => r.match.test(path));

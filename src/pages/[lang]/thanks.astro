@@ -1,0 +1,72 @@
+---
+// Thank-you page every site form redirects to (FormSubmit `_next`, see
+// ContactForm.astro). Not indexed; the Ads lead conversion fires here
+// (Analytics.astro). `?from=lp` = sent from an ad landing page.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { ALL_LANGS, localizePath, type Lang } from '../../lib/languages';
+import { waHref } from '../../lib/site';
+import { LEAD_WHATSAPP, THANKS } from '../../data/landing';
+
+export function getStaticPaths() {
+  return ALL_LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params as { lang: Lang };
+const copy = THANKS[lang];
+---
+
+<BaseLayout lang={lang} path="/thanks" title={copy.metaTitle} description={copy.body} noindex>
+  <section class="section thanks">
+    <div class="container">
+      <div class="card thanks__card">
+        <div class="thanks__icon" aria-hidden="true">✓</div>
+        <h1>{copy.title}</h1>
+        <p>{copy.body}</p>
+        <a
+          href={waHref()}
+          data-lp-href={lang === 'ru' ? waHref({ number: LEAD_WHATSAPP.ru.number }) : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn--wa"
+          id="thanks-wa">{copy.whatsapp}</a
+        >
+        <p class="thanks__links">
+          <a href={localizePath(lang, '/schedule')}>{copy.schedule}</a>
+          <span aria-hidden="true">·</span>
+          <a href={localizePath(lang, '/')}>{copy.home}</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Russian ad leads get the Russian-line WhatsApp (053), like on the landing page.
+  const wa = document.getElementById('thanks-wa') as HTMLAnchorElement | null;
+  if (wa?.dataset.lpHref && new URLSearchParams(location.search).get('from') === 'lp') wa.href = wa.dataset.lpHref;
+</script>
+
+<style>
+  .thanks__card {
+    max-width: 560px;
+    margin-inline: auto;
+    text-align: center;
+  }
+  .thanks__icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 auto var(--space-sm);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #117a3e;
+    color: #fff;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+  .thanks__links {
+    margin-block: var(--space-md) 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+</style>

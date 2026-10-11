@@ -1,0 +1,168 @@
+---
+// Ad landing pages: /he/kids/, /he/adults/, /ru/kids/, /ru/adults/.
+// Indexed (sitemap + hreflang between he/ru) but not linked from the menu.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContactForm from '../../components/ContactForm.astro';
+import PhotoGrid from '../../components/PhotoGrid.astro';
+import Faq from '../../components/Faq.astro';
+import { AUDIENCES, LANDING, LANDING_LANGS, LANDING_UI, LEAD_WHATSAPP, type Audience, type LandingLang } from '../../data/landing';
+import { waHref } from '../../lib/site';
+
+export function getStaticPaths() {
+  return LANDING_LANGS.flatMap((lang) => AUDIENCES.map((landing) => ({ params: { lang, landing } })));
+}
+const { lang, landing } = Astro.params as { lang: LandingLang; landing: Audience };
+const copy = LANDING[lang][landing];
+const ui = LANDING_UI[lang];
+const wa = { number: LEAD_WHATSAPP[lang].number, text: copy.waText };
+const source = `${landing} ${lang.toUpperCase()}`;
+---
+
+<BaseLayout
+  lang={lang}
+  path={`/${landing}`}
+  title={copy.metaTitle}
+  description={copy.metaDescription}
+  langs={LANDING_LANGS}
+  landing
+  whatsapp={wa}
+>
+  <section class="lp-hero">
+    <div class="container lp-hero__grid">
+      <div>
+        <span class="eyebrow">{copy.eyebrow}</span>
+        <h1>{copy.title}</h1>
+        <p class="lp-hero__sub">{copy.subtitle}</p>
+        <ul class="lp-checks">
+          {copy.bullets.map((b) => <li>{b}</li>)}
+        </ul>
+        {copy.note && <p class="lp-note">{copy.note}</p>}
+      </div>
+
+      <div class="card lp-form" id="lead">
+        <h2 class="h3">{ui.formTitle}</h2>
+        <ContactForm lang={lang} lead={{ source, submit: ui.submit, phoneHint: ui.phoneHint }} />
+        <p class="lp-or"><span>{ui.or}</span></p>
+        <a href={waHref(wa)} target="_blank" rel="noopener noreferrer" class="btn btn--wa lp-wide">{ui.whatsapp}</a>
+        <p class="lp-call">
+          {ui.call}: <a href={`tel:${LEAD_WHATSAPP[lang].tel}`} dir="ltr">{LEAD_WHATSAPP[lang].display}</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tight">
+    <div class="container">
+      <h2>{copy.trustTitle}</h2>
+      <div class="grid grid--2 lp-facts">
+        {copy.facts.map((f) => (
+          <div class="card">
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        ))}
+      </div>
+      <PhotoGrid lang={lang} photos={copy.photos} shape={landing === 'kids' ? 'wide' : 'tall'} />
+    </div>
+  </section>
+
+  <section class="section section--tight section--surface">
+    <div class="container">
+      <h2>{copy.stepsTitle}</h2>
+      <ol class="grid grid--3 lp-steps">
+        {copy.steps.map((s) => (
+          <li class="card">
+            <h3>{s.title}</h3>
+            <p>{s.body}</p>
+          </li>
+        ))}
+      </ol>
+      <p class="lp-bring">{copy.bring}</p>
+    </div>
+  </section>
+
+  <Faq lang={lang} faq={copy.faq} />
+
+  <section class="section section--tight lp-final">
+    <div class="container">
+      <h2>{copy.finalTitle}</h2>
+      <p>{copy.finalBody}</p>
+      <div class="lp-final__cta">
+        <a href="#lead" class="btn btn--primary">{ui.toForm}</a>
+        <a href={waHref(wa)} target="_blank" rel="noopener noreferrer" class="btn btn--wa">{ui.whatsapp}</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .lp-hero {
+    background: var(--color-silver-100);
+    border-block-end: 1px solid var(--color-line);
+    padding-block: var(--space-lg);
+  }
+  .lp-hero__grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .lp-hero__grid { grid-template-columns: 1fr; gap: var(--space-md); }
+  }
+  .lp-hero__sub { font-size: 1.1rem; max-width: 55ch; }
+  .lp-checks {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-sm) 0;
+    display: grid;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--color-navy-900);
+  }
+  .lp-checks li::before {
+    content: '✓';
+    color: #117a3e;
+    margin-inline-end: 0.5rem;
+  }
+  .lp-note {
+    background: var(--color-blue-100);
+    border-radius: var(--radius-md);
+    padding: var(--space-xs) var(--space-sm);
+    max-width: 55ch;
+  }
+  .lp-form { scroll-margin-top: 6rem; }
+  .lp-form :global(.contact-form .btn),
+  .lp-wide { width: 100%; justify-content: center; }
+  .lp-or {
+    text-align: center;
+    color: var(--color-ink-soft);
+    margin: var(--space-sm) 0;
+  }
+  .lp-call { text-align: center; margin: var(--space-xs) 0 0; font-size: 0.95rem; }
+  .lp-facts { margin-block-end: var(--space-md); }
+  .lp-facts h3, .lp-steps h3 { margin-block-start: 0; }
+  .lp-steps { list-style: none; padding: 0; counter-reset: step; }
+  .lp-steps li { counter-increment: step; }
+  .lp-steps li::before {
+    content: counter(step);
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--color-navy-900);
+    color: #fff;
+    font-weight: 700;
+    margin-block-end: var(--space-xs);
+  }
+  .lp-bring { margin-block-start: var(--space-md); color: var(--color-ink-soft); }
+  .lp-final { text-align: center; }
+  .lp-final__cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-block-start: var(--space-sm);
+  }
+</style>

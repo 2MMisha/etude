@@ -1,13 +1,17 @@
 ---
 import { ALL_LANGS, LANGUAGES, localizePath, type Lang } from '../lib/languages';
 import { translations } from '../lib/translations';
-import { SITE } from '../lib/site';
+import { SITE, waHref } from '../lib/site';
 
 interface Props {
   lang: Lang;
   path: string; // unprefixed current path, used to build the lang switcher + active states
+  langs?: Lang[];
+  /** Ad landing page: logo, language switch and a WhatsApp button — no menu. */
+  landing?: boolean;
+  whatsapp?: { number: string; text?: string };
 }
-const { lang, path } = Astro.props;
+const { lang, path, langs = ALL_LANGS, landing, whatsapp } = Astro.props;
 const nav = translations[lang].nav;
 const common = translations[lang].common;
 
@@ -32,6 +36,22 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
       <span class="brand__name">{SITE.brandNameLocalized[lang]}</span>
     </a>
 
+    {landing ? (
+      <div class="landing-actions">
+        {langs.length > 1 && (
+          <div class="landing-langs" role="group" aria-label="Language">
+            {langs.filter((l) => l !== lang).map((l) => (
+              <a href={localizePath(l, path)} lang={LANGUAGES[l].htmlLang} hreflang={LANGUAGES[l].htmlLang}>
+                {LANGUAGES[l].label}
+              </a>
+            ))}
+          </div>
+        )}
+        <a href={waHref(whatsapp)} target="_blank" rel="noopener noreferrer" class="btn btn--wa">
+          {common.whatsapp}
+        </a>
+      </div>
+    ) : (<>
     <button
       type="button"
       class="nav-toggle"
@@ -71,6 +91,7 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
         ))}
       </div>
     </nav>
+    </>)}
   </div>
 </header>
 
@@ -181,6 +202,18 @@ const navItems: { key: keyof typeof nav; href: string }[] = [
   .nav-toggle {
     display: none;
   }
+
+  .landing-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .landing-langs a {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+  }
+  .landing-actions .btn { padding: 0.6em 1.1em; }
 
   @media (max-width: 1320px) {
     .site-nav {

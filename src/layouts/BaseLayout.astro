@@ -8,7 +8,7 @@ import AccessibilityWidget from '../components/AccessibilityWidget.astro';
 import CookieConsent from '../components/CookieConsent.astro';
 import LanguageBanner from '../components/LanguageBanner.astro';
 import WhatsAppFloat from '../components/WhatsAppFloat.astro';
-import { LANGUAGES, type Lang } from '../lib/languages';
+import { ALL_LANGS, LANGUAGES, type Lang } from '../lib/languages';
 import { translations } from '../lib/translations';
 import '../styles/global.css';
 
@@ -19,9 +19,16 @@ interface Props {
   description: string;
   ogImage?: string;
   schemaType?: 'website' | 'article';
+  /** Languages this page exists in (hreflang, switcher); defaults to all. */
+  langs?: Lang[];
+  /** Ad landing page: header without the menu, so visitors stay in the funnel. */
+  landing?: boolean;
+  /** WhatsApp number + prefilled text, when it differs from the site default. */
+  whatsapp?: { number: string; text?: string };
+  noindex?: boolean;
 }
 
-const { lang, path, title, description, ogImage, schemaType } = Astro.props;
+const { lang, path, title, description, ogImage, schemaType, langs = ALL_LANGS, landing, whatsapp, noindex } = Astro.props;
 const { dir } = LANGUAGES[lang];
 const GOOGLE_FONTS =
   'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&family=Marck+Script&family=Gveret+Levin&display=swap';
@@ -47,21 +54,22 @@ const GOOGLE_FONTS =
         fallback font for a moment, then swaps — display=swap). */}
     <link rel="stylesheet" href={GOOGLE_FONTS} media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href={GOOGLE_FONTS} /></noscript>
-    <Seo lang={lang} path={path} title={title} description={description} ogImage={ogImage} type={schemaType} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <Seo lang={lang} path={path} title={title} description={description} ogImage={ogImage} type={schemaType} langs={langs} />
     <LocalBusinessSchema lang={lang} />
     <Analytics />
     <slot name="head" />
   </head>
   <body>
     <a href="#main" class="skip-link">{translations[lang].common.skipToContent}</a>
-    <LanguageBanner lang={lang} path={path} />
-    <Header lang={lang} path={path} />
+    <LanguageBanner lang={lang} path={path} langs={langs} />
+    <Header lang={lang} path={path} langs={langs} landing={landing} whatsapp={whatsapp} />
     <main id="main">
       <slot />
     </main>
     <Footer lang={lang} />
     <AccessibilityWidget lang={lang} />
-    <WhatsAppFloat lang={lang} />
+    <WhatsAppFloat lang={lang} whatsapp={whatsapp} />
     <CookieConsent lang={lang} />
   </body>
 </html>

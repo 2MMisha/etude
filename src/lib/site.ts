@@ -87,7 +87,7 @@ export const SITE = {
   // Empty string disables analytics.
   ga4MeasurementId: 'G-PYNX9TKS20',
   // Google Ads "יצירת קשר" conversion — fired on WhatsApp/phone clicks and
-  // contact-form submits (Analytics.astro). Empty string disables it.
+  // on the /thanks/ page after a form submit (Analytics.astro). Empty string disables it.
   googleAdsId: 'AW-16981195994',
   googleAdsContactConversion: 'AW-16981195994/1EQbCLLH9LYaENr5oaE_',
 
@@ -100,6 +100,12 @@ export type SiteConfig = typeof SITE;
 /** Opening hours as a display range, e.g. "08:00–21:00". Wrapped in a
  *  left-to-right isolate so the range doesn't flip inside Hebrew text. */
 export const hoursDisplay = `\u2066${SITE.hours.opens}–${SITE.hours.closes}\u2069`;
+
+/** wa.me link, optionally to another number and with a prefilled message. */
+export function waHref(wa?: { number: string; text?: string }): string {
+  const base = `https://wa.me/${wa?.number ?? SITE.whatsapp}`;
+  return wa?.text ? `${base}?text=${encodeURIComponent(wa.text)}` : base;
+}
 
 /** Whether the free trial class is currently advertised. */
 export const freeTrialActive = SITE.promo.active && SITE.promo.freeTrialLesson;
