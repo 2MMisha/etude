@@ -1,0 +1,811 @@
+---
+// ETUDE brand book — /brand/. For designers, printers and the owner.
+// Not linked anywhere, noindex, excluded from the sitemap and robots.txt.
+// Logo files live in public/brand/logos (SVG + PNG + PDF per variant); the PDF
+// of this page (public/brand/etude-brandbook.pdf) is printed from it in Chrome
+// (A4 landscape, see the @page rule below).
+import { readdirSync } from 'node:fs';
+import '../styles/global.css';
+import { PHOTOS } from '../data/photos';
+
+const VERSION = 'Version 1.0 · October 2026';
+const L = '/brand/logos/';
+
+// Every logo variant on disk, grouped by base name (logo-full, logo-full-white, …)
+const files = readdirSync('public/brand/logos');
+const COLOR_ORDER = ['', '-white', '-navy', '-black'];
+const colorOf = (n: string) => COLOR_ORDER.findLastIndex((c) => c && n.endsWith(c)) + 1 || 0;
+const baseOf = (n: string) => n.replace(/-(white|navy|black)$/, '');
+const variants = files
+  .filter((f) => f.endsWith('.svg') && f !== 'pattern-tile.svg')
+  .map((f) => f.slice(0, -4))
+  .sort((a, b) => baseOf(a).localeCompare(baseOf(b)) || colorOf(a) - colorOf(b));
+const formats = (n: string) => ['svg', 'png', 'pdf'].filter((ext) => files.includes(`${n}.${ext}`));
+
+const LOCKUPS = [
+  { id: 'logo-full', name: 'Primary: ETUDE + Dance School, stacked', use: 'Default for everything: flyers, signs, certificates, apparel back prints.', primary: true },
+  { id: 'logo-line', name: 'Horizontal: ETUDE + Dance School, one line', use: 'Wide, low spaces: entrance sign, banner headers, email/website headers.' },
+  { id: 'logo', name: 'Wordmark: ETUDE', use: 'When "Dance School" is said nearby or is too small to read: left-chest embroidery, medals, small print.' },
+  { id: 'logo-full-cursive', name: 'Cursive + tagline', use: 'Soft, celebratory pieces: recital programs, greeting cards, certificates. Not below 45 mm wide.' },
+  { id: 'logo-line-cursive', name: 'Cursive, one line', use: 'Secondary horizontal option for the same soft pieces.' },
+  { id: 'icon', name: 'Monogram: E', use: 'Favicons, stamps, small engravings, watermark, pattern accents. Never as the only identifier on a first-contact piece.' },
+];
+const LOCAL = [
+  { id: 'logo-full-he', name: 'ETUDE + Hebrew descriptor', use: 'Preferred for Hebrew materials: keeps the recognizable wordmark.' },
+  { id: 'logo-full-ru', name: 'ETUDE + Russian descriptor', use: 'Preferred for Russian materials.' },
+  { id: 'logo-name-he', name: 'אטיוד, Hebrew name', use: 'Hebrew-only pieces where the Latin name would feel foreign: local notices, municipal events.' },
+  { id: 'logo-name-ru', name: 'Этюд, Russian name', use: 'Russian-only pieces for the Russian-speaking community.' },
+];
+
+const COLORS = [
+  { name: 'ETUDE Blue', token: '--color-blue-600', hex: '#2F4B9B', rgb: '47 75 155', cmyk: '88 70 0 4', pms: '7685 C', role: 'The brand color. Logo, headings, links, key accents.', dark: true },
+  { name: 'Midnight Navy', token: '--color-navy-900', hex: '#17224A', rgb: '23 34 74', cmyk: '100 90 30 45', pms: '2767 C', role: 'Dark backgrounds, primary buttons, garments, sign panels.', dark: true },
+  { name: 'Navy 800', token: '--color-navy-800', hex: '#1F2D5E', rgb: '31 45 94', cmyk: '100 85 25 30', pms: '2766 C', role: 'Hover/pressed states, depth on navy.', dark: true },
+  { name: 'Navy 700', token: '--color-navy-700', hex: '#283A78', rgb: '40 58 120', cmyk: '95 80 10 15', pms: '7687 C', role: 'Gradients between navy and blue.', dark: true },
+  { name: 'Soft Blue', token: '--color-blue-500', hex: '#5570B8', rgb: '85 112 184', cmyk: '72 52 0 0', pms: '7683 C', role: 'Brush-stroke underline, focus rings, secondary accents.', dark: true },
+  { name: 'Mist', token: '--color-blue-100', hex: '#E6EBF7', rgb: '230 235 247', cmyk: '8 4 0 0', pms: '656 C', role: 'Tinted panels, table stripes, light backgrounds.' },
+];
+const NEUTRALS = [
+  { name: 'Ink', hex: '#1B2132', rgb: '27 33 50', cmyk: '80 70 45 60', role: 'Body text.' , dark: true},
+  { name: 'Ink Soft', hex: '#4A5367', rgb: '74 83 103', cmyk: '70 58 38 25', role: 'Secondary text, captions.', dark: true },
+  { name: 'Silver 300', hex: '#D3D8E4', rgb: '211 216 228', cmyk: '17 10 4 0', role: 'Borders, dividers.' },
+  { name: 'Silver 100', hex: '#F0F2F7', rgb: '240 242 247', cmyk: '5 3 1 0', role: 'Quiet panels, ghost buttons.' },
+  { name: 'Ground', hex: '#F7F8FB', rgb: '247 248 251', cmyk: '2 1 0 0', role: 'Page background on screen.' },
+  { name: 'White', hex: '#FFFFFF', rgb: '255 255 255', cmyk: '0 0 0 0', role: 'Paper, cards, logo on dark.' },
+];
+const CONTRAST = [
+  ['#2F4B9B', '#FFFFFF', '8.1 : 1', 'Any size'],
+  ['#17224A', '#FFFFFF', '15.4 : 1', 'Any size'],
+  ['#FFFFFF', '#2F4B9B', '8.1 : 1', 'Any size'],
+  ['#2F4B9B', '#E6EBF7', '6.8 : 1', 'Any size'],
+  ['#FFFFFF', '#5570B8', '4.8 : 1', 'Text ≥ 14 pt only'],
+  ['#2F4B9B', '#17224A', '1.9 : 1', 'Never for text or logo'],
+];
+
+const photoList = [PHOTOS.standardCouple, PHOTOS.latinCouple, PHOTOS.teacherWithStudent, PHOTOS.girlGold, PHOTOS.kidsGroup, PHOTOS.redDress];
+
+const TEE = 'M60 20 L35 30 L5 60 L25 85 L45 72 L45 190 L155 190 L155 72 L175 85 L195 60 L165 30 L140 20 Q100 45 60 20 Z';
+const ROLL = 'M4 26 C 90 8, 170 34, 250 22 S 420 6, 500 20 S 575 30, 596 14';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ETUDE Brand Book</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Heebo:wght@400;500;600;700&family=Marck+Script&family=Gveret+Levin&display=swap"
+    />
+  </head>
+  <body>
+    <!-- Cover -->
+    <section class="cover page">
+      <div class="cover__pattern" aria-hidden="true"></div>
+      <div class="cover__inner">
+        <img class="cover__logo" src={`${L}logo-full-white.svg`} alt="ETUDE Dance School" />
+        <h1 class="cover__title">Brand book</h1>
+        <p class="cover__meta">{VERSION} · Ballroom &amp; Latin Dance School · Rothschild 49, Rishon LeZion</p>
+        <div class="cover__links no-print">
+          <a class="btn btn--light" href="/brand/etude-brandbook.pdf" download>Download PDF</a>
+          <a class="btn btn--outline" href="/brand/etude-logo-pack.zip" download>Logo pack (ZIP)</a>
+        </div>
+      </div>
+    </section>
+
+    <nav class="toc page-body no-print" aria-label="Contents">
+      <ol>
+        <li><a href="#logo">Logo</a></li>
+        <li><a href="#color">Color</a></li>
+        <li><a href="#type">Typography</a></li>
+        <li><a href="#voice">Voice &amp; taglines</a></li>
+        <li><a href="#photo">Photography</a></li>
+        <li><a href="#graphics">Graphic elements</a></li>
+        <li><a href="#print">Print</a></li>
+        <li><a href="#files">Files &amp; contacts</a></li>
+      </ol>
+    </nav>
+
+    <!-- 1. Logo -->
+    <section id="logo" class="page page-body">
+      <header class="sec-head"><span class="sec-num">01</span><h2>Logo</h2></header>
+      <p class="lead">
+        The ETUDE logo is hand-lettered brush artwork in one color. It is not typed in a font. Always use the supplied files and never
+        retype, redraw or rearrange it.
+      </p>
+      <div class="primary">
+        <div class="tile tile--hero"><img src={`${L}logo-full.svg`} alt="Primary ETUDE logo" /></div>
+        <div>
+          <h3>Primary logo</h3>
+          <p>ETUDE + Dance School, stacked. If a brief does not say which version to use, use this one, in ETUDE Blue on white or in white on navy.</p>
+          <p class="file">logo-full.svg / .png / .pdf</p>
+        </div>
+      </div>
+
+      <h3 class="sub">The family</h3>
+      <div class="grid3">
+        {LOCKUPS.filter((l) => !l.primary).map((l) => (
+          <figure class="lock">
+            <div class="tile"><img src={`${L}${l.id}.svg`} alt={l.name} /></div>
+            <figcaption><strong>{l.name}</strong><span>{l.use}</span><code>{l.id}</code></figcaption>
+          </figure>
+        ))}
+        <figure class="lock">
+          <div class="tile"><img src={`${L}avatar.svg`} alt="Round avatar" class="avatar" /></div>
+          <figcaption><strong>Round avatar</strong><span>Profile picture for Instagram, WhatsApp, Google Business Profile. Upload the PNG.</span><code>avatar</code></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="page page-body">
+      <h3 class="sub">Hebrew &amp; Russian versions</h3>
+      <p>
+        Two kinds. <strong>ETUDE + translated descriptor</strong> is preferred because it keeps one recognizable mark across all three languages.{' '}
+        <strong>Fully localized names</strong> are for pieces that are entirely in Hebrew or Russian. The brush capitals exist only in Latin, so the
+        localized names are set in the script faces that pair with the logo: Gveret Levin (Hebrew) and Marck Script (Russian).
+      </p>
+      <div class="grid4">
+        {LOCAL.map((l) => (
+          <figure class="lock">
+            <div class="tile"><img src={`${L}${l.id}.svg`} alt={l.name} /></div>
+            <figcaption><strong>{l.name}</strong><span>{l.use}</span><code>{l.id}</code></figcaption>
+          </figure>
+        ))}
+      </div>
+
+      <h3 class="sub">Color versions</h3>
+      <div class="grid4">
+        <figure class="lock"><div class="tile"><img src={`${L}logo-full.svg`} alt="" /></div><figcaption><strong>Blue</strong><span>Default on white and light backgrounds.</span></figcaption></figure>
+        <figure class="lock"><div class="tile tile--navy"><img src={`${L}logo-full-white.svg`} alt="" /></div><figcaption><strong>White</strong><span>On navy, blue and dark photos.</span></figcaption></figure>
+        <figure class="lock"><div class="tile"><img src={`${L}logo-full-navy.svg`} alt="" /></div><figcaption><strong>Navy</strong><span>One-color print where blue is not available, e.g. on silver or cream stock.</span></figcaption></figure>
+        <figure class="lock"><div class="tile"><img src={`${L}logo-full-black.svg`} alt="" /></div><figcaption><strong>Black</strong><span>B&amp;W print, stamps, laser engraving, newspaper ads.</span></figcaption></figure>
+      </div>
+      <p class="note">Every logo comes in blue, white, navy and black: add <code>-white</code>, <code>-navy</code> or <code>-black</code> to the file name.</p>
+    </section>
+
+    <section class="page page-body">
+      <div class="two">
+        <div>
+          <h3 class="sub">Clear space</h3>
+          <div class="tile tile--space">
+            <div class="space-box"><img src={`${L}logo-full.svg`} alt="" /></div>
+          </div>
+          <p>Keep empty space around the logo on all sides equal to <strong>X = half the height of the "E"</strong>. No text, photo edge or other logo may enter this zone.</p>
+        </div>
+        <div>
+          <h3 class="sub">Minimum size</h3>
+          <table class="specs">
+            <thead><tr><th>Version</th><th>Print</th><th>Screen</th></tr></thead>
+            <tbody>
+              <tr><td>Primary (stacked)</td><td>30 mm wide</td><td>120 px</td></tr>
+              <tr><td>Horizontal</td><td>40 mm wide</td><td>160 px</td></tr>
+              <tr><td>Wordmark ETUDE</td><td>20 mm wide</td><td>80 px</td></tr>
+              <tr><td>Cursive + tagline</td><td>45 mm wide</td><td>180 px</td></tr>
+              <tr><td>Monogram E</td><td>6 mm tall</td><td>16 px</td></tr>
+              <tr><td>Embroidery (any)</td><td colspan="2">Descriptor letters ≥ 5 mm tall; otherwise use the wordmark alone</td></tr>
+            </tbody>
+          </table>
+          <h3 class="sub">Backgrounds</h3>
+          <ul class="ticks">
+            <li>White, Ground, Mist → blue logo.</li>
+            <li>Navy, ETUDE Blue → white logo.</li>
+            <li>Photos → white logo on a calm, dark area, or on a navy band. Never on faces or busy detail.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="sub">Don'ts</h3>
+      <div class="donts">
+        <figure><div class="tile"><img src={`${L}logo.svg`} alt="" style="transform:scaleX(1.5)" /></div><figcaption>Don't stretch or squash</figcaption></figure>
+        <figure><div class="tile"><img src={`${L}logo.svg`} alt="" style="filter:hue-rotate(140deg) saturate(2)" /></div><figcaption>Don't recolor (blue, navy, white or black only)</figcaption></figure>
+        <figure><div class="tile"><img src={`${L}logo.svg`} alt="" style="filter:drop-shadow(6px 6px 3px rgba(0,0,0,.6))" /></div><figcaption>No shadows, glows or outlines</figcaption></figure>
+        <figure><div class="tile"><img src={`${L}logo.svg`} alt="" style="transform:rotate(-14deg)" /></div><figcaption>Don't rotate</figcaption></figure>
+        <figure><div class="tile"><span class="fake">ETUDE</span></div><figcaption>Don't retype ETUDE in any font</figcaption></figure>
+        <figure><div class="tile tile--busy"><img src={`${L}logo.svg`} alt="" /></div><figcaption>Not on busy or low-contrast backgrounds</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- 2. Color -->
+    <section id="color" class="page page-body">
+      <header class="sec-head"><span class="sec-num">02</span><h2>Color</h2></header>
+      <p class="lead">One blue family, plus quiet neutrals. ETUDE Blue carries the brand and navy gives it depth. There are no other brand colors.</p>
+      <div class="swatches">
+        {COLORS.map((c) => (
+          <div class="sw">
+            <div class="sw__chip" style={`background:${c.hex}`}><span class:list={[{ light: c.dark }]}>{c.name}</span></div>
+            <dl>
+              <dt>HEX</dt><dd>{c.hex}</dd>
+              <dt>RGB</dt><dd>{c.rgb}</dd>
+              <dt>CMYK</dt><dd>{c.cmyk}</dd>
+              <dt>Pantone</dt><dd>{c.pms}</dd>
+            </dl>
+            <p>{c.role}</p>
+          </div>
+        ))}
+      </div>
+      <div class="swatches swatches--small">
+        {NEUTRALS.map((c) => (
+          <div class="sw">
+            <div class="sw__chip" style={`background:${c.hex}`}><span class:list={[{ light: c.dark }]}>{c.name}</span></div>
+            <dl><dt>HEX</dt><dd>{c.hex}</dd><dt>RGB</dt><dd>{c.rgb}</dd><dt>CMYK</dt><dd>{c.cmyk}</dd></dl>
+            <p>{c.role}</p>
+          </div>
+        ))}
+      </div>
+      <p class="note">
+        CMYK and Pantone values are calculated matches, not printer-confirmed. Ask for a printed proof against ETUDE Blue (#2F4B9B) on the
+        first job and record the confirmed values here.
+      </p>
+    </section>
+
+    <section class="page page-body">
+      <div class="two">
+        <div>
+          <h3 class="sub">Proportions</h3>
+          <div class="ratio" aria-label="Color proportions">
+            <span style="flex:60;background:#fff">White / Ground 60%</span>
+            <span style="flex:25;background:#17224A;color:#fff">Navy 25%</span>
+            <span style="flex:12;background:#2F4B9B;color:#fff">Blue 12%</span>
+            <span style="flex:3;background:#5570B8"></span>
+          </div>
+          <p>Mostly white and calm. Navy for weight, ETUDE Blue for the logo and headings, Soft Blue only as a small accent.</p>
+          <h3 class="sub">Screen-only colors</h3>
+          <p>These appear in the website and the studio TV for functions only. They are not brand colors and are never used in print:</p>
+          <ul class="chips">
+            <li><i style="background:#FFB547"></i>Amber #FFB547: hall rentals on the TV schedule</li>
+            <li><i style="background:#25D366"></i>WhatsApp green #25D366: WhatsApp buttons</li>
+            <li><i style="background:#B3261E"></i>Error red #B3261E: form errors</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="sub">Readable pairs</h3>
+          <table class="specs contrast">
+            <thead><tr><th>Sample</th><th>Contrast</th><th>Use for</th></tr></thead>
+            <tbody>
+              {CONTRAST.map(([fg, bg, ratio, use]) => (
+                <tr><td><span class="pair" style={`color:${fg};background:${bg}`}>Aa ETUDE</span></td><td>{ratio}</td><td>{use}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <p class="note">WCAG AA needs 4.5 : 1 for normal text. All pairs above pass except blue on navy.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Typography -->
+    <section id="type" class="page page-body">
+      <header class="sec-head"><span class="sec-num">03</span><h2>Typography</h2></header>
+      <p class="lead">
+        Brush lettering for headlines echoes the hand-lettered logo, and a clean geometric sans keeps everything else easy to read. Each script
+        (Latin, Cyrillic, Hebrew) has its own brush face.
+      </p>
+      <div class="type-grid">
+        <div class="spec">
+          <p class="spec__sample" style="font-family:'Another Shabby'">Learn to dance</p>
+          <h3>Another Shabby</h3>
+          <p>Headlines, Latin. One weight (Regular). By Zetafonts. A commercial license is required: <a href="https://www.zetafonts.com/another-shabby">zetafonts.com</a> · <a href="https://fontspring.com/fonts/zetafonts/another-shabby">Fontspring</a>.</p>
+        </div>
+        <div class="spec">
+          <p class="spec__sample" style="font-family:'Marck Script'">Учитесь танцевать</p>
+          <h3>Marck Script</h3>
+          <p>Headlines, Cyrillic. One weight. Free for commercial use (SIL Open Font License): <a href="https://fonts.google.com/specimen/Marck+Script">Google Fonts</a>.</p>
+        </div>
+        <div class="spec" dir="rtl">
+          <p class="spec__sample" style="font-family:'Gveret Levin'" lang="he">ללמוד לרקוד</p>
+          <h3 dir="ltr">Gveret Levin</h3>
+          <p dir="ltr">Headlines, Hebrew. One weight. Free for commercial use (OFL): <a href="https://fonts.google.com/specimen/Gveret+Levin">Google Fonts</a>.</p>
+        </div>
+        <div class="spec">
+          <p class="spec__sample spec__sample--sans">Group &amp; private lessons</p>
+          <h3>Montserrat</h3>
+          <p>Body text, subheads, buttons, numbers, Latin + Cyrillic. 400 Regular, 600 SemiBold, 700 Bold. 300 Light only for the logo tagline. OFL: <a href="https://fonts.google.com/specimen/Montserrat">Google Fonts</a>.</p>
+        </div>
+        <div class="spec" dir="rtl">
+          <p class="spec__sample spec__sample--sans" style="font-family:Heebo" lang="he">שיעורים קבוצתיים ופרטיים</p>
+          <h3 dir="ltr">Heebo</h3>
+          <p dir="ltr">Body text, Hebrew. 400 / 500 / 700. OFL: <a href="https://fonts.google.com/specimen/Heebo">Google Fonts</a>.</p>
+        </div>
+        <div class="spec">
+          <p class="spec__sample spec__sample--sans">Arial · Arial Hebrew</p>
+          <h3>Fallback</h3>
+          <p>Only where the brand fonts cannot be installed (Word, email). Never substitute another script font for the brush faces. Use Montserrat or Arial instead.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page page-body">
+      <h3 class="sub">Hierarchy</h3>
+      <div class="hier">
+        <div><span class="hier__tag">H1 · brush · 48–72 pt</span><p class="h-demo h-demo--1">Dancing is for everyone</p></div>
+        <div><span class="hier__tag">H2 · brush · 28–40 pt</span><p class="h-demo h-demo--2">Ballroom &amp; Latin</p></div>
+        <div><span class="hier__tag">Eyebrow · Montserrat 600 · 11–13 pt · Blue</span><p class="h-demo h-demo--eyebrow">Rishon LeZion · Rothschild 49</p></div>
+        <div><span class="hier__tag">Body · Montserrat 400 · 9–11 pt · Ink · line height 1.5–1.6</span><p class="h-demo h-demo--body">Group and private lessons in ballroom and Latin dance, for every age and level: from your first step to the dance floor.</p></div>
+        <div><span class="hier__tag">Button / CTA · Montserrat 600</span><p><span class="btn-demo">Write to us on WhatsApp</span></p></div>
+      </div>
+      <h3 class="sub">Rules</h3>
+      <ul class="ticks two-col">
+        <li>Brush faces are for headlines only, at 24 pt / 28 px and up. Never for paragraphs, prices, dates or small print.</li>
+        <li>Brush faces have one weight. Never apply bold or italic to them, and never set them in ALL CAPS or letter-spaced.</li>
+        <li>Numbers, times and phone numbers are always set in Montserrat or Heebo.</li>
+        <li>Hebrew text runs right-to-left and is aligned right. Set Hebrew body text about 5% larger than Latin, with more line height.</li>
+        <li>Gveret Levin's tall letters (ל) need extra line height (about 1.25) so they don't touch the line above.</li>
+        <li>Mixed-language pieces use the face that matches each script: never Latin brush letters on Hebrew text or the reverse.</li>
+      </ul>
+    </section>
+
+    <!-- 4. Voice -->
+    <section id="voice" class="page page-body">
+      <header class="sec-head"><span class="sec-num">04</span><h2>Voice &amp; taglines</h2></header>
+      <p class="lead">
+        <strong>Warm and welcoming first.</strong> ETUDE talks like a good teacher at the studio door: friendly, encouraging, never intimidating.
+        Then we turn up one of three dials, depending on the piece.
+      </p>
+      <div class="dials">
+        <div class="dial dial--base"><h3>Warm &amp; welcoming</h3><p class="dial__when">Always: the base</p><p>"Everyone starts somewhere. Come try a class."</p></div>
+        <div class="dial"><h3>Elegant &amp; classic</h3><p class="dial__when">Recitals, certificates, ballroom, invitations</p><p>"An evening of ballroom and Latin, danced by our students."</p></div>
+        <div class="dial"><h3>Energetic &amp; fun</h3><p class="dial__when">Party master classes, Latin, social media</p><p>"Bachelorette? Team day? Let's get the whole group dancing."</p></div>
+        <div class="dial"><h3>Expert &amp; precise</h3><p class="dial__when">Instructors, competitions, technique</p><p>"Coached by world-ranked dancers, step by step."</p></div>
+      </div>
+
+      <h3 class="sub">Names &amp; lines in three languages</h3>
+      <table class="specs langs">
+        <thead><tr><th></th><th>English</th><th>עברית</th><th>Русский</th></tr></thead>
+        <tbody>
+          <tr><th>Name in text</th><td>ETUDE</td><td dir="rtl" lang="he">אטיוד</td><td lang="ru">Этюд</td></tr>
+          <tr><th>Descriptor</th><td>Dance School</td><td dir="rtl" lang="he">בית ספר לריקוד</td><td lang="ru">Школа танцев</td></tr>
+          <tr><th>Full description</th><td>Ballroom &amp; Latin Dance School</td><td dir="rtl" lang="he">בית ספר לריקודי סטנדרט ולטיניים</td><td lang="ru">Школа бальных и латиноамериканских танцев</td></tr>
+          <tr><th>Slogan (brand promise)</th><td>Dancing is for everyone</td><td dir="rtl" lang="he">כולם יכולים לרקוד</td><td lang="ru">Танцевать может каждый</td></tr>
+          <tr><th>Campaign line</th><td>Learn to dance, at your own pace</td><td dir="rtl" lang="he">ללמוד לרקוד, בקצב שלכם</td><td lang="ru">Учитесь танцевать в своём темпе</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-body">
+      <div class="two">
+        <div>
+          <h3 class="sub">Writing rules</h3>
+          <ul class="ticks">
+            <li>Write the name <strong>ETUDE</strong> in capitals in Latin text. Never "Etude" or "Étude" (the cursive logo artwork is the only exception). Use אטיוד in Hebrew and «Этюд» in Russian.</li>
+            <li>The slogan is the brand promise and stays the same. The campaign line can change per season.</li>
+            <li><strong>No prices</strong> in ads, flyers or signs. Invite people to write instead.</li>
+            <li>The call to action is always WhatsApp: "Write to us on WhatsApp", not "Call now".</li>
+            <li>Address Hebrew readers in the plural (שלכם / אתם), which is inclusive and warm.</li>
+            <li>Say "students", not "clients". Say "classes" or "lessons", not "sessions".</li>
+            <li>Never claim what is not confirmed, e.g. hall features. The halls have parquet, a sound system, air conditioning and stage lighting.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="sub">Contact block</h3>
+          <div class="contact">
+            <p class="contact__lang">English &amp; Hebrew materials</p>
+            <p><strong>WhatsApp / phone 054-779-8676</strong><br />Rothschild 49, Rishon LeZion<br />etude.ristar.co · Instagram @etude_il</p>
+          </div>
+          <div class="contact" dir="rtl" lang="he">
+            <p class="contact__lang">חומרים בעברית</p>
+            <p><strong>וואטסאפ / טלפון 054-779-8676</strong><br />רוטשילד 49, ראשון לציון<br />etude.ristar.co · אינסטגרם etude_il@</p>
+          </div>
+          <div class="contact" lang="ru">
+            <p class="contact__lang">Материалы на русском</p>
+            <p><strong>WhatsApp / телефон 053-472-6469</strong><br />Ротшильд 49, Ришон-ле-Цион<br />etude.ristar.co · Instagram @etude_il</p>
+          </div>
+          <p class="note">Email is not printed on materials. Phone numbers always appear in full, in Montserrat or Heebo.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Photography -->
+    <section id="photo" class="page page-body">
+      <header class="sec-head"><span class="sec-num">05</span><h2>Photography</h2></header>
+      <p class="lead">Real ETUDE students and teachers, mid-movement and genuinely happy. Photos should show the joy of dancing, not stock-photo poses.</p>
+      <div class="photos">
+        {photoList.map((p) => <img src={p.src} alt={p.alt.en} loading="lazy" />)}
+      </div>
+      <div class="two">
+        <ul class="ticks">
+          <li>Movement and connection: couples in frame, hands, frames and spins.</li>
+          <li>Real costumes and real settings. Natural color with no heavy filters, color casts or vignettes.</li>
+          <li>Leave calm space (sky, floor, wall) where a logo or headline can sit.</li>
+          <li>Prefer photos where ETUDE Blue or navy already appears (costumes, background).</li>
+        </ul>
+        <ul class="ticks ticks--warn">
+          <li><strong>Children:</strong> use only photos where parents' consent is confirmed. Ask the owner before using any new photo.</li>
+          <li><strong>Captions:</strong> the recital photos were taken in a sports hall, not the studio. Never caption them "our hall".</li>
+          <li>Don't use Instagram posts without the owner's approval.</li>
+          <li>No stock photos of other people presented as ETUDE students.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6. Graphic elements -->
+    <section id="graphics" class="page page-body">
+      <header class="sec-head"><span class="sec-num">06</span><h2>Graphic elements</h2></header>
+      <div class="grid3 graphics">
+        <figure>
+          <div class="gx gx--pattern"></div>
+          <figcaption><strong>ETUDE pattern</strong><span>Offset rows of the wordmark. Use it as a texture only: 6–10% opacity of blue on white, or white at 6–8% on navy. Never behind body text at full strength. File: <code>pattern-tile.svg</code>.</span></figcaption>
+        </figure>
+        <figure>
+          <div class="gx gx--stroke">
+            <p>Learn to dance</p>
+            <svg viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true"><path d={ROLL} /></svg>
+          </div>
+          <figcaption><strong>Brush stroke</strong><span>A single soft-blue stroke under a headline, like a step traced across the floor. One per page, under the main headline only. Mirror it for Hebrew.</span></figcaption>
+        </figure>
+        <figure>
+          <div class="gx gx--glow"></div>
+          <figcaption><strong>Soft glows</strong><span>Blurred blue light on navy, used for the studio TV, video end-cards and stage-like backgrounds. Keep them subtle and out of the way of text.</span></figcaption>
+        </figure>
+      </div>
+      <figure class="gx-wide">
+        <div class="gx gx--mono"><img src={`${L}icon-white.svg`} alt="" /></div>
+        <figcaption><strong>Monogram as watermark</strong><span>The E, oversized and cropped at an edge, at 8–12% opacity. Good for certificate corners, the back of business cards and garment sleeves.</span></figcaption>
+      </figure>
+    </section>
+
+    <!-- 7. Print -->
+    <section id="print" class="page page-body">
+      <header class="sec-head"><span class="sec-num">07</span><h2>Print</h2></header>
+      <h3 class="sub">Every print job</h3>
+      <table class="specs">
+        <tbody>
+          <tr><th>Color mode</th><td>CMYK for full-color jobs. Pantone spot color (7685 C / 2767 C) for 1–2 color screen print, signs and merch.</td></tr>
+          <tr><th>Bleed / safe zone</th><td>3 mm bleed on all sides, with text and logo at least 5 mm inside the trim.</td></tr>
+          <tr><th>Resolution</th><td>Photos at 300 dpi at final size, and 150 dpi for large-format banners viewed from a distance.</td></tr>
+          <tr><th>Files to printer</th><td>PDF/X-4 (or PDF/X-1a) with fonts embedded or outlined. Always use the vector logo (SVG/PDF), never a screenshot.</td></tr>
+          <tr><th>Proof</th><td>The first job with a new printer always gets a physical color proof of ETUDE Blue.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="sub">Signs &amp; banners</h3>
+      <div class="mock-row">
+        <figure class="mock">
+          <div class="m-sign"><img src={`${L}logo-line-white.svg`} alt="" /></div>
+          <figcaption><strong>Entrance sign</strong><span>Navy panel, white horizontal logo. Logo width about 70% of the panel. Suggested 120 × 40 cm (fit to the facade). Outdoor: UV-resistant print or cut vinyl in white.</span></figcaption>
+        </figure>
+        <figure class="mock">
+          <div class="m-roll">
+            <img src={`${L}logo-full-white.svg`} alt="" />
+            <p class="m-roll__head">Dancing is for everyone</p>
+            <div class="m-roll__photo" style={`background-image:url(${PHOTOS.latinCouple.src})`}></div>
+            <p class="m-roll__cta">WhatsApp 054-779-8676<br />etude.ristar.co</p>
+          </div>
+          <figcaption><strong>Roll-up 85 × 200 cm</strong><span>Logo in the top 30%, then headline, then photo. Contact block between 80 and 120 cm height (eye level). Keep the bottom 15 cm empty, because it hides in the stand.</span></figcaption>
+        </figure>
+        <figure class="mock">
+          <div><div class="m-door">
+            <img src={`${L}icon.svg`} alt="" />
+            <p><strong>Hall 1</strong><br />135 m²</p>
+          </div></div>
+          <figcaption><strong>Hall door plates</strong><span>Mist plate with a blue monogram and Montserrat 600 text. 20 × 10 cm, at 150 cm height. Trilingual if needed: אולם 1 / Зал 1.</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="page page-body">
+      <h3 class="sub">Flyers, posters &amp; business cards</h3>
+      <div class="mock-row">
+        <figure class="mock">
+          <div class="m-flyer">
+            <div class="m-flyer__photo" style={`background-image:url(${PHOTOS.standardCouple.src})`}></div>
+            <div class="m-flyer__body">
+              <img src={`${L}logo-full.svg`} alt="" />
+              <p class="m-flyer__head">Learn to dance, at your own pace</p>
+              <svg viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true"><path d={ROLL} /></svg>
+              <p class="m-flyer__text">Ballroom &amp; Latin · kids, teens &amp; adults · all levels</p>
+              <p class="m-flyer__cta">WhatsApp 054-779-8676 · Rothschild 49, Rishon LeZion</p>
+            </div>
+          </div>
+          <figcaption><strong>A4 / A5 flyer &amp; poster</strong><span>Photo on top (about 45%), logo, one brush headline with the stroke, one line of text, contact bar in navy. One message per flyer and no prices. A3/A2 posters use the same layout, scaled.</span></figcaption>
+        </figure>
+        <figure class="mock">
+          <div class="m-cards">
+            <div class="m-card m-card--front"><img src={`${L}logo-full-white.svg`} alt="" /></div>
+            <div class="m-card m-card--back">
+              <img src={`${L}icon.svg`} alt="" class="m-card__mark" />
+              <p><strong>ETUDE Dance School</strong><br />Ballroom &amp; Latin</p>
+              <p>WhatsApp 054-779-8676<br />Rothschild 49, Rishon LeZion<br />etude.ristar.co · @etude_il</p>
+            </div>
+          </div>
+          <figcaption><strong>Business card 85 × 55 mm</strong><span>Front: navy with the white primary logo centered. Back: white with contact details in Montserrat (name 9 pt / 600, details 7.5 pt) and a large faint monogram. 350 g matte with soft-touch lamination.</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="page page-body">
+      <h3 class="sub">Apparel &amp; bags</h3>
+      <div class="mock-row">
+        <figure class="mock">
+          <div class="m-tees">
+            <div class="tee">
+              <svg viewBox="0 0 200 200" aria-hidden="true"><path fill="#17224A" d={TEE} /></svg>
+              <img src={`${L}logo-white.svg`} alt="" style="width:16%;left:55%;top:30%" />
+            </div>
+            <div class="tee">
+              <svg viewBox="0 0 200 200" aria-hidden="true"><path fill="#fff" stroke="#D3D8E4" d={TEE} /></svg>
+              <img src={`${L}logo-full.svg`} alt="" style="width:46%;left:27%;top:24%" />
+            </div>
+          </div>
+          <figcaption><strong>T-shirts &amp; hoodies</strong><span>Navy garment with a white logo, or white/grey garment with a blue logo. Left chest: wordmark ETUDE, 80–90 mm wide. Back: primary logo, 250–280 mm wide, 80 mm below the collar. Screen print as 1 spot color (Pantone 7685 C or white). For embroidery, use the wordmark alone below 60 mm.</span></figcaption>
+        </figure>
+        <figure class="mock">
+          <div><div class="tote">
+            <svg viewBox="0 0 200 250" aria-hidden="true"><path d="M70 60 V40 a30 30 0 0 1 60 0 V60" fill="none" stroke="#17224A" stroke-width="8" /><rect x="10" y="55" width="180" height="190" rx="4" fill="#17224A" /></svg>
+            <img src={`${L}logo-full-white.svg`} alt="" style="width:62%;left:19%;top:36%" />
+            <p>Dancing is for everyone</p>
+          </div></div>
+          <figcaption><strong>Tote &amp; shoe bags</strong><span>Navy or natural cotton. Primary logo centered, about 60% of the bag width, plus the slogan in Montserrat. On natural cotton print in navy (2767 C), because blue looks greyish on unbleached fabric.</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="page page-body">
+      <h3 class="sub">Certificates, medals &amp; trophies</h3>
+      <div class="mock-row">
+        <figure class="mock">
+          <div class="m-cert">
+            <img src={`${L}icon.svg`} alt="" class="m-cert__mark" />
+            <img src={`${L}logo-full.svg`} alt="" class="m-cert__logo" />
+            <p class="m-cert__title">Certificate</p>
+            <p class="m-cert__sub">awarded to</p>
+            <p class="m-cert__name">Student Name</p>
+            <p class="m-cert__text">for completing the 2026–2027 Latin program</p>
+            <div class="m-cert__sign"><span>Date</span><span>Instructor</span></div>
+          </div>
+          <figcaption><strong>Certificate / diploma: A4 landscape</strong><span>A thin navy frame inset 10 mm, the primary logo top center, the title in the brush face (elegant dial), the student name in Montserrat 600, and a watermark monogram in one corner. Hebrew and Russian versions use Gveret Levin and Marck Script for the title. 250–300 g silk paper.</span></figcaption>
+        </figure>
+        <figure class="mock">
+          <div class="m-medals">
+            <div class="medal"><img src={`${L}icon-black.svg`} alt="" /></div>
+            <div class="medal medal--gold"><img src={`${L}logo-black.svg`} alt="" /></div>
+          </div>
+          <figcaption><strong>Medals, trophies &amp; engraving</strong><span>Always use the black one-color files (vector PDF/SVG). Medals up to 30 mm use the monogram E; 40 mm and up use the wordmark ETUDE. Trophy plates: wordmark plus the event name in Montserrat. Never engrave the descriptor or tagline under 4 mm letter height.</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 8. Files -->
+    <section id="files" class="page page-body">
+      <header class="sec-head"><span class="sec-num">08</span><h2>Files &amp; contacts</h2></header>
+      <p class="lead">
+        Every logo comes as <strong>SVG</strong> (vector, for web and designers), <strong>PDF</strong> (vector, for printers) and{' '}
+        <strong>PNG</strong> (2000 px, transparent, for Word, Canva and social). <a href="/brand/etude-logo-pack.zip">Download everything as one ZIP</a>.
+      </p>
+      <div class="files">
+        {variants.map((v) => (
+          <div class="file-row">
+            <span class:list={['file-thumb', { 'file-thumb--dark': v.endsWith('-white') }]}><img src={`${L}${v}.svg`} alt="" loading="lazy" /></span>
+            <code>{v}</code>
+            <span class="file-links">{formats(v).map((ext) => <a href={`${L}${v}.${ext}`} download>{ext.toUpperCase()}</a>)}</span>
+          </div>
+        ))}
+      </div>
+      <p class="note">Brand questions and approvals: ETUDE Dance School, WhatsApp 054-779-8676. {VERSION}.</p>
+    </section>
+  </body>
+</html>
+
+<style>
+  :root { --page-pad: clamp(16px, 4vw, 56px); }
+  body { background: var(--color-surface); }
+  .page-body { max-width: 1120px; margin-inline: auto; padding: var(--space-lg) var(--page-pad); }
+  .page + .page { border-top: 1px solid var(--color-line); }
+  h2 { font-size: clamp(2.4rem, 2rem + 2vw, 3.4rem); color: var(--color-blue-600); margin: 0; }
+  h3 { font-family: var(--font-body); font-weight: 700; font-size: 1.05rem; color: var(--color-navy-900); margin: 0 0 0.4em; }
+  .sub { font-size: 1.2rem; margin-top: var(--space-md); }
+  .lead { font-size: 1.12rem; color: var(--color-ink); max-width: 68ch; }
+  .note { font-size: 0.88rem; color: var(--color-ink-soft); }
+  code { font-size: 0.82em; background: var(--color-silver-100); padding: 0.1em 0.4em; border-radius: 4px; }
+  .sec-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: var(--space-sm); }
+  .sec-num { font-weight: 700; color: var(--color-blue-500); letter-spacing: 0.1em; }
+
+  /* Cover */
+  .cover { position: relative; overflow: hidden; background: var(--color-navy-900); color: #fff; min-height: min(88vh, 720px); display: grid; place-items: center; text-align: center; }
+  .cover__pattern { position: absolute; inset: 0; background: url('/brand/logos/pattern-tile.svg') 0 0 / 420px auto; opacity: 0.06; filter: brightness(0) invert(1); }
+  .cover__inner { position: relative; padding: var(--space-lg) var(--page-pad); }
+  .cover__logo { width: min(560px, 80vw); margin-inline: auto; }
+  .cover__title { color: #fff; font-size: clamp(3rem, 2rem + 4vw, 5rem); margin: 0.4em 0 0.2em; }
+  .cover__meta { color: var(--color-silver-300); margin: 0; }
+  .cover__links { display: flex; gap: var(--space-sm); justify-content: center; flex-wrap: wrap; margin-top: var(--space-md); }
+  .btn--light { background: #fff; color: var(--color-navy-900); }
+  .btn--outline { border-color: #fff; color: #fff; }
+  .btn--outline:hover { background: rgba(255, 255, 255, 0.1); }
+
+  .toc ol { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; list-style: none; padding: 0; margin: 0; counter-reset: s; font-weight: 600; }
+  .toc li { counter-increment: s; }
+  .toc li::before { content: '0' counter(s) ' '; color: var(--color-blue-500); }
+
+  /* Logo tiles */
+  .tile { position: relative; background: var(--color-ground); border: 1px solid var(--color-line); border-radius: var(--radius-md); display: grid; place-items: center; aspect-ratio: 16 / 9; padding: 8%; overflow: hidden; }
+  .tile > img { position: absolute; inset: 10%; width: 80%; height: 80%; object-fit: contain; }
+  .tile--navy { background: var(--color-navy-900); border-color: var(--color-navy-900); }
+  .tile--hero { aspect-ratio: 16 / 8; padding: 6%; background: #fff; }
+  .tile > .avatar { inset: 15%; width: 70%; height: 70%; }
+  .primary { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--space-md); align-items: center; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); }
+  figure { margin: 0; }
+  figcaption { display: grid; gap: 0.2rem; margin-top: 0.6rem; font-size: 0.9rem; color: var(--color-ink-soft); }
+  figcaption strong { color: var(--color-navy-900); }
+  figcaption code { justify-self: start; }
+  .file { font-size: 0.85rem; color: var(--color-ink-soft); }
+
+  .tile--space { background: #fff; }
+  .space-box { outline: 2px dashed var(--color-blue-500); outline-offset: 0; padding: 4%; background: repeating-linear-gradient(45deg, var(--color-blue-100) 0 6px, #fff 6px 12px); }
+  .space-box img { background: #fff; }
+
+  .specs { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  .specs th, .specs td { text-align: start; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--color-line); vertical-align: top; }
+  .specs thead th { color: var(--color-ink-soft); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .specs tbody th { color: var(--color-navy-900); width: 22%; }
+  .ticks { padding-inline-start: 1.1rem; display: grid; gap: 0.45rem; margin: 0; }
+  .ticks li::marker { color: var(--color-blue-500); }
+  .ticks--warn li::marker { color: #b3261e; }
+  .two-col { grid-template-columns: 1fr 1fr; column-gap: var(--space-lg); }
+
+  .donts { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-sm); }
+  .donts .tile { position: relative; aspect-ratio: 4 / 3; }
+  .donts .tile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top right, transparent calc(50% - 1.5px), #b3261e calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
+  .donts figcaption { font-size: 0.82rem; }
+  .fake { font-family: 'Times New Roman', serif; font-size: 2rem; color: var(--color-blue-600); font-weight: 700; }
+  .tile--busy { background: repeating-linear-gradient(60deg, #5570b8 0 10px, #e6ebf7 10px 20px, #2f4b9b 20px 26px); }
+
+  /* Color */
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-sm); margin-top: var(--space-md); }
+  .swatches--small .sw__chip { height: 70px; }
+  .sw__chip { height: 120px; border-radius: var(--radius-md); border: 1px solid var(--color-line); display: flex; align-items: flex-end; padding: 0.6rem; font-weight: 700; font-size: 0.85rem; color: var(--color-ink); }
+  .sw__chip .light { color: #fff; }
+  .sw dl { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.6rem; font-size: 0.8rem; margin: 0.6rem 0 0.3rem; }
+  .sw dt { color: var(--color-ink-soft); }
+  .sw dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sw p { font-size: 0.8rem; margin: 0; }
+  .ratio { display: flex; height: 64px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-line); font-size: 0.78rem; font-weight: 600; }
+  .ratio span { display: flex; align-items: center; justify-content: center; text-align: center; }
+  .chips { list-style: none; padding: 0; display: grid; gap: 0.4rem; font-size: 0.9rem; }
+  .chips i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-inline-end: 0.5rem; vertical-align: -2px; }
+  .pair { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 700; border: 1px solid var(--color-line); }
+
+  /* Type */
+  .type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+  .spec { border-top: 3px solid var(--color-blue-600); padding-top: var(--space-sm); }
+  .spec__sample { font-size: 2.1rem; white-space: nowrap; padding-inline: 0.15em; line-height: 1.3; color: var(--color-blue-600); margin: 0 0 0.4rem; min-height: 1.4em; }
+  .spec__sample--sans { font-family: var(--font-body); font-size: 1.5rem; font-weight: 600; color: var(--color-navy-900); line-height: 1.6; }
+  .spec p:not(.spec__sample) { font-size: 0.88rem; }
+  .hier { display: grid; gap: var(--space-sm); }
+  .hier > div { display: grid; grid-template-columns: 260px 1fr; align-items: center; gap: var(--space-sm); border-bottom: 1px solid var(--color-line); padding-bottom: var(--space-xs); }
+  .hier__tag { font-size: 0.78rem; color: var(--color-ink-soft); font-weight: 600; }
+  .hier p { margin: 0; }
+  .h-demo--1 { font-family: var(--font-display); font-size: 3.2rem; color: var(--color-blue-600); line-height: 1.1; }
+  .h-demo--2 { font-family: var(--font-display); font-size: 2rem; color: var(--color-navy-900); }
+  .h-demo--eyebrow { font-weight: 600; color: var(--color-blue-600); }
+  .h-demo--body { color: var(--color-ink); max-width: 60ch; }
+  .btn-demo { display: inline-block; background: var(--color-navy-900); color: #fff; font-weight: 600; padding: 0.7em 1.4em; border-radius: var(--radius-md); }
+
+  /* Voice */
+  .dials { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm); margin-top: var(--space-md); }
+  .dial { border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-sm); }
+  .dial--base { background: var(--color-navy-900); border-color: var(--color-navy-900); }
+  .dial--base h3, .dial--base p { color: #fff; }
+  .dial__when { font-size: 0.78rem; font-weight: 600; color: var(--color-blue-500) !important; text-transform: uppercase; letter-spacing: 0.04em; }
+  .dial p:last-child { font-style: italic; margin: 0; }
+  .langs td[dir='rtl'] { text-align: right; font-family: Heebo, sans-serif; }
+  .contact { border-inline-start: 4px solid var(--color-blue-600); background: var(--color-silver-100); border-radius: var(--radius-sm); padding: 0.6rem 0.9rem; margin-bottom: var(--space-xs); }
+  .contact p { margin: 0; color: var(--color-ink); font-size: 0.92rem; }
+  .contact .contact__lang { font-size: 0.75rem; font-weight: 700; color: var(--color-blue-600); text-transform: uppercase; letter-spacing: 0.04em; }
+  .contact[lang='he'] { font-family: Heebo, sans-serif; }
+
+  /* Photos */
+  .photos { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-xs); margin-block: var(--space-md); }
+  .photos img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius-sm); }
+
+  /* Graphic elements */
+  .gx { aspect-ratio: 4 / 3; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-line); position: relative; }
+  .gx--pattern { background: #fff url('/brand/logos/pattern-tile.svg') 0 0 / 260px auto; }
+  .gx--pattern::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.9); }
+  .gx--stroke { display: grid; place-content: center; padding: 1rem; background: #fff; }
+  .gx--stroke p { font-family: var(--font-display); font-size: 2.1rem; white-space: nowrap; color: var(--color-blue-600); margin: 0; line-height: 1; }
+  .gx svg, .m-flyer svg { width: 100%; height: 22px; overflow: visible; }
+  .gx path, .m-flyer path { fill: none; stroke: var(--color-blue-500); stroke-width: 5; stroke-linecap: round; }
+  .gx--glow { background: radial-gradient(40% 50% at 25% 35%, rgba(85, 112, 184, 0.55), transparent 70%), radial-gradient(35% 45% at 80% 75%, rgba(122, 162, 255, 0.35), transparent 70%), var(--color-navy-900); }
+  .gx-wide { margin-top: var(--space-md); display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-md); align-items: center; }
+  .gx--mono { aspect-ratio: 16 / 9; background: var(--color-navy-900); }
+  .gx--mono img { position: absolute; width: 70%; right: -14%; bottom: -30%; opacity: 0.1; }
+
+  /* Mockups */
+  .mock-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--space-md); align-items: start; }
+  .mock > div { background: var(--color-silver-100); border-radius: var(--radius-md); padding: var(--space-md); display: grid; place-items: center; min-height: 300px; }
+  .m-sign { position: relative; }
+  .m-sign img { background: var(--color-navy-900); padding: 6% 8%; width: 100%; aspect-ratio: 3 / 1; object-fit: contain; border-radius: 4px; box-shadow: var(--shadow-lift); }
+  .m-roll > * { width: 150px; }
+  .m-roll { gap: 0 !important; }
+  .m-roll img, .m-roll p, .m-roll__photo { background: var(--color-navy-900); margin: 0; }
+  .m-roll img { padding: 18px 18px 6px; }
+  .m-roll__head { color: #fff; font-family: var(--font-display); text-align: center; font-size: 1.05rem; padding: 4px 8px 10px; }
+  .m-roll__photo { height: 150px; background-size: cover; background-position: center; }
+  .m-roll__cta { color: #fff; font-size: 0.62rem; font-weight: 600; text-align: center; padding: 10px 6px 34px; }
+  .m-door { display: flex; align-items: center; gap: 14px; background: var(--color-blue-100); padding: 14px 22px; border-radius: 6px; box-shadow: var(--shadow-lift); }
+  .m-door img { width: 46px; }
+  .m-door p { margin: 0; color: var(--color-navy-900); font-size: 0.95rem; line-height: 1.35; }
+  .m-flyer { padding: var(--space-sm) !important; }
+  .m-flyer > * { width: 230px; }
+  .m-flyer__photo { height: 140px; background-size: cover; background-position: center 30%; border-radius: 4px 4px 0 0; }
+  .m-flyer__body { background: #fff; padding: 12px 14px 0; text-align: center; border-radius: 0 0 4px 4px; box-shadow: var(--shadow-lift); overflow: hidden; }
+  .m-flyer__body img { width: 90px; margin: 0 auto 4px; }
+  .m-flyer__head { font-family: var(--font-display); color: var(--color-blue-600); font-size: 1.15rem; line-height: 1.1; margin: 0; }
+  .m-flyer__body svg { width: 70%; height: 12px; margin: 2px auto 6px; display: block; }
+  .m-flyer__text { font-size: 0.6rem; color: var(--color-ink); margin: 0 0 10px; }
+  .m-flyer__cta { background: var(--color-navy-900); color: #fff; font-size: 0.52rem; font-weight: 600; padding: 8px 6px; margin: 0 -14px; }
+  .m-cards { gap: 1rem; }
+  .m-card { width: 255px; aspect-ratio: 85 / 55; border-radius: 6px; box-shadow: var(--shadow-lift); position: relative; overflow: hidden; }
+  .m-card--front { background: var(--color-navy-900); display: grid; place-items: center; }
+  .m-card--front img { width: 58%; }
+  .m-card--back { background: #fff; padding: 16px 18px; font-size: 0.66rem; color: var(--color-ink); }
+  .m-card--back p { margin: 0 0 8px; color: var(--color-ink); line-height: 1.45; }
+  .m-card__mark { position: absolute; right: -24px; bottom: -30px; width: 140px; opacity: 0.08; }
+  .m-tees { grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .tee, .tote { position: relative; width: 170px; }
+  .tee svg, .tote svg { display: block; width: 100%; }
+  .tee img, .tote img { position: absolute; }
+  .tote p { position: absolute; left: 0; right: 0; top: 74%; text-align: center; color: #fff; font-size: 0.66rem; font-weight: 600; margin: 0; }
+  .m-cert { position: relative; width: 100%; max-width: 420px; aspect-ratio: 297 / 210; background: #fff !important; box-shadow: var(--shadow-lift); outline: 2px solid var(--color-navy-900); outline-offset: -10px; text-align: center; overflow: hidden; display: block !important; padding: 18px 30px !important; min-height: 0 !important; }
+  .m-cert p { margin: 0; }
+  .m-cert__mark { position: absolute; right: 14px; bottom: 14px; width: 90px; opacity: 0.07; }
+  .m-cert__logo { width: 90px; margin: 0 auto; }
+  .m-cert__title { font-family: var(--font-display); font-size: 2rem; color: var(--color-blue-600); line-height: 1.1; }
+  .m-cert__sub { font-size: 0.6rem; color: var(--color-ink-soft); }
+  .m-cert__name { font-weight: 600; font-size: 1.05rem; color: var(--color-navy-900); border-bottom: 1px solid var(--color-line); display: inline-block; padding: 0 20px 2px; margin: 4px 0 !important; }
+  .m-cert__text { font-size: 0.6rem; color: var(--color-ink); }
+  .m-cert__sign { display: flex; justify-content: space-around; margin-top: 16px; font-size: 0.55rem; color: var(--color-ink-soft); }
+  .m-cert__sign span { border-top: 1px solid var(--color-ink-soft); padding-top: 2px; width: 90px; }
+  .m-medals { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .medal { width: 130px; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #c9cfdc 55%, #9aa3b5); display: grid; place-items: center; box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.5), var(--shadow-lift); }
+  .medal--gold { background: radial-gradient(circle at 35% 30%, #fff7e6, #f0c674 55%, #b79a4c); }
+  .medal img { width: 52%; opacity: 0.55; mix-blend-mode: multiply; }
+
+  /* Files */
+  .files { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 0.3rem var(--space-md); margin-top: var(--space-sm); }
+  .file-row { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 0.7rem; padding: 0.3rem 0; border-bottom: 1px solid var(--color-line); font-size: 0.85rem; }
+  .file-thumb { height: 34px; display: grid; place-items: center; border-radius: 4px; background: var(--color-ground); }
+  .file-thumb--dark { background: var(--color-navy-900); }
+  .file-thumb img { max-height: 28px; max-width: 62px; }
+  .file-links { display: flex; gap: 0.5rem; font-weight: 600; font-size: 0.78rem; }
+
+  @media screen and (max-width: 880px) {
+    .primary, .two, .grid3, .type-grid, .gx-wide, .two-col { grid-template-columns: 1fr; }
+    .grid4, .dials { grid-template-columns: 1fr 1fr; }
+    .donts, .swatches, .photos { grid-template-columns: repeat(3, 1fr); }
+    .hier > div { grid-template-columns: 1fr; }
+  }
+  @media screen and (max-width: 520px) {
+    .donts, .swatches, .photos { grid-template-columns: 1fr 1fr; }
+    .langs { font-size: 0.8rem; display: block; overflow-x: auto; }
+    .spec__sample, .gx--stroke p { white-space: normal; }
+    .m-card { width: 100%; }
+    .m-cards, .m-tees, .m-medals { grid-template-columns: 1fr; }
+  }
+
+  /* PDF: A4 landscape, one section per page; rendered at a 1120px layout width. */
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print {
+    :root { --space-lg: 1.6rem; --space-md: 1.2rem; }
+    html { font-size: 12.5px; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print, astro-dev-toolbar { display: none !important; }
+    /* Blurred shadows rasterize into grey boxes in Chrome's PDF output. */
+    * { box-shadow: none !important; }
+    .tee { filter: none; }
+    .m-sign img, .m-card, .m-flyer__body, .m-door { outline: 1px solid var(--color-line); }
+    .sub { break-after: avoid; }
+    .page { break-before: page; border: 0 !important; }
+    .cover { break-before: auto; min-height: 186mm; border-radius: 6px; }
+    .page-body { padding: 0; max-width: none; }
+    figure, .sw, .spec, .dial, .contact, tr, .file-row { break-inside: avoid; }
+    .grid4 .tile { aspect-ratio: 2 / 1; }
+    .primary .tile--hero { aspect-ratio: 2 / 1; }
+    a { color: inherit; }
+  }
+</style>

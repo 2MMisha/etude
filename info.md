@@ -187,7 +187,22 @@ These are regenerated on every build, always in sync with real content:
 
 ---
 
-## 10. Project structure (for developers)
+## 10. Brand book (`/brand/`)
+
+**https://etude.ristar.co/brand/**: the brand book for designers, printers and the owner (logo, color, type, voice, photography, graphic elements, print specs, downloads). Like `/display/`, it is not linked anywhere, is `noindex`, and is excluded from the sitemap and `robots.txt`. Page: `src/pages/brand.astro`.
+
+- **Logo pack:** `public/brand/logos/`. Every variant comes as SVG, PNG (2000 px, transparent) and vector PDF, in blue, `-white`, `-navy` and `-black`. The pack includes Hebrew and Russian versions (`logo-full-he/ru`, `logo-name-he/ru`), a round `avatar` and `pattern-tile.svg`. `public/brand/etude-logo-pack.zip` bundles the folder.
+- **PDF:** `public/brand/etude-brandbook.pdf` is the page printed from Chrome (A4 landscape). After editing the page, regenerate it with the dev server running:
+  ```bash
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=10000 --print-to-pdf=public/brand/etude-brandbook.pdf http://localhost:4321/brand/
+  ```
+  If the logo files change, re-zip them too: `cd public/brand && rm etude-logo-pack.zip && zip -qr etude-logo-pack.zip logos`.
+- The Hebrew and Russian lockups were outlined from Gveret Levin and Marck Script (both OFL) with a one-off fontTools script. The text is stored as paths, so no font files are needed.
+- CMYK and Pantone values in the book are calculated, not printer-confirmed. Update them after the first printed proof.
+
+> **Owner note on the font license (not shown in the book):** the headline font **Another Shabby** (Zetafonts) is used on this site (`public/fonts/another-shabby/`) and in the "Dance School" line and cursive logos. The copy we have is the free personal-use build (CC BY-NC), whose digits are watermark glyphs. Commercial use, including the logo and website, needs a paid license from [Zetafonts](https://www.zetafonts.com/another-shabby) or [Fontspring](https://fontspring.com/fonts/zetafonts/another-shabby) (listed from about $75). The other option is to replace the font, which means re-setting "Dance School" in every logo.
+
+## 11. Project structure (for developers)
 
 ```
 src/

@@ -44,7 +44,7 @@ export default defineConfig({
           ru: 'ru',
         },
       },
-      filter: (page) => !page.includes('/admin') && !page.includes('/display') && !page.includes('/trainers') && page !== 'https://etude.ristar.co/',
+      filter: (page) => !page.includes('/admin') && !page.includes('/display') && !page.includes('/brand/') && !page.includes('/trainers') && page !== 'https://etude.ristar.co/',
       serialize(item) {
         const path = new URL(item.url).pathname.replace(/^\/(he|en|ru)(?=\/)/, '');
         const rule = SITEMAP_RULES.find((r) => r.match.test(path));

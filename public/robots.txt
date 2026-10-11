@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /display/
+Disallow: /brand/
 
 Sitemap: https://etude.ristar.co/sitemap-index.xml
