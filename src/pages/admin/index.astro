@@ -148,6 +148,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           <button class="tab-btn" id="tabInstructorsBtn">Instructors</button>
           <button class="tab-btn" id="tabSettingsBtn">Site settings</button>
           <button class="tab-btn" id="tabTimetableBtn">Timetable (Google Sheet)</button>
+          <button class="tab-btn" id="tabStudentBtn">Student app</button>
         </div>
 
         <section id="newsSection">
@@ -439,6 +440,36 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           </div>
         </section>
 
+        <section id="studentSection" hidden>
+          <div class="panel">
+            <h2 style="font-size:1.05rem">Student app — prices &amp; rules</h2>
+            <p class="hint">
+              Shown in the students' app <a href="/student/" target="_blank" rel="noopener">/student/</a>. One item per line.
+              Prices: name, a dash, the price — e.g. <code>Kids group, 4 lessons a month — 300 ₪</code>. Leave prices empty to
+              show "ask us on WhatsApp". A language left empty shows the Hebrew text.
+            </p>
+            <p class="status-msg" id="studentStatus"></p>
+            <div class="form-grid">
+              <h3 style="font-size:0.95rem; margin:0">Prices</h3>
+              <div class="row-3">
+                <div><label for="saPricesHe">עברית</label><textarea id="saPricesHe" dir="rtl" rows="8"></textarea></div>
+                <div><label for="saPricesRu">Русский</label><textarea id="saPricesRu" rows="8"></textarea></div>
+                <div><label for="saPricesEn">English</label><textarea id="saPricesEn" rows="8"></textarea></div>
+              </div>
+              <h3 style="font-size:0.95rem; margin:0">Studio rules</h3>
+              <div class="row-3">
+                <div><label for="saRulesHe">עברית</label><textarea id="saRulesHe" dir="rtl" rows="8"></textarea></div>
+                <div><label for="saRulesRu">Русский</label><textarea id="saRulesRu" rows="8"></textarea></div>
+                <div><label for="saRulesEn">English</label><textarea id="saRulesEn" rows="8"></textarea></div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-mini primary" id="saveStudentBtn">Save</button>
+              <span class="status-msg" id="studentSaveStatus"></span>
+            </div>
+          </div>
+        </section>
+
         <section id="timetableSection" hidden>
           <div class="panel">
             <h2 style="font-size:1.05rem">Timetable (Google Sheet)</h2>
@@ -472,6 +503,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       const SCHEDULE_DIR = 'src/content/schedule';
       const INSTRUCTORS_DIR = 'src/content/instructors';
       const SETTINGS_PATH = 'src/data/site-settings.json';
+      const STUDENT_PATH = 'src/data/student-app.json';
       const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
       const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -608,6 +640,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
             loadSchedule();
             loadInstructors();
             loadSettings();
+            loadStudent();
           } else {
             throw await ghError(res);
           }
@@ -628,7 +661,10 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       $('tabInstructorsBtn').addEventListener('click', () => switchTab('instructors'));
       $('tabSettingsBtn').addEventListener('click', () => switchTab('settings'));
       $('tabTimetableBtn').addEventListener('click', () => switchTab('timetable'));
+      $('tabStudentBtn').addEventListener('click', () => switchTab('student'));
       function switchTab(which) {
+        $('tabStudentBtn').classList.toggle('active', which === 'student');
+        $('studentSection').hidden = which !== 'student';
         $('tabTimetableBtn').classList.toggle('active', which === 'timetable');
         $('timetableSection').hidden = which !== 'timetable';
         $('tabNewsBtn').classList.toggle('active', which === 'news');
@@ -1162,6 +1198,48 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
         }
       });
 
+      // ---------- Student app (prices & rules, one item per line) ----------
+      let studentSha = null;
+      const SA_LANGS = { He: 'he', Ru: 'ru', En: 'en' };
+
+      async function loadStudent() {
+        $('studentStatus').textContent = 'Loading…';
+        $('studentStatus').className = 'status-msg pending';
+        try {
+          const file = await ghGetFile(STUDENT_PATH);
+          const s = file ? JSON.parse(file.content) : {};
+          studentSha = file?.sha ?? null;
+          for (const [suffix, lang] of Object.entries(SA_LANGS)) {
+            $('saPrices' + suffix).value = (s.prices?.[lang] || []).join('\n');
+            $('saRules' + suffix).value = (s.rules?.[lang] || []).join('\n');
+          }
+          $('studentStatus').textContent = '';
+        } catch (err) {
+          $('studentStatus').textContent = 'Could not load: ' + err.message;
+          $('studentStatus').className = 'status-msg bad';
+        }
+      }
+
+      $('saveStudentBtn').addEventListener('click', async () => {
+        const lines = (id) => $(id).value.split('\n').map((l) => l.trim()).filter(Boolean);
+        const data = { prices: {}, rules: {} };
+        for (const [suffix, lang] of Object.entries(SA_LANGS)) {
+          data.prices[lang] = lines('saPrices' + suffix);
+          data.rules[lang] = lines('saRules' + suffix);
+        }
+        $('studentSaveStatus').textContent = 'Saving…';
+        $('studentSaveStatus').className = 'status-msg pending';
+        try {
+          await ghPutFile(STUDENT_PATH, data, studentSha, 'chore(student): update prices and rules via admin panel');
+          $('studentSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
+          $('studentSaveStatus').className = 'status-msg ok';
+          loadStudent();
+        } catch (err) {
+          $('studentSaveStatus').textContent = 'Save failed: ' + err.message;
+          $('studentSaveStatus').className = 'status-msg bad';
+        }
+      });
+
       // ---------- Timetable (Google Sheet) ----------
       // Shows exactly what the deployed site serves to /display/ (built from the
       // sheet), so it always matches the screen.
@@ -1475,6 +1553,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           loadSchedule();
           loadInstructors();
           loadSettings();
+          loadStudent();
         }
         loadTimetable();
       }

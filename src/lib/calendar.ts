@@ -82,8 +82,11 @@ function eventUid(e: CalendarEvent): string {
   return `${e.date}-${e.start.replace(':', '')}-${slugify(e.title)}-${slugify(e.description || '')}@etude.ristar.co`;
 }
 
-/** A complete .ics calendar for the given events. */
-export function buildIcs(events: CalendarEvent[], calendarName: string): string {
+/** "15" → "-PT15M", "1440" → "-P1D" (RFC 5545 duration before the start). */
+const trigger = (min: number) => (min % 1440 === 0 ? `-P${min / 1440}D` : min % 60 === 0 ? `-PT${min / 60}H` : `-PT${min}M`);
+
+/** A complete .ics calendar for the given events; `alarmMin` adds a reminder that many minutes before each one. */
+export function buildIcs(events: CalendarEvent[], calendarName: string, alarmMin = 0): string {
   const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const lines = [
     'BEGIN:VCALENDAR',
@@ -109,6 +112,8 @@ export function buildIcs(events: CalendarEvent[], calendarName: string): string 
     );
     if (e.description) lines.push(`DESCRIPTION:${escapeIcs(e.description)}`);
     if (e.location) lines.push(`LOCATION:${escapeIcs(e.location)}`);
+    if (alarmMin > 0)
+      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escapeIcs(e.title)}`, `TRIGGER:${trigger(alarmMin)}`, 'END:VALARM');
     lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');

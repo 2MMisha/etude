@@ -1,0 +1,582 @@
+---
+// /student/ — the students' helper app (installable PWA, see
+// public/student/manifest.webmanifest and sw.js): next class, schedule with
+// search and follows, calendar reminders, classes, prices, rules, news and contacts.
+// Not linked from the public site; noindex; behind a numeric code.
+// Prices and rules are edited in /admin/ ("Student app" tab).
+import '../../styles/global.css';
+import { getTimetable } from '../../lib/loadTimetable';
+import { ALARMS, feedsFrom, groupOf, studentDays } from '../../lib/student';
+import { trainersFrom } from '../../lib/trainers';
+import { getPublishedNews } from '../../lib/news';
+import { renderRichText } from '../../lib/richText';
+import { t as tr } from '../../lib/translations';
+import { ALL_LANGS, localizePath } from '../../lib/languages';
+import { SITE } from '../../lib/site';
+import app from '../../data/student-app.json';
+
+// The studio code. A deterrent like /admin/'s password, not real protection:
+// the page (and /data/timetable.json) is public to anyone with the link.
+const CODE_SHA256 = '096138f0929857ff2b93b50504a255bbc575eaca94cb9aadd5d8bccc31258bd7';
+
+const tt = await getTimetable();
+const news = (await getPublishedNews()).sort((a, b) => b.data.date.localeCompare(a.data.date));
+const classes = Object.fromEntries(
+  ALL_LANGS.map((l) => {
+    const c = tr(l).classes;
+    return [l, { intro: c.intro, sections: [{ title: '', items: c.categories }, { title: c.levelsTitle, items: c.levels }, { title: c.audiencesTitle, items: c.audiences }], url: localizePath(l, '/classes/') }];
+  })
+);
+const data = {
+  days: studentDays(tt),
+  feeds: feedsFrom(tt).map((f) => ({ slug: f.slug, name: f.name })),
+  groups: [...new Set(studentDays(tt).flatMap((d) => d.items.map((i) => groupOf(i.title))))].sort(),
+  trainers: trainersFrom(tt).map((t) => t.name),
+  alarms: ALARMS,
+  siteUrl: SITE.siteUrl,
+  updatedAt: tt.updatedAt,
+  news: news.map((n) => ({
+    id: n.id,
+    date: n.data.date,
+    image: n.data.image,
+    imageAlt: n.data.imageAlt,
+    title: n.data.title,
+    html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(n.data.body[l] || n.data.body.he)])),
+  })),
+  classes,
+  prices: app.prices,
+  rules: app.rules,
+  contact: {
+    phone: SITE.phone,
+    phoneDisplay: SITE.phoneDisplay,
+    whatsapp: SITE.whatsapp,
+    instagram: SITE.social.instagram,
+    maps: SITE.googleMapsUrl,
+    street: SITE.address.street,
+    city: SITE.address.cityLocalized,
+  },
+};
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#17224a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ETUDE" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/student/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <title>ETUDE</title>
+  </head>
+  <body class="sa">
+    <header class="sa-top">
+      <img src="/images/brand/logo-full-white.svg" alt="ETUDE" width="96" height="40" />
+      <div class="sa-langs" role="group" aria-label="Language">
+        <button type="button" data-lang="he" lang="he">עב</button>
+        <button type="button" data-lang="ru" lang="ru">RU</button>
+        <button type="button" data-lang="en" lang="en">EN</button>
+      </div>
+    </header>
+
+    <form class="sa-lock" id="lock">
+      <label for="code" id="codeLabel"></label>
+      <input id="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" />
+      <p class="sa-bad" id="codeBad" hidden></p>
+    </form>
+
+    <main class="sa-main" id="app" hidden>
+      <section data-tab="home">
+        <h1 id="hello"></h1>
+        <div id="next"></div>
+        <h2 id="newsTitle"></h2>
+        <ul class="list" id="news"></ul>
+        <a class="btn btn--ghost sa-more" href="#news" id="allNews"></a>
+      </section>
+
+      <section data-tab="news" hidden>
+        <h1 id="newsAllTitle"></h1>
+        <ul class="list" id="newsAll"></ul>
+      </section>
+
+      <section data-tab="post" hidden>
+        <a class="sa-back" href="#news" id="back"></a>
+        <article class="post" id="post"></article>
+      </section>
+
+      <section data-tab="schedule" hidden>
+        <h1 id="schedTitle"></h1>
+        <input type="search" id="q" class="sa-search" autocomplete="off" />
+        <div class="chips" id="chips"></div>
+        <div class="sa-row" id="mineRow"></div>
+        <details class="card" id="cal" hidden>
+          <summary id="calSummary"></summary>
+          <p class="hint" id="calHint"></p>
+          <label class="hint" for="alarm" id="alarmLabel"></label>
+          <select id="alarm"></select>
+          <div id="calLinks"></div>
+        </details>
+        <div id="days"></div>
+      </section>
+
+      <section data-tab="classes" hidden>
+        <h1 id="classesTitle"></h1>
+        <div id="classes"></div>
+        <h2 id="pricesTitle"></h2>
+        <div class="card" id="prices"></div>
+      </section>
+
+      <section data-tab="studio" hidden>
+        <h1 id="rulesTitle"></h1>
+        <ol class="rules" id="rules"></ol>
+        <h2 id="contactTitle"></h2>
+        <div class="card" id="contact"></div>
+      </section>
+
+      <p class="hint sa-updated" id="updated"></p>
+    </main>
+
+    <nav class="sa-nav" id="nav" hidden>
+      <a href="#home" data-go="home"><span aria-hidden="true">🏠</span><b></b></a>
+      <a href="#schedule" data-go="schedule"><span aria-hidden="true">📅</span><b></b></a>
+      <a href="#classes" data-go="classes"><span aria-hidden="true">💃</span><b></b></a>
+      <a href="#studio" data-go="studio"><span aria-hidden="true">ℹ️</span><b></b></a>
+    </nav>
+
+    <script type="application/json" id="sa-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
+    <script type="application/json" id="sa-code" set:html={JSON.stringify(CODE_SHA256)} />
+
+    <script>
+      import { weekOf, type TimetableItem } from '../../lib/timetable';
+
+      type Lang = 'he' | 'en' | 'ru';
+      const L = {
+        he: {
+          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', studio: 'סטודיו',
+          hello: 'שלום! 👋', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו ★ בלוח הזמנים את הקבוצות, המאמנים או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
+          noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה, מאמן או שם',
+          all: 'הכול', mine: '★ לעקוב', isMine: '★ במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
+          today: 'היום', tomorrow: 'מחר', calendar: '🔔 תזכורות ביומן', calHint: 'הירשמו ליומן — הטלפון יזכיר לפני כל שיעור, והשינויים בלוח יתעדכנו לבד. ב-Google Calendar התזכורת נקבעת בהגדרות היומן.',
+          alarm: 'תזכורת', alarms: { 0: 'בלי תזכורת', 15: '15 דקות לפני', 60: 'שעה לפני', 180: '3 שעות לפני', 1440: 'יום לפני' } as Record<number, string>,
+          apple: 'iPhone / Outlook', google: 'Google', classesT: 'השיעורים שלנו', more: 'עוד באתר', prices: 'מחירים',
+          noPrices: 'לפרטי מחירים כתבו לנו בוואטסאפ', rules: 'כללי הסטודיו', contact: 'יצירת קשר', whatsapp: 'וואטסאפ', call: 'שיחה',
+          myClasses: 'השיעורים שלי', mineChip: '★ שלי', edit: 'עריכה', allNews: 'כל החדשות', back: 'חדשות', unfollow: 'הסרה מהמעקב',
+          route: 'ניווט', updated: 'עודכן', locale: 'he-IL', dir: 'rtl',
+        },
+        en: {
+          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', studio: 'Studio',
+          hello: 'Hi! 👋', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Tap ★ in the schedule on your groups, trainers or names — as many as you like — and your next classes show up here.',
+          noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group, trainer or name',
+          all: 'All', mine: '★ Follow', isMine: '★ Following', unmine: 'Remove', noMatch: 'No classes found',
+          today: 'Today', tomorrow: 'Tomorrow', calendar: '🔔 Calendar reminders', calHint: 'Subscribe once: your phone reminds you before every class and schedule changes arrive by themselves. In Google Calendar, set the reminder in the calendar settings.',
+          alarm: 'Reminder', alarms: { 0: 'No reminder', 15: '15 minutes before', 60: '1 hour before', 180: '3 hours before', 1440: '1 day before' } as Record<number, string>,
+          apple: 'iPhone / Outlook', google: 'Google', classesT: 'Our classes', more: 'More on the website', prices: 'Prices',
+          noPrices: 'For prices, message us on WhatsApp', rules: 'Studio rules', contact: 'Contact', whatsapp: 'WhatsApp', call: 'Call',
+          myClasses: 'My classes', mineChip: '★ Mine', edit: 'Edit', allNews: 'All news', back: 'News', unfollow: 'Stop following',
+          route: 'Directions', updated: 'Updated', locale: 'en-GB', dir: 'ltr',
+        },
+        ru: {
+          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', studio: 'Студия',
+          hello: 'Привет! 👋', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте ★ в расписании свои группы, тренеров или имена — можно несколько — и здесь появятся ваши следующие занятия.',
+          noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа, тренер или имя',
+          all: 'Все', mine: '★ Следить', isMine: '★ Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
+          today: 'Сегодня', tomorrow: 'Завтра', calendar: '🔔 Напоминания в календаре', calHint: 'Подпишитесь один раз — телефон напомнит перед каждым занятием, а изменения расписания придут сами. В Google Календаре напоминание выбирается в настройках календаря.',
+          alarm: 'Напоминание', alarms: { 0: 'Без напоминания', 15: 'За 15 минут', 60: 'За 1 час', 180: 'За 3 часа', 1440: 'За день' } as Record<number, string>,
+          apple: 'iPhone / Outlook', google: 'Google', classesT: 'Наши занятия', more: 'Подробнее на сайте', prices: 'Цены',
+          noPrices: 'Цены уточняйте у нас в WhatsApp', rules: 'Правила студии', contact: 'Контакты', whatsapp: 'WhatsApp', call: 'Позвонить',
+          myClasses: 'Мои занятия', mineChip: '★ Моё', edit: 'Изменить', allNews: 'Все новости', back: 'Новости', unfollow: 'Не следить',
+          route: 'Маршрут', updated: 'Обновлено', locale: 'ru-RU', dir: 'ltr',
+        },
+      };
+      const LANGS: Lang[] = ['he', 'en', 'ru'];
+
+      type Loc = Record<Lang, string>;
+      interface Data {
+        days: { date: string; items: TimetableItem[] }[];
+        feeds: { slug: string; name: string }[];
+        groups: string[];
+        trainers: string[];
+        alarms: number[];
+        siteUrl: string;
+        updatedAt: string;
+        news: { id: string; date: string; image?: string; imageAlt?: Partial<Loc>; title: Loc; html: Loc }[];
+        classes: Record<Lang, { intro: string; sections: { title: string; items: { title: string; body: string }[] }[]; url: string }>;
+        prices: Record<Lang, string[]>;
+        rules: Record<Lang, string[]>;
+        contact: { phone: string; phoneDisplay: string; whatsapp: string; instagram: string; maps: string; street: string; city: Loc };
+      }
+      const data: Data = JSON.parse(document.getElementById('sa-data')!.textContent || '{}');
+      const CODE: string = JSON.parse(document.getElementById('sa-code')!.textContent || '""');
+      const $ = (id: string) => document.getElementById(id)!;
+      const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+      const store = {
+        get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
+        set: (k: string, v: string | null) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+      };
+
+      // ----- Language: saved choice → device language → Hebrew -----
+      function pickLang(): Lang {
+        const saved = store.get('etude-lang');
+        if (LANGS.includes(saved as Lang)) return saved as Lang;
+        for (const l of navigator.languages || [navigator.language]) {
+          const c = l.slice(0, 2).toLowerCase();
+          if (c === 'iw') return 'he';
+          if (LANGS.includes(c as Lang)) return c as Lang;
+          if (['uk', 'be', 'kk'].includes(c)) return 'ru';
+        }
+        return 'he';
+      }
+      let lang = pickLang();
+      let t = L[lang];
+
+      // ----- Search: one query over title, trainer and hall -----
+      const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').trim();
+      const matches = (i: TimetableItem, q: string) => !q || norm(`${i.title} ${i.column} ${i.hall ?? ''}`).includes(norm(q));
+      // Followed searches (groups, trainers, names) — as many as the student likes.
+      let follows: string[] = [];
+      try { follows = JSON.parse(store.get('etude-follows') || '[]'); } catch {}
+      const oldMine = store.get('etude-mine'); // the single "mine" of the first version
+      if (oldMine && !follows.length) follows = [oldMine];
+      const saveFollows = () => store.set('etude-follows', JSON.stringify(follows));
+      const isFollowed = (q: string) => follows.some((f) => norm(f) === norm(q));
+      const matchesAny = (i: TimetableItem) => follows.some((f) => matches(i, f));
+      let mineView = follows.length > 0; // schedule shows all followed classes together
+      let query = '';
+      let post = ''; // id of the news post open in the app
+      let alarm = Number(store.get('etude-alarm') ?? 60);
+      if (!data.alarms.includes(alarm)) alarm = 60;
+
+      const today = () => weekOf(new Date())[new Date().getDay()];
+      const nowMin = () => new Date().getHours() * 60 + new Date().getMinutes();
+      const toMin = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+      /** Upcoming days (from today) with the items still ahead that pass the filter. */
+      function upcoming(keep: (i: TimetableItem) => boolean) {
+        const d0 = today();
+        return data.days
+          .filter((d) => d.date >= d0)
+          .map((d) => ({ date: d.date, items: d.items.filter((i) => keep(i) && (d.date > d0 || toMin(i.end) > nowMin())) }))
+          .filter((d) => d.items.length);
+      }
+      function dayName(iso: string) {
+        if (iso === today()) return t.today;
+        const tm = new Date(); tm.setDate(tm.getDate() + 1);
+        if (iso === weekOf(tm)[tm.getDay()]) return t.tomorrow;
+        return new Date(`${iso}T12:00:00`).toLocaleDateString(t.locale, { weekday: 'long', day: 'numeric', month: 'short' });
+      }
+      const itemHtml = (i: TimetableItem) => `
+        <li class="ev">
+          <span class="ev__time" dir="ltr">${i.start}–${i.end}</span>
+          <span class="ev__title" dir="auto">${esc(i.title)}</span>
+          <span class="ev__who" dir="auto">${esc([i.column, i.hall && i.hall !== i.column ? i.hall : ''].filter(Boolean).join(' · '))}</span>
+        </li>`;
+
+      // ----- Rendering -----
+      function renderHome() {
+        $('hello').textContent = t.hello;
+        const nextHtml = (keep: (i: TimetableItem) => boolean) => {
+          const next = upcoming(keep)[0];
+          return next
+            ? `<p class="day">${esc(dayName(next.date))}</p><ul class="evs">${itemHtml(next.items[0])}</ul>`
+            : `<p class="hint">${t.noNext}</p>`;
+        };
+        $('next').innerHTML = follows.length
+          ? `<div class="sa-head"><h2>${t.myClasses}</h2><a href="#schedule" data-mine-view>${t.edit}</a></div>` +
+            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">★ ${esc(f)}</h3>${nextHtml((i) => matches(i, f))}</div>`).join('')
+          : `<div class="card"><h2>${t.nextAll}</h2>${nextHtml(() => true)}<p class="hint">${t.pickMine}</p><a class="btn" href="#schedule">${t.choose}</a></div>`;
+        $('newsTitle').textContent = t.news;
+        $('news').innerHTML = data.news.slice(0, 3).map(newsItem).join('');
+        $('allNews').hidden = data.news.length <= 3;
+        $('allNews').textContent = t.allNews;
+      }
+
+      const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(t.locale, { dateStyle: 'medium' });
+      const newsItem = (n: Data['news'][number]) =>
+        `<li><a href="#news/${encodeURIComponent(n.id)}"><b dir="auto">${esc(n.title[lang] || n.title.he)}</b><span class="hint">${fmtDate(n.date)}</span></a></li>`;
+
+      function renderNews() {
+        $('newsAllTitle').textContent = t.news;
+        $('newsAll').innerHTML = data.news.map(newsItem).join('');
+        $('back').textContent = `‹ ${t.back}`;
+        const n = data.news.find((x) => x.id === post);
+        // The body is already safe HTML (renderRichText escapes everything it doesn't format).
+        $('post').innerHTML = n
+          ? (n.image ? `<img src="${esc(n.image)}" alt="${esc(n.imageAlt?.[lang] || '')}" loading="lazy" />` : '') +
+            `<p class="hint">${fmtDate(n.date)}</p><h1 dir="auto">${esc(n.title[lang] || n.title.he)}</h1><div class="post__body" dir="auto">${n.html[lang]}</div>`
+          : '';
+      }
+
+      function renderSchedule() {
+        $('schedTitle').textContent = t.schedule;
+        const q = $('q') as HTMLInputElement;
+        q.placeholder = t.search;
+        if (document.activeElement !== q) q.value = mineView ? '' : query;
+        $('chips').innerHTML =
+          (follows.length ? `<button type="button" data-mine-view aria-pressed="${mineView}">${t.mineChip} (${follows.length})</button>` : '') +
+          [['', t.all], ...data.trainers.map((n) => [n, n]), ...data.groups.map((g) => [g, g])]
+            .map(([v, label]) => `<button type="button" data-q="${esc(v)}" aria-pressed="${!mineView && norm(v) === norm(query)}" dir="auto">${isFollowed(v) ? '★ ' : ''}${esc(label)}</button>`)
+            .join('');
+        $('mineRow').innerHTML = mineView
+          ? follows.map((f, n) => `<button type="button" class="btn btn--ghost" data-unfollow="${n}" aria-label="${t.unfollow}: ${esc(f)}" dir="auto">★ ${esc(f)} ✕</button>`).join('')
+          : !query.trim()
+            ? ''
+            : isFollowed(query)
+              ? `<span class="tag">${t.isMine}</span><button type="button" class="btn btn--ghost" data-follow="off">${t.unmine}</button>`
+              : `<button type="button" class="btn" data-follow="on">${t.mine}</button>`;
+
+        // Calendar feeds whose group or trainer matches the query (or any follow).
+        const wanted = mineView ? follows : query.trim() ? [query] : [];
+        const feeds = data.feeds.filter((f) => wanted.some((w) => norm(f.name).includes(norm(w))));
+        $('cal').hidden = !feeds.length;
+        $('calSummary').textContent = t.calendar;
+        $('calHint').textContent = t.calHint;
+        $('alarmLabel').textContent = t.alarm;
+        $('alarm').innerHTML = data.alarms.map((m) => `<option value="${m}" ${m === alarm ? 'selected' : ''}>${t.alarms[m]}</option>`).join('');
+        $('calLinks').innerHTML = feeds
+          .map((f) => {
+            const https = `${data.siteUrl}/student/cal/${encodeURIComponent(`${f.slug}-${alarm}`)}.ics`;
+            const webcal = https.replace(/^https:/, 'webcal:');
+            return `<div class="feed"><b dir="auto">${esc(f.name)}</b>
+              <a class="btn" href="${webcal}">${t.apple}</a>
+              <a class="btn btn--ghost" href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}" target="_blank" rel="noopener">${t.google}</a></div>`;
+          })
+          .join('');
+
+        const days = upcoming(mineView ? matchesAny : (i) => matches(i, query));
+        $('days').innerHTML = days.length
+          ? days.map((d) => `<h3 class="day">${esc(dayName(d.date))}</h3><ul class="evs">${d.items.map(itemHtml).join('')}</ul>`).join('')
+          : `<p class="hint">${t.noMatch}</p>`;
+      }
+
+      function renderClasses() {
+        const c = data.classes[lang];
+        $('classesTitle').textContent = t.classesT;
+        $('classes').innerHTML =
+          `<p>${esc(c.intro)}</p>` +
+          c.sections.map((sec) => (sec.title ? `<h3 class="day">${esc(sec.title)}</h3>` : '') + sec.items.map((s) => `<details class="card"><summary>${esc(s.title)}</summary><p>${esc(s.body)}</p></details>`).join('')).join('') +
+          `<a class="btn btn--ghost" href="${c.url}">${t.more}</a>`;
+        $('pricesTitle').textContent = t.prices;
+        const prices = data.prices[lang]?.length ? data.prices[lang] : data.prices.he;
+        // "Kids group, 4 lessons/month — 300 ₪": name and price on one row.
+        $('prices').innerHTML = prices?.length
+          ? `<dl class="prices">${prices.map((p) => { const [a, ...b] = p.split(/\s+[—–-]\s+/); return `<dt dir="auto">${esc(a)}</dt><dd dir="auto">${esc(b.join(' — '))}</dd>`; }).join('')}</dl>`
+          : `<p class="hint">${t.noPrices}</p><a class="btn" href="https://wa.me/${data.contact.whatsapp}" target="_blank" rel="noopener">${t.whatsapp}</a>`;
+      }
+
+      function renderStudio() {
+        $('rulesTitle').textContent = t.rules;
+        $('rules').innerHTML = (data.rules[lang]?.length ? data.rules[lang] : data.rules.he).map((r) => `<li dir="auto">${esc(r)}</li>`).join('');
+        $('contactTitle').textContent = t.contact;
+        const c = data.contact;
+        $('contact').innerHTML = `
+          <p>${esc(c.street)}, ${esc(c.city[lang])}</p>
+          <div class="sa-row">
+            <a class="btn" href="https://wa.me/${c.whatsapp}" target="_blank" rel="noopener">${t.whatsapp}</a>
+            <a class="btn btn--ghost" href="tel:${c.phone}" dir="ltr">${t.call} ${esc(c.phoneDisplay)}</a>
+            <a class="btn btn--ghost" href="${c.maps}" target="_blank" rel="noopener">${t.route}</a>
+            <a class="btn btn--ghost" href="${c.instagram}" target="_blank" rel="noopener">Instagram</a>
+          </div>`;
+      }
+
+      function render() {
+        document.documentElement.lang = lang;
+        document.documentElement.dir = t.dir;
+        document.querySelectorAll<HTMLButtonElement>('.sa-langs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+        $('codeLabel').textContent = t.code;
+        $('codeBad').textContent = t.bad;
+        document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => (a.querySelector('b')!.textContent = t[a.dataset.go as 'home']));
+        renderHome();
+        renderNews();
+        renderSchedule();
+        renderClasses();
+        renderStudio();
+        $('updated').textContent = data.updatedAt
+          ? `${t.updated}: ${new Date(data.updatedAt).toLocaleString(t.locale, { dateStyle: 'medium', timeStyle: 'short' })}`
+          : '';
+      }
+
+      // ----- Tabs via #hash, so the back button works -----
+      function showTab() {
+        const [name, id] = location.hash.slice(1).split('/');
+        post = name === 'news' && id ? decodeURIComponent(id) : '';
+        if (post && !data.news.some((n) => n.id === post)) post = '';
+        const tab = post ? 'post' : ['home', 'schedule', 'news', 'classes', 'studio'].includes(name) ? name : 'home';
+        if (post) renderNews();
+        document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
+        const navTab = tab === 'news' || tab === 'post' ? 'home' : tab;
+        document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
+        scrollTo(0, 0);
+      }
+      addEventListener('hashchange', showTab);
+
+      // ----- Events -----
+      $('q').addEventListener('input', (e) => { query = (e.target as HTMLInputElement).value; mineView = false; renderSchedule(); });
+      // "★ Mine" (chip, or "Edit" on the home screen) shows every followed class together.
+      document.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('[data-mine-view]')) { mineView = true; renderSchedule(); }
+      });
+      $('chips').addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-q]');
+        if (b) { query = b.dataset.q!; mineView = false; renderSchedule(); }
+      });
+      $('mineRow').addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-follow], button[data-unfollow]');
+        if (!b) return;
+        if (b.dataset.unfollow) follows.splice(Number(b.dataset.unfollow), 1);
+        else if (b.dataset.follow === 'on') follows.push(query.trim());
+        else follows = follows.filter((f) => norm(f) !== norm(query));
+        if (!follows.length) mineView = false;
+        saveFollows();
+        store.set('etude-mine', null);
+        render();
+      });
+      $('alarm').addEventListener('change', (e) => {
+        alarm = Number((e.target as HTMLSelectElement).value);
+        store.set('etude-alarm', String(alarm));
+        renderSchedule();
+      });
+      document.querySelectorAll<HTMLButtonElement>('.sa-langs button').forEach((b) =>
+        b.addEventListener('click', () => { lang = b.dataset.lang as Lang; t = L[lang]; store.set('etude-lang', lang); render(); })
+      );
+
+      // ----- Code lock (the hash is remembered on this phone) -----
+      async function sha256(s: string) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+        return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+      }
+      function unlock() {
+        $('lock').hidden = true;
+        $('app').hidden = false;
+        $('nav').hidden = false;
+        showTab();
+      }
+      const code = $('code') as HTMLInputElement;
+      code.addEventListener('input', async () => {
+        code.value = code.value.replace(/\D/g, '');
+        $('codeBad').hidden = true;
+        if (code.value.length < 6) return;
+        if ((await sha256(code.value)) === CODE) { store.set('etude-student', CODE); unlock(); }
+        else { $('codeBad').hidden = false; code.select(); }
+      });
+      $('lock').addEventListener('submit', (e) => e.preventDefault());
+
+      render();
+      if (store.get('etude-student') === CODE) unlock();
+      else code.focus();
+      // Keep "next class" right if the app stays open.
+      setInterval(render, 5 * 60 * 1000);
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('/student/sw.js', { scope: '/student/' }).catch(() => {});
+    </script>
+
+    <style is:global>
+      body.sa {
+        margin: 0; min-block-size: 100vh; background: var(--color-ground); color: var(--color-ink);
+        font-family: 'Heebo', 'Montserrat', system-ui, sans-serif;
+      }
+      :lang(en) body.sa, :lang(ru) body.sa { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
+      .sa p { margin: 0 0 8px; color: inherit; }
+      .sa [hidden] { display: none !important; }
+      .sa h1, .sa h2, .sa h3 { font-family: inherit; font-weight: 800; }
+      .sa h1 { font-size: 1.6rem; margin: 4px 0 14px; color: var(--color-navy-900); line-height: 1.2; }
+      .sa h2 { font-size: 1.1rem; margin: 22px 0 10px; color: var(--color-navy-900); }
+      .sa .card h2 { margin-block-start: 0; }
+      .hint { font-size: 0.88rem; color: var(--color-ink-soft); }
+
+      .sa-top {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        background: var(--color-navy-900); padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+        position: sticky; inset-block-start: 0; z-index: 5;
+      }
+      .sa-top img { display: block; block-size: 32px; inline-size: auto; }
+      .sa-langs { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 999px; padding: 3px; }
+      .sa-langs button {
+        border: 0; background: none; color: #fff; font: inherit; font-size: 0.85rem; font-weight: 700;
+        padding: 6px 10px; border-radius: 999px; cursor: pointer; min-inline-size: 44px; min-block-size: 36px;
+      }
+      .sa-langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); }
+
+      .sa-lock { display: grid; gap: 12px; justify-items: center; padding: 18vh 16px 0; }
+      .sa-lock label { font-weight: 700; font-size: 1.2rem; color: var(--color-navy-900); }
+      .sa-lock input {
+        inline-size: 9ch; text-align: center; font: 700 2rem 'Montserrat', sans-serif; letter-spacing: 0.25em;
+        padding: 10px 12px; border: 2px solid var(--color-line); border-radius: 14px; background: #fff; color: var(--color-navy-900);
+      }
+      .sa-lock input:focus { outline: none; border-color: var(--color-blue-600); }
+      .sa-bad { color: #b3261e; font-weight: 600; }
+
+      .sa-main { max-inline-size: 640px; margin-inline: auto; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+      .card { background: #fff; border: 1px solid var(--color-line); border-radius: 16px; padding: 14px; margin-block-end: 10px; }
+      details.card summary { font-weight: 700; cursor: pointer; color: var(--color-navy-900); min-block-size: 28px; }
+      details.card[open] summary { margin-block-end: 8px; }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; min-block-size: 44px; padding: 0 16px;
+        border-radius: 12px; border: 1px solid var(--color-navy-900); background: var(--color-navy-900); color: #fff;
+        font: inherit; font-weight: 600; font-size: 0.95rem; text-decoration: none; cursor: pointer;
+      }
+      .btn--ghost { background: #fff; color: var(--color-navy-900); border-color: var(--color-line); }
+      .sa-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-block: 8px; }
+      .tag { font-weight: 700; color: var(--color-blue-600); }
+
+      .sa-search {
+        inline-size: 100%; box-sizing: border-box; min-block-size: 48px; padding: 0 14px; font: inherit; font-size: 1rem;
+        border: 1px solid var(--color-line); border-radius: 12px; background: #fff;
+      }
+      .chips { display: flex; gap: 8px; overflow-x: auto; padding-block: 10px 2px; scrollbar-width: none; }
+      .chips::-webkit-scrollbar { display: none; }
+      .chips button {
+        white-space: nowrap; border: 1px solid var(--color-line); background: #fff; color: var(--color-navy-900);
+        font: inherit; font-size: 0.9rem; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; min-block-size: 40px;
+      }
+      .chips button[aria-pressed='true'] { background: var(--color-navy-900); color: #fff; border-color: var(--color-navy-900); }
+      #alarm { min-block-size: 44px; font: inherit; padding: 0 10px; border-radius: 10px; border: 1px solid var(--color-line); margin: 4px 0 10px; inline-size: 100%; }
+      .feed { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-block: 8px; border-block-start: 1px solid var(--color-line); }
+      .feed b { flex: 1 0 100%; }
+
+      .sa .day { font-size: 0.95rem; font-weight: 700; margin: 16px 0 8px; color: var(--color-navy-900); text-transform: capitalize; }
+      .sa .card .day { margin-block-start: 0; }
+      .evs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+      .ev { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--color-blue-100); border-inline-start: 4px solid var(--color-blue-600); }
+      .ev__time { font: 700 0.85rem 'Montserrat', sans-serif; color: var(--color-blue-600); font-variant-numeric: tabular-nums; justify-self: start; }
+      .ev__title { font-weight: 700; color: var(--color-navy-900); overflow-wrap: anywhere; }
+      .ev__who { font-size: 0.85rem; color: var(--color-ink-soft); }
+
+      .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+      .list a { display: grid; gap: 2px; background: #fff; border: 1px solid var(--color-line); border-radius: 14px; padding: 12px 14px; color: var(--color-navy-900); text-decoration: none; }
+      .rules { margin: 0; padding-inline-start: 1.4em; display: grid; gap: 10px; }
+      .rules li { padding-inline-start: 4px; line-height: 1.45; }
+      .prices { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; margin: 0; }
+      .prices dd { margin: 0; font-weight: 700; color: var(--color-navy-900); text-align: end; }
+      .sa-updated { text-align: center; margin-block-start: 24px; }
+      .sa-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+      .sa-head a { font-weight: 600; color: var(--color-blue-600); }
+      .sa .follow { font-size: 0.95rem; margin: 0 0 6px; color: var(--color-blue-600); }
+      .sa-more { margin-block-start: 10px; }
+      .sa-back { display: inline-flex; align-items: center; min-block-size: 44px; font-weight: 700; color: var(--color-blue-600); text-decoration: none; }
+      .post img { display: block; inline-size: 100%; block-size: auto; border-radius: 16px; margin-block-end: 12px; }
+      .post h1 { margin-block-start: 4px; }
+      .post__body { line-height: 1.6; overflow-wrap: anywhere; }
+      .post__body p { margin: 0 0 12px; }
+      .post__body ul { padding-inline-start: 1.3em; margin: 0 0 12px; }
+      .post__body a { color: var(--color-blue-600); }
+
+      .sa-nav {
+        position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, 1fr);
+        background: #fff; border-block-start: 1px solid var(--color-line); padding-block-end: env(safe-area-inset-bottom);
+      }
+      .sa-nav[hidden] { display: none; }
+      .sa-nav a { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; min-block-size: 56px; box-sizing: border-box; text-decoration: none; color: var(--color-ink-soft); font-size: 0.75rem; }
+      .sa-nav a span { font-size: 1.3rem; line-height: 1; }
+      .sa-nav a[aria-current] { color: var(--color-navy-900); }
+      .sa-nav a[aria-current] b { text-decoration: underline; text-underline-offset: 3px; }
+    </style>
+  </body>
+</html>

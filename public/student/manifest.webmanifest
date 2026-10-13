@@ -1,0 +1,14 @@
+{
+  "name": "ETUDE",
+  "short_name": "ETUDE",
+  "description": "ETUDE Dance School — schedule, classes and reminders for students",
+  "start_url": "/student/",
+  "scope": "/student/",
+  "display": "standalone",
+  "background_color": "#17224a",
+  "theme_color": "#17224a",
+  "icons": [
+    { "src": "/images/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/images/logo-mark-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
