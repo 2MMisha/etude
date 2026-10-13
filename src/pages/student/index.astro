@@ -141,6 +141,7 @@ const data = {
         <ol class="rules" id="rules"></ol>
         <h2 id="contactTitle"></h2>
         <div class="card" id="contact"></div>
+        <button type="button" class="btn btn--ghost sa-more" id="howInstall" hidden></button>
       </section>
 
       <p class="hint sa-updated" id="updated"></p>
@@ -152,6 +153,16 @@ const data = {
       <a href="#classes" data-go="classes"><span aria-hidden="true">💃</span><b></b></a>
       <a href="#studio" data-go="studio"><span aria-hidden="true">ℹ️</span><b></b></a>
     </nav>
+
+    <!-- "Add to home screen" sheet: shown once after unlocking, reopenable from the Studio tab. -->
+    <dialog class="sa-install" id="install">
+      <h2 id="inTitle"></h2>
+      <p id="inText"></p>
+      <button type="button" class="btn" id="inButton" hidden></button>
+      <ol id="inIos" hidden></ol>
+      <ol id="inAndroid" hidden></ol>
+      <button type="button" class="btn btn--ghost" id="inLater"></button>
+    </dialog>
 
     <script type="application/json" id="sa-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
     <script type="application/json" id="sa-code" set:html={JSON.stringify(CODE_SHA256)} />
@@ -171,6 +182,7 @@ const data = {
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'השיעורים שלנו', more: 'עוד באתר', prices: 'מחירים',
           noPrices: 'לפרטי מחירים כתבו לנו בוואטסאפ', rules: 'כללי הסטודיו', contact: 'יצירת קשר', whatsapp: 'וואטסאפ', call: 'שיחה',
           myClasses: 'השיעורים שלי', mineChip: '★ שלי', edit: 'עריכה', allNews: 'כל החדשות', back: 'חדשות', unfollow: 'הסרה מהמעקב',
+          inTitle: "📲 התקינו את האפליקציה", inText: "הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, בלוח זמנים מלא וגם בלי אינטרנט.", inButton: "התקנה", inLater: "אחר כך", howInstall: "📲 איך להוסיף למסך הבית", ios: ["פתחו את הדף בדפדפן Safari.", "הקישו על כפתור השיתוף <svg class=\"share\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> (ריבוע עם חץ למעלה) בתחתית המסך.", "גללו ובחרו <b>„הוספה למסך הבית”</b>.", "הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית."], android: ["פתחו את הדף בדפדפן Chrome.", "הקישו על התפריט <b>⋮</b> בפינה העליונה.", "בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.", "אשרו — הסמל של ETUDE יופיע במסך הבית."],
           route: 'ניווט', updated: 'עודכן', locale: 'he-IL', dir: 'rtl',
         },
         en: {
@@ -183,6 +195,7 @@ const data = {
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Our classes', more: 'More on the website', prices: 'Prices',
           noPrices: 'For prices, message us on WhatsApp', rules: 'Studio rules', contact: 'Contact', whatsapp: 'WhatsApp', call: 'Call',
           myClasses: 'My classes', mineChip: '★ Mine', edit: 'Edit', allNews: 'All news', back: 'News', unfollow: 'Stop following',
+          inTitle: "📲 Install the app", inText: "Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.", inButton: "Install", inLater: "Later", howInstall: "📲 How to add to the home screen", ios: ["Open this page in Safari.", "Tap the Share button <svg class=\"share\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> (a square with an arrow up) at the bottom of the screen.", "Scroll down and choose <b>“Add to Home Screen”</b>.", "Tap <b>“Add”</b> — the ETUDE icon appears on your home screen."], android: ["Open this page in Chrome.", "Tap the menu <b>⋮</b> in the top corner.", "Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.", "Confirm — the ETUDE icon appears on your home screen."],
           route: 'Directions', updated: 'Updated', locale: 'en-GB', dir: 'ltr',
         },
         ru: {
@@ -195,6 +208,7 @@ const data = {
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Наши занятия', more: 'Подробнее на сайте', prices: 'Цены',
           noPrices: 'Цены уточняйте у нас в WhatsApp', rules: 'Правила студии', contact: 'Контакты', whatsapp: 'WhatsApp', call: 'Позвонить',
           myClasses: 'Мои занятия', mineChip: '★ Моё', edit: 'Изменить', allNews: 'Все новости', back: 'Новости', unfollow: 'Не следить',
+          inTitle: "📲 Установите приложение", inText: "Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.", inButton: "Установить", inLater: "Позже", howInstall: "📲 Как добавить на экран телефона", ios: ["Откройте эту страницу в Safari.", "Нажмите кнопку «Поделиться» <svg class=\"share\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> (квадрат со стрелкой вверх) внизу экрана.", "Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.", "Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране."], android: ["Откройте эту страницу в Chrome.", "Нажмите меню <b>⋮</b> в верхнем углу.", "Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.", "Подтвердите — значок ETUDE появится на экране."],
           route: 'Маршрут', updated: 'Обновлено', locale: 'ru-RU', dir: 'ltr',
         },
       };
@@ -399,6 +413,7 @@ const data = {
         renderSchedule();
         renderClasses();
         renderStudio();
+        renderInstall();
         $('updated').textContent = data.updatedAt
           ? `${t.updated}: ${new Date(data.updatedAt).toLocaleString(t.locale, { dateStyle: 'medium', timeStyle: 'short' })}`
           : '';
@@ -458,7 +473,51 @@ const data = {
         $('app').hidden = false;
         $('nav').hidden = false;
         showTab();
+        if (!installed && !store.get('etude-install-seen')) setTimeout(openInstall, 1500);
       }
+
+      // ----- "Add to home screen" -----
+      // Chrome/Android offers a real install prompt; iPhone only has Safari's
+      // Share → Add to Home Screen, so it gets the steps instead.
+      const installed = matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+      const isAndroid = /Android/.test(navigator.userAgent);
+      // iPadOS reports itself as a Mac with a touch screen.
+      const isIos = !isAndroid && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+      let installEvent: any = null;
+      addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderInstall(); });
+      addEventListener('appinstalled', () => ($('install') as HTMLDialogElement).close());
+      function renderInstall() {
+        $('inTitle').textContent = t.inTitle;
+        $('inText').textContent = t.inText;
+        $('inButton').textContent = t.inButton;
+        $('inButton').hidden = !installEvent;
+        $('inLater').textContent = t.inLater;
+        // Steps are fixed strings from L (with <b> markup), not user content.
+        $('inIos').innerHTML = t.ios.map((x) => `<li>${x}</li>`).join('');
+        $('inAndroid').innerHTML = t.android.map((x) => `<li>${x}</li>`).join('');
+        // Phones see their own steps; a computer sees both.
+        $('inIos').hidden = !!installEvent || isAndroid;
+        $('inAndroid').hidden = !!installEvent || isIos;
+        $('howInstall').textContent = t.howInstall;
+        $('howInstall').hidden = installed;
+      }
+      function openInstall() {
+        renderInstall();
+        store.set('etude-install-seen', '1');
+        const d = $('install') as HTMLDialogElement;
+        if (!d.open) d.showModal();
+      }
+      $('inLater').addEventListener('click', () => ($('install') as HTMLDialogElement).close());
+      $('howInstall').addEventListener('click', openInstall);
+      $('inButton').addEventListener('click', async () => {
+        if (!installEvent) return;
+        installEvent.prompt();
+        await installEvent.userChoice;
+        installEvent = null;
+        ($('install') as HTMLDialogElement).close();
+      });
+      // Tap on the dimmed backdrop closes it too.
+      $('install').addEventListener('click', (e) => { if (e.target === e.currentTarget) ($('install') as HTMLDialogElement).close(); });
       const code = $('code') as HTMLInputElement;
       code.addEventListener('input', async () => {
         code.value = code.value.replace(/\D/g, '');
@@ -568,6 +627,17 @@ const data = {
       .post__body ul { padding-inline-start: 1.3em; margin: 0 0 12px; }
       .post__body a { color: var(--color-blue-600); }
 
+      .sa-install {
+        inline-size: min(100% - 32px, 420px); box-sizing: border-box; margin: auto auto calc(16px + env(safe-area-inset-bottom));
+        border: 0; border-radius: 20px; padding: 20px; background: #fff; color: var(--color-ink);
+        box-shadow: 0 20px 48px rgba(23, 34, 74, 0.3);
+      }
+      .sa-install::backdrop { background: rgba(23, 34, 74, 0.45); }
+      .sa-install[open] { display: grid; gap: 12px; }
+      .sa .sa-install h2 { margin: 0; }
+      .sa-install ol { margin: 0; padding-inline-start: 1.4em; display: grid; gap: 8px; line-height: 1.45; }
+      .sa-install b { color: var(--color-navy-900); }
+      .sa-install .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
       .sa-nav {
         position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, 1fr);
         background: #fff; border-block-start: 1px solid var(--color-line); padding-block-end: env(safe-area-inset-bottom);
