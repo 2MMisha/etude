@@ -1,13 +1,18 @@
 ---
 // /student/ — the students' helper app (installable PWA, see
 // public/student/manifest.webmanifest and sw.js): next class, schedule with
-// search and follows, calendar reminders, classes, prices, rules, news and contacts.
+// search and follows (groups and student names), calendar reminders, classes,
+// prices, rules, news, contacts, requests for a private lesson or a hall
+// rental, an "important" notice and the monthly payment reminder.
 // Not linked from the public site; noindex; behind a numeric code.
-// Prices and rules are edited in /admin/ ("Student app" tab).
+// Prices, rules, the notice and the payment reminder are edited in /admin/ ("Student app" tab).
+import { createHash } from 'node:crypto';
+import { getCollection } from 'astro:content';
 import '../../styles/global.css';
 import { getTimetable } from '../../lib/loadTimetable';
-import { ALARMS, feedsFrom, groupOf, studentDays } from '../../lib/student';
+import { ALARMS, appEvents, chipsFrom, feedsFrom, paymentBody, paymentSettings, studentDays } from '../../lib/student';
 import { trainersFrom } from '../../lib/trainers';
+import { icon } from '../../lib/icons';
 import { getPublishedNews } from '../../lib/news';
 import { renderRichText } from '../../lib/richText';
 import { t as tr } from '../../lib/translations';
@@ -15,11 +20,41 @@ import { ALL_LANGS, localizePath } from '../../lib/languages';
 import { SITE } from '../../lib/site';
 import app from '../../data/student-app.json';
 
-// The studio code. A deterrent like /admin/'s password, not real protection:
-// the page (and /data/timetable.json) is public to anyone with the link.
-const CODE_SHA256 = '096138f0929857ff2b93b50504a255bbc575eaca94cb9aadd5d8bccc31258bd7';
+// The studio code (changed in /admin/). A deterrent like /admin/'s password, not
+// real protection: the page (and /data/timetable.json) is public to anyone with the link.
+const CODE_SHA256 = (app as { codeSha256?: string }).codeSha256 || '096138f0929857ff2b93b50504a255bbc575eaca94cb9aadd5d8bccc31258bd7';
+
+// "Invite a friend" message when /admin/ leaves a language empty; {link} = the website.
+const INVITE_DEFAULT = {
+  he: 'היי! אני רוקד/ת בסטודיו ETUDE בראשון לציון — בואו לשיעור ניסיון ונרקוד ביחד! {link}',
+  en: "Hi! I dance at the ETUDE studio in Rishon LeZion — come to a trial class and let's dance together! {link}",
+  ru: 'Привет! Я занимаюсь танцами в студии ETUDE в Ришон-ле-Ционе — приходи на пробное занятие, будем танцевать вместе! {link}',
+};
+
+// Requests (private lesson / hall rental) go straight to the studio's inbox.
+// FormSubmit's AJAX endpoint answers with JSON, so the app stays open; the
+// first request to a new address only triggers FormSubmit's activation email.
+const DESTINATION = 'ETUDE Dance School, Rothschild 49, Rishon LeZion';
+
+const REQUEST_ENDPOINT = 'https://formsubmit.co/ajax/etude.dance@gmail.com';
 
 const tt = await getTimetable();
+const instructors = (await getCollection('instructors')).sort((a, b) => a.data.order - b.data.order);
+const { groups, names } = chipsFrom(tt);
+const payment = paymentSettings(app.payment);
+// The notice: switched on and with a title (its "until" date is checked in the app, on the day).
+const n = app.notice;
+const notice =
+  n?.active && (n.title.he || n.title.en || n.title.ru)
+    ? {
+        // Changes whenever the text does, so an edited notice pops up again.
+        id: createHash('sha1').update(JSON.stringify(n)).digest('hex').slice(0, 10),
+        mode: n.mode === 'popup' ? 'popup' : 'banner',
+        until: n.until || '',
+        title: Object.fromEntries(ALL_LANGS.map((l) => [l, n.title[l] || n.title.he || n.title.en || n.title.ru])),
+        html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(n.body[l] || n.body.he || '')])),
+      }
+    : null;
 const news = (await getPublishedNews()).sort((a, b) => b.data.date.localeCompare(a.data.date));
 const classes = Object.fromEntries(
   ALL_LANGS.map((l) => {
@@ -29,8 +64,10 @@ const classes = Object.fromEntries(
 );
 const data = {
   days: studentDays(tt),
-  feeds: feedsFrom(tt).map((f) => ({ slug: f.slug, name: f.name })),
-  groups: [...new Set(studentDays(tt).flatMap((d) => d.items.map((i) => groupOf(i.title))))].sort(),
+  feeds: feedsFrom(tt).filter((f) => f.kind !== 'trainer').map((f) => ({ slug: f.slug, name: f.name })),
+  groups,
+  names,
+  // Only to drop trainer names a student followed before the app stopped offering them.
   trainers: trainersFrom(tt).map((t) => t.name),
   alarms: ALARMS,
   siteUrl: SITE.siteUrl,
@@ -46,12 +83,33 @@ const data = {
   classes,
   prices: app.prices,
   rules: app.rules,
+  notice,
+  events: appEvents().map(({ text: _text, body, ...e }) => ({ ...e, html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(body[l])])) })),
+  // Playlists by dance style → dance; dances and styles without a playlist are left out.
+  music: (app.music ?? [])
+    .map((st) => ({ style: st.style, dances: st.dances.filter((d) => d.links.length) }))
+    .filter((st) => st.dances.length),
+  birthdays: app.birthdays ?? [],
+  invite: {
+    active: app.invite?.active !== false,
+    text: Object.fromEntries(ALL_LANGS.map((l) => [l, ((app.invite?.text as Record<string, string> | undefined)?.[l] || INVITE_DEFAULT[l]).replace('{link}', `${SITE.siteUrl}${localizePath(l, '/')}`)])),
+  },
+  payment: { ...payment, body: Object.fromEntries(ALL_LANGS.map((l) => [l, paymentBody(l, payment.day)])) },
+  request: {
+    endpoint: REQUEST_ENDPOINT,
+    trainers: instructors.map((i) => ({ id: i.id, name: i.data.name })),
+    halls: Object.fromEntries(ALL_LANGS.map((l) => [l, tr(l).hallRental.halls.map((h) => h.title)])),
+    opens: SITE.hours.opens,
+    closes: SITE.hours.closes,
+  },
   contact: {
     phone: SITE.phone,
     phoneDisplay: SITE.phoneDisplay,
     whatsapp: SITE.whatsapp,
     instagram: SITE.social.instagram,
-    maps: SITE.googleMapsUrl,
+    // Directions straight to the studio, in Google Maps or Waze.
+    google: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(DESTINATION)}`,
+    waze: `https://waze.com/ul?ll=${SITE.geo.lat},${SITE.geo.lng}&navigate=yes`,
     street: SITE.address.street,
     city: SITE.address.cityLocalized,
   },
@@ -89,19 +147,49 @@ const data = {
       </div>
     </header>
 
-    <form class="sa-lock" id="lock">
+    <!-- Opened in a browser tab: the app works only from the home screen, so install it first. -->
+    <section class="sa-gate" id="gate" hidden>
+      <img src="/images/apple-touch-icon.png" alt="" width="88" height="88" />
+      <h1 id="gTitle"></h1>
+      <p id="gText"></p>
+      <button type="button" class="btn btn--big" id="gButton" hidden></button>
+      <ol id="gIos" hidden></ol>
+      <ol id="gAndroid" hidden></ol>
+      <p class="sa-note" id="gDone" hidden></p>
+    </section>
+
+    <form class="sa-lock" id="lock" hidden>
       <label for="code" id="codeLabel"></label>
       <input id="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" />
       <p class="sa-bad" id="codeBad" hidden></p>
     </form>
 
     <main class="sa-main" id="app" hidden>
+      <!-- "Important" notice banner and the payment countdown, on every tab. -->
+      <div class="sa-alerts" id="alerts"></div>
+
       <section data-tab="home">
         <h1 id="hello"></h1>
+        <div id="important"></div>
+        <div id="bday"></div>
         <div id="next"></div>
+        <div id="eventsHome"></div>
         <h2 id="newsTitle"></h2>
         <ul class="list" id="news"></ul>
         <a class="btn btn--ghost sa-more" href="#news" id="allNews"></a>
+        <div id="invite"></div>
+      </section>
+
+      <section data-tab="events" hidden>
+        <a class="sa-back" href="#home" id="eventsBack"></a>
+        <h1 id="eventsTitle"></h1>
+        <ul class="list" id="eventsAll"></ul>
+        <div class="card" id="eventsSub"></div>
+      </section>
+
+      <section data-tab="event" hidden>
+        <a class="sa-back" href="#events" id="eventBack"></a>
+        <article class="post" id="eventPost"></article>
       </section>
 
       <section data-tab="news" hidden>
@@ -112,6 +200,11 @@ const data = {
       <section data-tab="post" hidden>
         <a class="sa-back" href="#news" id="back"></a>
         <article class="post" id="post"></article>
+      </section>
+
+      <section data-tab="notice" hidden>
+        <a class="sa-back" href="#home" id="noticeBack"></a>
+        <article class="post" id="noticePost"></article>
       </section>
 
       <section data-tab="schedule" hidden>
@@ -131,14 +224,28 @@ const data = {
 
       <section data-tab="classes" hidden>
         <h1 id="classesTitle"></h1>
+        <div id="music"></div>
         <div id="classes"></div>
         <h2 id="pricesTitle"></h2>
         <div class="card" id="prices"></div>
       </section>
 
+      <!-- Request a private lesson or a hall rental: form → summary → sent. -->
+      <section data-tab="request" hidden>
+        <h1 id="reqTitle"></h1>
+        <p class="sa-note" id="reqOnly"></p>
+        <form class="sa-form" id="reqForm" novalidate></form>
+        <div class="card sa-summary" id="reqSummary" hidden></div>
+      </section>
+
+      <section data-tab="sent" hidden>
+        <div class="sa-done" id="sent"></div>
+      </section>
+
       <section data-tab="studio" hidden>
         <h1 id="rulesTitle"></h1>
         <ol class="rules" id="rules"></ol>
+        <div id="payCard"></div>
         <h2 id="contactTitle"></h2>
         <div class="card" id="contact"></div>
         <button type="button" class="btn btn--ghost sa-more" id="howInstall" hidden></button>
@@ -148,10 +255,11 @@ const data = {
     </main>
 
     <nav class="sa-nav" id="nav" hidden>
-      <a href="#home" data-go="home"><span aria-hidden="true">🏠</span><b></b></a>
-      <a href="#schedule" data-go="schedule"><span aria-hidden="true">📅</span><b></b></a>
-      <a href="#classes" data-go="classes"><span aria-hidden="true">💃</span><b></b></a>
-      <a href="#studio" data-go="studio"><span aria-hidden="true">ℹ️</span><b></b></a>
+      <a href="#home" data-go="home"><Fragment set:html={icon('home')} /><b></b></a>
+      <a href="#schedule" data-go="schedule"><Fragment set:html={icon('calendar')} /><b></b></a>
+      <a href="#classes" data-go="classes"><Fragment set:html={icon('dance')} /><b></b></a>
+      <a href="#request" data-go="request"><Fragment set:html={icon('request')} /><b></b></a>
+      <a href="#studio" data-go="studio"><Fragment set:html={icon('info')} /><b></b></a>
     </nav>
 
     <!-- "Add to home screen" sheet: shown once after unlocking, reopenable from the Studio tab. -->
@@ -164,52 +272,88 @@ const data = {
       <button type="button" class="btn btn--ghost" id="inLater"></button>
     </dialog>
 
+    <!-- Pop-ups: the "important" notice (popup mode) and the payment-day reminder. -->
+    <dialog class="sa-install" id="pop"></dialog>
+
     <script type="application/json" id="sa-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
     <script type="application/json" id="sa-code" set:html={JSON.stringify(CODE_SHA256)} />
 
     <script>
       import { weekOf, type TimetableItem } from '../../lib/timetable';
+      import { icon } from '../../lib/icons';
+      import { googleCalendarUrl } from '../../lib/calendar';
 
       type Lang = 'he' | 'en' | 'ru';
+      const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const L = {
         he: {
-          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', studio: 'סטודיו',
-          hello: 'שלום! 👋', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו ★ בלוח הזמנים את הקבוצות, המאמנים או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
-          noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה, מאמן או שם',
-          all: 'הכול', mine: '★ לעקוב', isMine: '★ במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
-          today: 'היום', tomorrow: 'מחר', calendar: '🔔 תזכורות ביומן', calHint: 'הירשמו ליומן — הטלפון יזכיר לפני כל שיעור, והשינויים בלוח יתעדכנו לבד. ב-Google Calendar התזכורת נקבעת בהגדרות היומן.',
+          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו',
+          hello: 'שלום!', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו בלוח הזמנים את הקבוצות או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
+          noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה או שם',
+          all: 'הכול', mine: 'לעקוב', isMine: 'במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
+          today: 'היום', tomorrow: 'מחר', calendar: 'תזכורות ביומן', calHint: 'הירשמו ליומן — הטלפון יזכיר לפני כל שיעור, והשינויים בלוח יתעדכנו לבד. ב-Google Calendar התזכורת נקבעת בהגדרות היומן.',
           alarm: 'תזכורת', alarms: { 0: 'בלי תזכורת', 15: '15 דקות לפני', 60: 'שעה לפני', 180: '3 שעות לפני', 1440: 'יום לפני' } as Record<number, string>,
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'השיעורים שלנו', more: 'עוד באתר', prices: 'מחירים',
           noPrices: 'לפרטי מחירים כתבו לנו בוואטסאפ', rules: 'כללי הסטודיו', contact: 'יצירת קשר', whatsapp: 'וואטסאפ', call: 'שיחה',
-          myClasses: 'השיעורים שלי', mineChip: '★ שלי', edit: 'עריכה', allNews: 'כל החדשות', back: 'חדשות', unfollow: 'הסרה מהמעקב',
-          inTitle: "📲 התקינו את האפליקציה", inText: "הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, בלוח זמנים מלא וגם בלי אינטרנט.", inButton: "התקנה", inLater: "אחר כך", howInstall: "📲 איך להוסיף למסך הבית", ios: ["פתחו את הדף בדפדפן Safari.", "הקישו על כפתור השיתוף <svg class=\"share\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> (ריבוע עם חץ למעלה) בתחתית המסך.", "גללו ובחרו <b>„הוספה למסך הבית”</b>.", "הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית."], android: ["פתחו את הדף בדפדפן Chrome.", "הקישו על התפריט <b>⋮</b> בפינה העליונה.", "בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.", "אשרו — הסמל של ETUDE יופיע במסך הבית."],
+          myClasses: 'השיעורים שלי', mineChip: 'שלי', edit: 'עריכה', allNews: 'כל החדשות', back: 'חדשות', unfollow: 'הסרה מהמעקב',
+          gTitle: 'התקינו את אפליקציית ETUDE', gText: 'האפליקציה נפתחת רק ממסך הבית של הטלפון. הוסיפו אותה — זה לוקח כמה שניות — ופתחו את הסמל של ETUDE.', gDone: 'מעולה! עכשיו פתחו את ETUDE מהסמל במסך הבית.',
+          inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
           route: 'ניווט', updated: 'עודכן', locale: 'he-IL', dir: 'rtl',
+          important: 'חשוב', readMore: 'לפרטים', close: 'סגירה', home2: 'לדף הראשי',
+          payTitle: 'תשלום מנוי', payLeft: 'נותרו', payAgo: 'עברו', payToday: 'היום', payDue: 'נא לשלם עד ה-{day} בחודש', payDueToday: 'היום היום האחרון לתשלום המנוי', payLate: 'מועד התשלום עבר — אם עוד לא שילמתם, נא לשלם', paid: 'כבר שילמתי', payCal: 'תזכורת חודשית ביומן', days: (n: number) => (n === 1 ? 'יום' : 'ימים'),
+          reqTitle: 'בקשה לשיעור פרטי או להשכרת אולם', reqOnly: 'זו בקשה בלבד ולא הזמנה — ניצור איתכם קשר כדי לאשר את המועד.', reqType: 'מה מעניין אתכם?', private: 'שיעור פרטי', rental: 'השכרת אולם',
+          fullName: 'שם מלא', phone: 'טלפון', phoneBad: 'הזינו מספר טלפון תקין', nameBad: 'הזינו שם מלא', pickOne: 'בחרו אחת מהאפשרויות', trainer: 'עם איזה מאמן?', date: 'תאריך', dateBad: 'בחרו תאריך מהיום והלאה', from: 'משעה', to: 'עד שעה', toBad: 'שעת הסיום צריכה להיות אחרי שעת ההתחלה', hall: 'איזה אולם?', note: 'הערה (לא חובה)', time: 'שעות', type: 'סוג הבקשה', trainerS: 'מאמן', length: 'משך השיעור', lengthS: 'משך', min: 'דק׳', hallS: 'אולם', noteS: 'הערה',
+          continue: 'המשך', sumTitle: 'בדקו את הבקשה', editReq: 'עריכה', send: 'שליחת הבקשה', sending: 'שולחים…', sendErr: 'השליחה נכשלה. בדקו את החיבור לאינטרנט או שלחו את הבקשה בוואטסאפ.', viaWa: 'שליחה בוואטסאפ',
+          events: 'אירועים', allEvents: 'כל האירועים', eventsSub: 'כל האירועים ביומן — חדשים יתווספו לבד', addCal: 'הוספה ליומן', allDay: 'כל היום',
+          music: 'מוזיקה לשיעורים', forAll: 'לכולם', bdayToday: 'היום יום הולדת!', bdayWish: 'מזל טוב ל{names}!', bdaySoon: 'ימי הולדת בקרוב',
+          invite: 'הזמינו חבר', inviteText: 'לרקוד ביחד זה כיף יותר! שלחו לחבר הזמנה לשיעור ניסיון.', share: 'שיתוף',
+          sentTitle: 'הבקשה נשלחה!', sentText: 'תודה! זו עדיין בקשה בלבד — ניצור איתכם קשר בטלפון או בוואטסאפ כדי לאשר.', newReq: 'בקשה חדשה',
         },
         en: {
-          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', studio: 'Studio',
-          hello: 'Hi! 👋', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Tap ★ in the schedule on your groups, trainers or names — as many as you like — and your next classes show up here.',
-          noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group, trainer or name',
-          all: 'All', mine: '★ Follow', isMine: '★ Following', unmine: 'Remove', noMatch: 'No classes found',
-          today: 'Today', tomorrow: 'Tomorrow', calendar: '🔔 Calendar reminders', calHint: 'Subscribe once: your phone reminds you before every class and schedule changes arrive by themselves. In Google Calendar, set the reminder in the calendar settings.',
+          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio',
+          hello: 'Hi!', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Follow your groups or names in the schedule — as many as you like — and your next classes show up here.',
+          noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group or name',
+          all: 'All', mine: 'Follow', isMine: 'Following', unmine: 'Remove', noMatch: 'No classes found',
+          today: 'Today', tomorrow: 'Tomorrow', calendar: 'Calendar reminders', calHint: 'Subscribe once: your phone reminds you before every class and schedule changes arrive by themselves. In Google Calendar, set the reminder in the calendar settings.',
           alarm: 'Reminder', alarms: { 0: 'No reminder', 15: '15 minutes before', 60: '1 hour before', 180: '3 hours before', 1440: '1 day before' } as Record<number, string>,
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Our classes', more: 'More on the website', prices: 'Prices',
           noPrices: 'For prices, message us on WhatsApp', rules: 'Studio rules', contact: 'Contact', whatsapp: 'WhatsApp', call: 'Call',
-          myClasses: 'My classes', mineChip: '★ Mine', edit: 'Edit', allNews: 'All news', back: 'News', unfollow: 'Stop following',
-          inTitle: "📲 Install the app", inText: "Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.", inButton: "Install", inLater: "Later", howInstall: "📲 How to add to the home screen", ios: ["Open this page in Safari.", "Tap the Share button <svg class=\"share\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> (a square with an arrow up) at the bottom of the screen.", "Scroll down and choose <b>“Add to Home Screen”</b>.", "Tap <b>“Add”</b> — the ETUDE icon appears on your home screen."], android: ["Open this page in Chrome.", "Tap the menu <b>⋮</b> in the top corner.", "Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.", "Confirm — the ETUDE icon appears on your home screen."],
+          myClasses: 'My classes', mineChip: 'Mine', edit: 'Edit', allNews: 'All news', back: 'News', unfollow: 'Stop following',
+          gTitle: 'Install the ETUDE app', gText: 'The app opens only from your phone’s home screen. Add it — it takes a few seconds — then open the ETUDE icon.', gDone: 'Done! Now open ETUDE from the icon on your home screen.',
+          inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
           route: 'Directions', updated: 'Updated', locale: 'en-GB', dir: 'ltr',
+          important: 'Important', readMore: 'Read more', close: 'Close', home2: 'Back home',
+          payTitle: 'Membership payment', payLeft: 'due in', payAgo: 'overdue', payToday: 'Today', payDue: 'Please pay by the {day}', payDueToday: 'Today is the last day to pay the membership', payLate: "The due date has passed — if you haven't paid yet, please do", paid: 'Already paid', payCal: 'Monthly reminder in your calendar', days: (n: number) => (n === 1 ? 'day' : 'days'),
+          reqTitle: 'Private lesson or hall rental request', reqOnly: "This is only a request, not a booking — we'll get in touch to confirm the time.", reqType: 'What would you like?', private: 'Private lesson', rental: 'Hall rental',
+          fullName: 'Full name', phone: 'Phone', phoneBad: 'Enter a valid phone number', nameBad: 'Enter your full name', pickOne: 'Choose one of the options', trainer: 'With which trainer?', date: 'Date', dateBad: 'Choose a date from today on', from: 'From', to: 'To', toBad: 'The end time must be after the start', hall: 'Which hall?', note: 'Comment (optional)', time: 'Time', type: 'Request', trainerS: 'Trainer', length: 'Lesson length', lengthS: 'Length', min: 'min', hallS: 'Hall', noteS: 'Comment',
+          continue: 'Next', sumTitle: 'Check your request', editReq: 'Edit', send: 'Send request', sending: 'Sending…', sendErr: "Couldn't send. Check your connection or send the request on WhatsApp.", viaWa: 'Send on WhatsApp',
+          events: 'Events', allEvents: 'All events', eventsSub: 'All events in your calendar — new ones appear by themselves', addCal: 'Add to calendar', allDay: 'All day',
+          music: 'Music for classes', forAll: 'For everyone', bdayToday: "It's a birthday today!", bdayWish: 'Happy birthday, {names}!', bdaySoon: 'Birthdays coming up',
+          invite: 'Invite a friend', inviteText: 'Dancing is more fun together! Send a friend an invitation to a trial class.', share: 'Share',
+          sentTitle: 'Request sent!', sentText: "Thank you! This is just a request for now — we'll contact you by phone or WhatsApp to confirm.", newReq: 'New request',
         },
         ru: {
-          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', studio: 'Студия',
-          hello: 'Привет! 👋', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте ★ в расписании свои группы, тренеров или имена — можно несколько — и здесь появятся ваши следующие занятия.',
-          noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа, тренер или имя',
-          all: 'Все', mine: '★ Следить', isMine: '★ Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
-          today: 'Сегодня', tomorrow: 'Завтра', calendar: '🔔 Напоминания в календаре', calHint: 'Подпишитесь один раз — телефон напомнит перед каждым занятием, а изменения расписания придут сами. В Google Календаре напоминание выбирается в настройках календаря.',
+          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия',
+          hello: 'Привет!', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте в расписании свои группы или имена — можно несколько — и здесь появятся ваши следующие занятия.',
+          noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа или имя',
+          all: 'Все', mine: 'Следить', isMine: 'Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
+          today: 'Сегодня', tomorrow: 'Завтра', calendar: 'Напоминания в календаре', calHint: 'Подпишитесь один раз — телефон напомнит перед каждым занятием, а изменения расписания придут сами. В Google Календаре напоминание выбирается в настройках календаря.',
           alarm: 'Напоминание', alarms: { 0: 'Без напоминания', 15: 'За 15 минут', 60: 'За 1 час', 180: 'За 3 часа', 1440: 'За день' } as Record<number, string>,
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Наши занятия', more: 'Подробнее на сайте', prices: 'Цены',
           noPrices: 'Цены уточняйте у нас в WhatsApp', rules: 'Правила студии', contact: 'Контакты', whatsapp: 'WhatsApp', call: 'Позвонить',
-          myClasses: 'Мои занятия', mineChip: '★ Моё', edit: 'Изменить', allNews: 'Все новости', back: 'Новости', unfollow: 'Не следить',
-          inTitle: "📲 Установите приложение", inText: "Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.", inButton: "Установить", inLater: "Позже", howInstall: "📲 Как добавить на экран телефона", ios: ["Откройте эту страницу в Safari.", "Нажмите кнопку «Поделиться» <svg class=\"share\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> (квадрат со стрелкой вверх) внизу экрана.", "Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.", "Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране."], android: ["Откройте эту страницу в Chrome.", "Нажмите меню <b>⋮</b> в верхнем углу.", "Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.", "Подтвердите — значок ETUDE появится на экране."],
+          myClasses: 'Мои занятия', mineChip: 'Моё', edit: 'Изменить', allNews: 'Все новости', back: 'Новости', unfollow: 'Не следить',
+          gTitle: 'Установите приложение ETUDE', gText: 'Приложение открывается только с экрана телефона. Добавьте его — это займёт несколько секунд — и откройте значок ETUDE.', gDone: 'Готово! Теперь откройте ETUDE со значка на экране телефона.',
+          inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
           route: 'Маршрут', updated: 'Обновлено', locale: 'ru-RU', dir: 'ltr',
+          important: 'Важно', readMore: 'Подробнее', close: 'Закрыть', home2: 'На главную',
+          payTitle: 'Оплата абонемента', payLeft: 'осталось', payAgo: 'прошло', payToday: 'Сегодня', payDue: 'Оплатите до {day} числа', payDueToday: 'Сегодня последний день оплаты абонемента', payLate: 'Срок оплаты прошёл — если ещё не оплатили, оплатите, пожалуйста', paid: 'Уже оплатил(а)', payCal: 'Ежемесячное напоминание в календаре', days: (_n: number) => 'дн.',
+          reqTitle: 'Заявка на личный урок или аренду зала', reqOnly: 'Это только просьба, а не бронирование — мы свяжемся с вами, чтобы подтвердить время.', reqType: 'Что вас интересует?', private: 'Личный урок', rental: 'Аренда зала',
+          fullName: 'Полное имя', phone: 'Телефон', phoneBad: 'Введите правильный номер телефона', nameBad: 'Введите имя и фамилию', pickOne: 'Выберите один из вариантов', trainer: 'С каким тренером?', date: 'Дата', dateBad: 'Выберите дату не раньше сегодняшней', from: 'С', to: 'До', toBad: 'Время окончания должно быть позже начала', hall: 'Какой зал?', note: 'Комментарий (необязательно)', time: 'Время', type: 'Заявка', trainerS: 'Тренер', length: 'Длительность урока', lengthS: 'Длительность', min: 'мин', hallS: 'Зал', noteS: 'Комментарий',
+          continue: 'Далее', sumTitle: 'Проверьте заявку', editReq: 'Изменить', send: 'Отправить заявку', sending: 'Отправляем…', sendErr: 'Не получилось отправить. Проверьте интернет или отправьте заявку в WhatsApp.', viaWa: 'Отправить в WhatsApp',
+          events: 'События', allEvents: 'Все события', eventsSub: 'Все события в календаре — новые появятся сами', addCal: 'Добавить в календарь', allDay: 'Весь день',
+          music: 'Музыка к занятиям', forAll: 'Для всех', bdayToday: 'Сегодня день рождения!', bdayWish: 'Поздравляем: {names}!', bdaySoon: 'Скоро день рождения',
+          invite: 'Приведи друга', inviteText: 'Танцевать вместе веселее! Отправьте другу приглашение на пробное занятие.', share: 'Поделиться',
+          sentTitle: 'Заявка отправлена!', sentText: 'Спасибо! Это пока только просьба — мы свяжемся с вами по телефону или в WhatsApp, чтобы подтвердить.', newReq: 'Новая заявка',
         },
       };
       const LANGS: Lang[] = ['he', 'en', 'ru'];
@@ -219,6 +363,7 @@ const data = {
         days: { date: string; items: TimetableItem[] }[];
         feeds: { slug: string; name: string }[];
         groups: string[];
+        names: string[];
         trainers: string[];
         alarms: number[];
         siteUrl: string;
@@ -227,7 +372,14 @@ const data = {
         classes: Record<Lang, { intro: string; sections: { title: string; items: { title: string; body: string }[] }[]; url: string }>;
         prices: Record<Lang, string[]>;
         rules: Record<Lang, string[]>;
-        contact: { phone: string; phoneDisplay: string; whatsapp: string; instagram: string; maps: string; street: string; city: Loc };
+        events: { id: string; date: string; start: string; end: string; place: string; title: Loc; html: Loc }[];
+        music: { style: string; dances: { name: string; links: string[] }[] }[];
+        birthdays: { name: string; day: number; month: number }[];
+        invite: { active: boolean; text: Loc };
+        notice: { id: string; mode: 'banner' | 'popup'; until: string; title: Loc; html: Loc } | null;
+        payment: { active: boolean; day: number; before: number; after: number; body: Loc };
+        request: { endpoint: string; trainers: { id: string; name: Loc }[]; halls: Record<Lang, string[]>; opens: string; closes: string };
+        contact: { phone: string; phoneDisplay: string; whatsapp: string; instagram: string; google: string; waze: string; street: string; city: Loc };
       }
       const data: Data = JSON.parse(document.getElementById('sa-data')!.textContent || '{}');
       const CODE: string = JSON.parse(document.getElementById('sa-code')!.textContent || '""');
@@ -237,6 +389,7 @@ const data = {
         get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
         set: (k: string, v: string | null) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
       };
+      const STAR = icon('starFill');
 
       // ----- Language: saved choice → device language → Hebrew -----
       function pickLang(): Lang {
@@ -253,14 +406,20 @@ const data = {
       let lang = pickLang();
       let t = L[lang];
 
-      // ----- Search: one query over title, trainer and hall -----
-      const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').trim();
-      const matches = (i: TimetableItem, q: string) => !q || norm(`${i.title} ${i.column} ${i.hall ?? ''}`).includes(norm(q));
-      // Followed searches (groups, trainers, names) — as many as the student likes.
+      // ----- Search: groups and student names (class titles), not trainers -----
+      const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
+      // A student's name matches whole words only ("Ira" isn't "Kira"); anything else, any part of the title.
+      const nameSet = new Set(data.names.map(norm));
+      const words = (s: string) => norm(s).split(/[^\p{L}\p{N}]+/u);
+      const matches = (i: TimetableItem, q: string) =>
+        !q || (nameSet.has(norm(q)) ? words(i.title).includes(norm(q)) : norm(i.title).includes(norm(q)));
+      // Followed searches (groups, names) — as many as the student likes.
       let follows: string[] = [];
       try { follows = JSON.parse(store.get('etude-follows') || '[]'); } catch {}
       const oldMine = store.get('etude-mine'); // the single "mine" of the first version
       if (oldMine && !follows.length) follows = [oldMine];
+      // Trainers aren't offered any more: drop them from earlier follows.
+      follows = follows.filter((f) => !data.trainers.some((n) => norm(n) === norm(f)));
       const saveFollows = () => store.set('etude-follows', JSON.stringify(follows));
       const isFollowed = (q: string) => follows.some((f) => norm(f) === norm(q));
       const matchesAny = (i: TimetableItem) => follows.some((f) => matches(i, f));
@@ -270,6 +429,7 @@ const data = {
       let alarm = Number(store.get('etude-alarm') ?? 60);
       if (!data.alarms.includes(alarm)) alarm = 60;
 
+      const isoOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const today = () => weekOf(new Date())[new Date().getDay()];
       const nowMin = () => new Date().getHours() * 60 + new Date().getMinutes();
       const toMin = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
@@ -294,9 +454,68 @@ const data = {
           <span class="ev__who" dir="auto">${esc([i.column, i.hall && i.hall !== i.column ? i.hall : ''].filter(Boolean).join(' · '))}</span>
         </li>`;
 
+      // ----- "Important" notice (edited in /admin/) -----
+      const noticeLive = () => !!data.notice && (!data.notice.until || today() <= data.notice.until);
+
+      // ----- Monthly payment reminder: banner from `before` days ahead to `after` days past the due day -----
+      const ordinal = (n: number) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+      /** The due date in range of today, and how many days away it is (negative = past). */
+      function payDue() {
+        const p = data.payment;
+        if (!p.active) return null;
+        const now = new Date();
+        const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        for (const m of [0, 1, -1]) {
+          const due = new Date(now.getFullYear(), now.getMonth() + m, p.day);
+          const diff = Math.round((due.getTime() - d0.getTime()) / 86400000);
+          if (diff <= p.before && diff >= -p.after) return { iso: isoOf(due), diff };
+        }
+        return null;
+      }
+      const payFeed = () => `${data.siteUrl}/student/cal/pay-${lang}.ics`;
+      const calButtons = (https: string) => {
+        const webcal = https.replace(/^https:/, 'webcal:');
+        return `<a class="btn" href="${webcal}">${icon('calendar')}${t.apple}</a>
+          <a class="btn btn--ghost" href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}" target="_blank" rel="noopener">${t.google}</a>`;
+      };
+
+      function renderAlerts() {
+        let html = '';
+        if (noticeLive() && data.notice!.mode === 'banner')
+          html += `<a class="sa-alert sa-alert--notice" href="#notice">${icon('megaphone')}<span><small>${t.important}</small><b dir="auto">${esc(data.notice!.title[lang])}</b></span>${icon('next', 'ic--flip')}</a>`;
+        const due = payDue();
+        if (due && store.get('etude-paid') !== due.iso) {
+          const n = Math.abs(due.diff);
+          const timer = due.diff === 0
+            ? `<div class="sa-timer sa-timer--today"><b>${t.payToday}</b></div>`
+            : `<div class="sa-timer"><small>${due.diff > 0 ? t.payLeft : t.payAgo}</small><b>${n}</b><small>${t.days(n)}</small></div>`;
+          const line = due.diff > 0 ? t.payDue.replace('{day}', lang === 'en' ? ordinal(data.payment.day) : String(data.payment.day)) : due.diff === 0 ? t.payDueToday : t.payLate;
+          html += `<div class="sa-alert sa-alert--pay${due.diff < 0 ? ' is-late' : ''}">${icon('wallet')}<span><b>${t.payTitle}</b><small>${esc(line)}</small>
+            <button type="button" class="sa-link" data-paid="${due.iso}">${icon('check')}${t.paid}</button></span>${timer}</div>`;
+        }
+        $('alerts').innerHTML = html;
+      }
+
+      // ----- Events, music -----
+      /** "Spotify", "YouTube"… for a playlist link. */
+      const service = (u: string) => {
+        const h = u.replace(/^https?:\/\/(www\.|m\.|music\.|open\.)?/, '').split('/')[0];
+        return h.includes('spotify') ? 'Spotify' : /youtu/.test(h) ? 'YouTube' : h.includes('apple') ? 'Apple Music' : h.includes('yandex') ? 'Яндекс Музыка' : h.includes('deezer') ? 'Deezer' : h.includes('soundcloud') ? 'SoundCloud' : h;
+      };
+      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+      const upcomingEvents = () => data.events.filter((e) => e.date >= today());
+      const evWhen = (e: Data['events'][number]) =>
+        `${cap(new Date(`${e.date}T12:00:00`).toLocaleDateString(t.locale, { weekday: 'short', day: 'numeric', month: 'long' }))} · ${e.start ? `<span dir="ltr">${e.start}${e.end ? `–${e.end}` : ''}</span>` : t.allDay}`;
+      const eventItem = (e: Data['events'][number]) =>
+        `<li><a class="sa-ev" href="#event/${encodeURIComponent(e.id)}">${icon('trophy')}<span><b dir="auto">${esc(e.title[lang])}</b><span class="hint">${evWhen(e)}</span></span></a></li>`;
+
       // ----- Rendering -----
       function renderHome() {
-        $('hello').textContent = t.hello;
+        $('hello').innerHTML = `${esc(t.hello)} ${icon('hand')}`;
+        // A popup notice stays reachable from the home screen after it's closed.
+        $('important').innerHTML = noticeLive() && data.notice!.mode === 'popup'
+          ? `<a class="sa-alert sa-alert--notice" href="#notice">${icon('megaphone')}<span><small>${t.important}</small><b dir="auto">${esc(data.notice!.title[lang])}</b></span>${icon('next', 'ic--flip')}</a>`
+          : '';
         const nextHtml = (keep: (i: TimetableItem) => boolean) => {
           const next = upcoming(keep)[0];
           return next
@@ -304,9 +523,27 @@ const data = {
             : `<p class="hint">${t.noNext}</p>`;
         };
         $('next').innerHTML = follows.length
-          ? `<div class="sa-head"><h2>${t.myClasses}</h2><a href="#schedule" data-mine-view>${t.edit}</a></div>` +
-            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">★ ${esc(f)}</h3>${nextHtml((i) => matches(i, f))}</div>`).join('')
-          : `<div class="card"><h2>${t.nextAll}</h2>${nextHtml(() => true)}<p class="hint">${t.pickMine}</p><a class="btn" href="#schedule">${t.choose}</a></div>`;
+          ? `<div class="sa-head"><h2>${t.myClasses}</h2><a href="#schedule" data-mine-view>${icon('edit')}${t.edit}</a></div>` +
+            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">${STAR}${esc(f)}</h3>${nextHtml((i) => matches(i, f))}</div>`).join('')
+          : `<div class="card"><h2>${t.nextAll}</h2>${nextHtml(() => true)}<p class="hint">${t.pickMine}</p><a class="btn" href="#schedule">${icon('star')}${t.choose}</a></div>`;
+        // Birthdays: today's, and the next 7 days.
+        const now = new Date();
+        const inDays = (n: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + n);
+        const bdays = (d: Date) => data.birthdays.filter((b) => b.day === d.getDate() && b.month === d.getMonth() + 1).map((b) => b.name);
+        const todays = bdays(now);
+        const soon = [1, 2, 3, 4, 5, 6, 7].flatMap((n) => bdays(inDays(n)).map((name) => ({ name, d: inDays(n) })));
+        $('bday').innerHTML =
+          (todays.length ? `<div class="card sa-bday">${icon('cake')}<div><h2>${t.bdayToday}</h2><p dir="auto">${esc(t.bdayWish.replace('{names}', todays.join(', ')))}</p></div></div>` : '') +
+          (soon.length ? `<div class="card sa-soon"><h3 class="sa-soon__t">${icon('cake')}${t.bdaySoon}</h3><ul>${soon.map((b) => `<li><b dir="auto">${esc(b.name)}</b><span class="hint">${esc(dayName(isoOf(b.d)))}</span></li>`).join('')}</ul></div>` : '');
+        const evs = upcomingEvents();
+        $('eventsHome').innerHTML = evs.length
+          ? `<div class="sa-head"><h2>${t.events}</h2>${evs.length > 3 ? `<a href="#events">${t.allEvents}</a>` : ''}</div><ul class="list">${evs.slice(0, 3).map(eventItem).join('')}</ul>`
+          : '';
+        $('invite').innerHTML = data.invite.active
+          ? `<div class="card sa-invite">${icon('invite')}<div><h2>${t.invite}</h2><p>${t.inviteText}</p>
+              <div class="sa-row"><a class="btn" href="https://wa.me/?text=${encodeURIComponent(data.invite.text[lang])}" target="_blank" rel="noopener">${icon('chat')}${t.whatsapp}</a>
+              ${'share' in navigator ? `<button type="button" class="btn btn--ghost" data-invite>${icon('share')}${t.share}</button>` : ''}</div></div></div>`
+          : '';
         $('newsTitle').textContent = t.news;
         $('news').innerHTML = data.news.slice(0, 3).map(newsItem).join('');
         $('allNews').hidden = data.news.length <= 3;
@@ -320,7 +557,7 @@ const data = {
       function renderNews() {
         $('newsAllTitle').textContent = t.news;
         $('newsAll').innerHTML = data.news.map(newsItem).join('');
-        $('back').textContent = `‹ ${t.back}`;
+        $('back').innerHTML = `${icon('back', 'ic--flip')}${t.back}`;
         const n = data.news.find((x) => x.id === post);
         // The body is already safe HTML (renderRichText escapes everything it doesn't format).
         $('post').innerHTML = n
@@ -329,40 +566,64 @@ const data = {
           : '';
       }
 
+      let eventId = ''; // id of the event open in the app
+      function renderEvents() {
+        $('eventsBack').innerHTML = `${icon('back', 'ic--flip')}${t.home}`;
+        $('eventBack').innerHTML = `${icon('back', 'ic--flip')}${t.events}`;
+        $('eventsTitle').textContent = t.events;
+        $('eventsAll').innerHTML = upcomingEvents().map(eventItem).join('');
+        const feed = `${data.siteUrl}/student/cal/events-${lang}.ics`;
+        $('eventsSub').innerHTML = `<p class="hint">${icon('bell')} ${t.eventsSub}</p><div class="sa-row">${calButtons(feed)}</div>`;
+        const e = data.events.find((x) => x.id === eventId);
+        const c = data.contact;
+        $('eventPost').innerHTML = e
+          ? `<p class="sa-badge sa-badge--event">${icon('trophy')}${t.events}</p><h1 dir="auto">${esc(e.title[lang])}</h1>
+            <p class="sa-meta">${icon('calendar')}<span>${evWhen(e)}</span></p>
+            <p class="sa-meta">${icon('pin')}<span dir="auto">${esc(e.place || `ETUDE, ${c.street}, ${c.city[lang]}`)}</span></p>
+            ${e.html[lang] ? `<div class="post__body" dir="auto">${e.html[lang]}</div>` : ''}
+            <div class="sa-row"><a class="btn" href="${esc(googleCalendarUrl({ date: e.date, start: e.start || '00:00', end: e.end || '00:00', allDay: !e.start, title: e.title[lang], location: e.place || `ETUDE, ${c.street}` }))}" target="_blank" rel="noopener">${icon('calendar')}${t.addCal} (Google)</a></div>
+            <div class="card">${$('eventsSub').innerHTML}</div>`
+          : '';
+      }
+
+      function renderNotice() {
+        $('noticeBack').innerHTML = `${icon('back', 'ic--flip')}${t.home}`;
+        const n = data.notice;
+        $('noticePost').innerHTML = n
+          ? `<p class="sa-badge">${icon('megaphone')}${t.important}</p><h1 dir="auto">${esc(n.title[lang])}</h1><div class="post__body" dir="auto">${n.html[lang]}</div>`
+          : '';
+      }
+
       function renderSchedule() {
         $('schedTitle').textContent = t.schedule;
         const q = $('q') as HTMLInputElement;
         q.placeholder = t.search;
         if (document.activeElement !== q) q.value = mineView ? '' : query;
+        const chip = (v: string, label: string, cls = '') =>
+          `<button type="button" data-q="${esc(v)}" aria-pressed="${!mineView && norm(v) === norm(query)}" dir="auto"${cls ? ` class="${cls}"` : ''}>${isFollowed(v) ? STAR : ''}${esc(label)}</button>`;
         $('chips').innerHTML =
-          (follows.length ? `<button type="button" data-mine-view aria-pressed="${mineView}">${t.mineChip} (${follows.length})</button>` : '') +
-          [['', t.all], ...data.trainers.map((n) => [n, n]), ...data.groups.map((g) => [g, g])]
-            .map(([v, label]) => `<button type="button" data-q="${esc(v)}" aria-pressed="${!mineView && norm(v) === norm(query)}" dir="auto">${isFollowed(v) ? '★ ' : ''}${esc(label)}</button>`)
-            .join('');
+          (follows.length ? `<button type="button" data-mine-view aria-pressed="${mineView}">${STAR}${t.mineChip} (${follows.length})</button>` : '') +
+          chip('', t.all) +
+          data.groups.map((g) => chip(g, g)).join('') +
+          data.names.map((n) => chip(n, n, 'chip--name')).join('');
         $('mineRow').innerHTML = mineView
-          ? follows.map((f, n) => `<button type="button" class="btn btn--ghost" data-unfollow="${n}" aria-label="${t.unfollow}: ${esc(f)}" dir="auto">★ ${esc(f)} ✕</button>`).join('')
+          ? follows.map((f, n) => `<button type="button" class="btn btn--ghost" data-unfollow="${n}" aria-label="${t.unfollow}: ${esc(f)}" dir="auto">${STAR}${esc(f)}${icon('close')}</button>`).join('')
           : !query.trim()
             ? ''
             : isFollowed(query)
-              ? `<span class="tag">${t.isMine}</span><button type="button" class="btn btn--ghost" data-follow="off">${t.unmine}</button>`
-              : `<button type="button" class="btn" data-follow="on">${t.mine}</button>`;
+              ? `<span class="tag">${STAR}${t.isMine}</span><button type="button" class="btn btn--ghost" data-follow="off">${t.unmine}</button>`
+              : `<button type="button" class="btn" data-follow="on">${icon('star')}${t.mine}</button>`;
 
-        // Calendar feeds whose group or trainer matches the query (or any follow).
+        // Calendar feeds whose group or name matches the query (or any follow).
         const wanted = mineView ? follows : query.trim() ? [query] : [];
         const feeds = data.feeds.filter((f) => wanted.some((w) => norm(f.name).includes(norm(w))));
         $('cal').hidden = !feeds.length;
-        $('calSummary').textContent = t.calendar;
+        $('calSummary').innerHTML = `${icon('bell')}${t.calendar}`;
         $('calHint').textContent = t.calHint;
         $('alarmLabel').textContent = t.alarm;
         $('alarm').innerHTML = data.alarms.map((m) => `<option value="${m}" ${m === alarm ? 'selected' : ''}>${t.alarms[m]}</option>`).join('');
         $('calLinks').innerHTML = feeds
-          .map((f) => {
-            const https = `${data.siteUrl}/student/cal/${encodeURIComponent(`${f.slug}-${alarm}`)}.ics`;
-            const webcal = https.replace(/^https:/, 'webcal:');
-            return `<div class="feed"><b dir="auto">${esc(f.name)}</b>
-              <a class="btn" href="${webcal}">${t.apple}</a>
-              <a class="btn btn--ghost" href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}" target="_blank" rel="noopener">${t.google}</a></div>`;
-          })
+          .map((f) => `<div class="feed"><b dir="auto">${esc(f.name)}</b>${calButtons(`${data.siteUrl}/student/cal/${encodeURIComponent(`${f.slug}-${alarm}`)}.ics`)}</div>`)
           .join('');
 
         const days = upcoming(mineView ? matchesAny : (i) => matches(i, query));
@@ -372,6 +633,17 @@ const data = {
       }
 
       function renderClasses() {
+        // Music: a section per dance style, a row per dance with its playlist(s).
+        $('music').innerHTML = data.music.length
+          ? `<h2 class="sa-h">${icon('music')}${t.music}</h2>` +
+            data.music
+              .map((st) => `<h3 class="sa-style" dir="auto">${esc(st.style)}</h3><ul class="list sa-dances">` + st.dances
+                .map((d) => d.links.length === 1
+                  ? `<li><a href="${esc(d.links[0])}" target="_blank" rel="noopener">${icon('music')}<span dir="auto">${esc(d.name)}</span><small>${esc(service(d.links[0]))}</small></a></li>`
+                  : `<li class="sa-dance-multi">${icon('music')}<span dir="auto">${esc(d.name)}</span><span class="sa-row">${d.links.map((u) => `<a class="btn btn--ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(service(u))}</a>`).join('')}</span></li>`)
+                .join('') + '</ul>')
+              .join('')
+          : '';
         const c = data.classes[lang];
         $('classesTitle').textContent = t.classesT;
         $('classes').innerHTML =
@@ -383,23 +655,239 @@ const data = {
         // "Kids group, 4 lessons/month — 300 ₪": name and price on one row.
         $('prices').innerHTML = prices?.length
           ? `<dl class="prices">${prices.map((p) => { const [a, ...b] = p.split(/\s+[—–-]\s+/); return `<dt dir="auto">${esc(a)}</dt><dd dir="auto">${esc(b.join(' — '))}</dd>`; }).join('')}</dl>`
-          : `<p class="hint">${t.noPrices}</p><a class="btn" href="https://wa.me/${data.contact.whatsapp}" target="_blank" rel="noopener">${t.whatsapp}</a>`;
+          : `<p class="hint">${t.noPrices}</p><a class="btn" href="https://wa.me/${data.contact.whatsapp}" target="_blank" rel="noopener">${icon('chat')}${t.whatsapp}</a>`;
       }
 
       function renderStudio() {
         $('rulesTitle').textContent = t.rules;
         $('rules').innerHTML = (data.rules[lang]?.length ? data.rules[lang] : data.rules.he).map((r) => `<li dir="auto">${esc(r)}</li>`).join('');
+        $('payCard').innerHTML = data.payment.active
+          ? `<div class="card sa-pay"><h2>${icon('wallet')}${t.payTitle}</h2><p>${esc(data.payment.body[lang])}</p><p class="hint">${icon('bell')}${t.payCal}</p><div class="sa-row">${calButtons(payFeed())}</div></div>`
+          : '';
         $('contactTitle').textContent = t.contact;
         const c = data.contact;
         $('contact').innerHTML = `
-          <p>${esc(c.street)}, ${esc(c.city[lang])}</p>
+          <p>${icon('pin')} ${esc(c.street)}, ${esc(c.city[lang])}</p>
           <div class="sa-row">
-            <a class="btn" href="https://wa.me/${c.whatsapp}" target="_blank" rel="noopener">${t.whatsapp}</a>
-            <a class="btn btn--ghost" href="tel:${c.phone}" dir="ltr">${t.call} ${esc(c.phoneDisplay)}</a>
-            <a class="btn btn--ghost" href="${c.maps}" target="_blank" rel="noopener">${t.route}</a>
-            <a class="btn btn--ghost" href="${c.instagram}" target="_blank" rel="noopener">Instagram</a>
+            <a class="btn" href="https://wa.me/${c.whatsapp}" target="_blank" rel="noopener">${icon('chat')}${t.whatsapp}</a>
+            <a class="btn btn--ghost" href="tel:${c.phone}">${icon('phone')}<span dir="ltr">${esc(c.phoneDisplay)}</span></a>
+            <a class="btn btn--ghost" href="${c.instagram}" target="_blank" rel="noopener">${icon('instagram')}Instagram</a>
+          </div>
+          <p class="hint">${t.route}</p>
+          <div class="sa-row">
+            <a class="btn btn--ghost" href="${c.google}" target="_blank" rel="noopener">${icon('pin')}Google Maps</a>
+            <a class="btn btn--ghost" href="${c.waze}" target="_blank" rel="noopener">${icon('pin')}Waze</a>
           </div>`;
       }
+
+      // ----- Request: private lesson or hall rental → summary → sent by email (FormSubmit) -----
+      type ReqType = '' | 'private' | 'rental';
+      const contactSaved = (() => { try { return JSON.parse(store.get('etude-req-contact') || '{}'); } catch { return {}; } })();
+      const req = { type: '' as ReqType, name: contactSaved.name || '', phone: contactSaved.phone || '', trainer: '', length: '', pdate: '', ptime: '', date: '', from: '', to: '', hall: '', note: '' };
+      let reqStep: 'form' | 'summary' = 'form';
+      let reqFormLang = ''; // the form is rebuilt only when the language changes, so typing isn't lost
+      let lastSent: [string, string][] = [];
+      const pad = (n: number) => String(n).padStart(2, '0');
+      /** Whole hours the halls can be booked, e.g. 08:00 … 21:00. */
+      const hours = () => { const out: string[] = []; for (let m = toMin(data.request.opens); m <= toMin(data.request.closes); m += 60) out.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`); return out; };
+      /** Lesson start times every 30 minutes, leaving room for a 45-minute lesson before closing. */
+      const halfHours = () => { const out: string[] = []; for (let m = toMin(data.request.opens); m <= toMin(data.request.closes) - 45; m += 30) out.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`); return out; };
+      const LENGTHS = ['45', '60', '90'];
+      const trainerName = (id: string, l: Lang = lang) => data.request.trainers.find((x) => x.id === id)?.name[l] ?? '';
+      const hallName = (i: string, l: Lang = lang) => data.request.halls[l][Number(i)] ?? '';
+
+      function renderRequestForm() {
+        const radio = (name: string, value: string, label: string, ico = '') =>
+          `<label class="sa-choice"><input type="radio" name="${name}" value="${esc(value)}" ${req[name as 'type'] === value ? 'checked' : ''} required />${ico}<span dir="auto">${esc(label)}</span></label>`;
+        const opts = (sel: string, list: string[]) => `<option value=""></option>` + list.map((h) => `<option ${h === sel ? 'selected' : ''}>${h}</option>`).join('');
+        const hs = hours();
+        $('reqForm').innerHTML = `
+          <fieldset class="sa-choices sa-choices--type"><legend>${t.reqType}</legend>
+            ${radio('type', 'private', t.private, icon('dance'))}${radio('type', 'rental', t.rental, icon('home'))}
+            <p class="sa-err" data-err="type" hidden>${t.pickOne}</p></fieldset>
+          <label class="sa-field"><span>${t.fullName}</span><input name="name" autocomplete="name" required minlength="2" value="${esc(req.name)}" /><small class="sa-err" hidden>${t.nameBad}</small></label>
+          <label class="sa-field"><span>${t.phone}</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required value="${esc(req.phone)}" /><small class="sa-err" hidden>${t.phoneBad}</small></label>
+          <div data-show="private" hidden>
+            <fieldset class="sa-choices"><legend>${t.trainer}</legend>
+              ${data.request.trainers.map((x) => radio('trainer', x.id, x.name[lang])).join('')}
+              <p class="sa-err" data-err="trainer" hidden>${t.pickOne}</p></fieldset>
+            <fieldset class="sa-choices sa-choices--row"><legend>${t.length}</legend>
+              ${LENGTHS.map((m) => radio('length', m, `${m} ${t.min}`)).join('')}
+              <p class="sa-err" data-err="length" hidden>${t.pickOne}</p></fieldset>
+            <div class="sa-pair">
+              <label class="sa-field"><span>${t.date}</span><input name="pdate" type="date" required min="${today()}" value="${esc(req.pdate)}" /><small class="sa-err" hidden>${t.dateBad}</small></label>
+              <label class="sa-field"><span>${t.time}</span><select name="ptime" required>${opts(req.ptime, halfHours())}</select><small class="sa-err" hidden>${t.pickOne}</small></label>
+            </div>
+          </div>
+          <div data-show="rental" hidden>
+            <label class="sa-field"><span>${t.date}</span><input name="date" type="date" required min="${today()}" value="${esc(req.date)}" /><small class="sa-err" hidden>${t.dateBad}</small></label>
+            <div class="sa-pair">
+              <label class="sa-field"><span>${t.from}</span><select name="from" required>${opts(req.from, hs.slice(0, -1))}</select></label>
+              <label class="sa-field"><span>${t.to}</span><select name="to" required>${opts(req.to, hs.slice(1))}</select></label>
+            </div>
+            <p class="sa-err" data-err="time" hidden>${t.toBad}</p>
+            <fieldset class="sa-choices"><legend>${t.hall}</legend>
+              ${data.request.halls[lang].map((h, i) => radio('hall', String(i), h)).join('')}
+              <p class="sa-err" data-err="hall" hidden>${t.pickOne}</p></fieldset>
+          </div>
+          <label class="sa-field"><span>${t.note}</span><textarea name="note" rows="3" dir="auto">${esc(req.note)}</textarea></label>
+          <button type="submit" class="btn btn--big">${t.continue}${icon('next', 'ic--flip')}</button>`;
+        reqFormLang = lang;
+        showReqType();
+      }
+      function showReqType() {
+        $('reqForm').querySelectorAll<HTMLElement>('[data-show]').forEach((el) => {
+          el.hidden = el.dataset.show !== req.type;
+          // Hidden parts don't block sending.
+          el.querySelectorAll<HTMLInputElement>('input, select').forEach((i) => (i.disabled = el.hidden));
+        });
+      }
+      /** Checks the form, marks what's missing and focuses the first problem. */
+      function validReq() {
+        const f = $('reqForm') as HTMLFormElement;
+        const bad: HTMLElement[] = [];
+        const mark = (el: HTMLElement, ok: boolean, err?: HTMLElement | null) => {
+          (err ?? el.closest('.sa-field')?.querySelector<HTMLElement>('.sa-err'))?.toggleAttribute('hidden', ok);
+          if (!ok) bad.push(el);
+        };
+        const field = (n: string) => f.elements.namedItem(n) as HTMLInputElement;
+        const errOf = (k: string) => f.querySelector<HTMLElement>(`[data-err="${k}"]`);
+        mark(field('name'), req.name.trim().length >= 2);
+        mark(field('phone'), (req.phone.match(/\d/g) || []).length >= 9 && /^[0-9 +()\-]+$/.test(req.phone.trim()));
+        mark(f.querySelector('[name="type"]')!, !!req.type, errOf('type'));
+        if (req.type === 'private') {
+          mark(f.querySelector('[name="trainer"]')!, !!req.trainer, errOf('trainer'));
+          mark(f.querySelector('[name="length"]')!, !!req.length, errOf('length'));
+          mark(field('pdate'), !!req.pdate && req.pdate >= today());
+          mark(field('ptime'), !!req.ptime);
+        }
+        if (req.type === 'rental') {
+          mark(field('date'), !!req.date && req.date >= today());
+          mark(field('from'), !!req.from && !!req.to && toMin(req.to) > toMin(req.from), errOf('time'));
+          mark(f.querySelector('[name="hall"]')!, req.hall !== '', errOf('hall'));
+        }
+        bad[0]?.focus();
+        return !bad.length;
+      }
+      /** The request as label/value rows — in the app's language for the screen, in English for the email. */
+      function reqRows(l: Lang): [string, string][] {
+        const tl = L[l];
+        const rows: [string, string][] = [[tl.type, req.type === 'private' ? tl.private : tl.rental], [tl.fullName, req.name.trim()], [tl.phone, req.phone.trim()]];
+        const longDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(tl.locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        if (req.type === 'private')
+          rows.push([tl.trainerS, trainerName(req.trainer, l)], [tl.lengthS, `${req.length} ${tl.min}`], [tl.date, longDate(req.pdate)], [tl.time, req.ptime]);
+        else rows.push([tl.date, longDate(req.date)], [tl.time, `${req.from}–${req.to}`], [tl.hallS, hallName(req.hall, l)]);
+        if (req.note.trim()) rows.push([tl.noteS, req.note.trim()]);
+        return rows;
+      }
+      const rowsHtml = (rows: [string, string][]) => `<dl class="sa-dl">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd dir="auto">${esc(v)}</dd>`).join('')}</dl>`;
+      const waText = () => `${t.reqTitle}\n` + reqRows(lang).map(([k, v]) => `${k}: ${v}`).join('\n');
+
+      function renderRequest() {
+        $('reqTitle').textContent = t.reqTitle;
+        $('reqOnly').innerHTML = `${icon('info')}<span>${esc(t.reqOnly)}</span>`;
+        if (reqFormLang !== lang) renderRequestForm();
+        $('reqForm').hidden = reqStep !== 'form';
+        $('reqSummary').hidden = reqStep !== 'summary';
+        if (reqStep === 'summary')
+          $('reqSummary').innerHTML = `<h2>${t.sumTitle}</h2>${rowsHtml(reqRows(lang))}
+            <p class="sa-note">${icon('info')}<span>${esc(t.reqOnly)}</span></p>
+            <p class="sa-err" id="reqErr" hidden></p>
+            <div class="sa-row sa-row--end">
+              <button type="button" class="btn btn--ghost" data-req="edit">${icon('edit')}${t.editReq}</button>
+              <button type="button" class="btn btn--big" data-req="send">${icon('send', 'ic--flip')}${t.send}</button>
+            </div>`;
+        $('sent').innerHTML = `${icon('check', 'sa-done__ic')}<h1>${t.sentTitle}</h1><p>${esc(t.sentText)}</p>${lastSent.length ? `<div class="card">${rowsHtml(lastSent)}</div>` : ''}
+          <div class="sa-row"><a class="btn" href="#home">${icon('home')}${t.home2}</a><button type="button" class="btn btn--ghost" data-req="new">${icon('request')}${t.newReq}</button></div>`;
+      }
+
+      $('reqForm').addEventListener('input', (e) => {
+        const el = e.target as HTMLInputElement;
+        if (el.name in req) (req as Record<string, string>)[el.name] = el.value;
+        if (el.name === 'type') showReqType();
+        el.closest('.sa-field, fieldset')?.querySelector<HTMLElement>('.sa-err')?.setAttribute('hidden', '');
+        if (el.name === 'from' || el.name === 'to') $('reqForm').querySelector('[data-err="time"]')?.setAttribute('hidden', '');
+      });
+      $('reqForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!validReq()) return;
+        reqStep = 'summary';
+        renderRequest();
+        $('app').scrollTo(0, 0);
+      });
+      document.addEventListener('click', async (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-req]');
+        if (!b) return;
+        const act = b.dataset.req;
+        if (act === 'edit') { reqStep = 'form'; renderRequest(); return; }
+        if (act === 'new') { reqStep = 'form'; location.hash = '#request'; return; }
+        // Send
+        b.disabled = true;
+        b.innerHTML = t.sending;
+        const rows = reqRows('en');
+        const kind = req.type === 'private' ? 'Private lesson' : 'Hall rental';
+        const body: Record<string, string> = {
+          _subject: `App request: ${kind} — ${req.name.trim()}`,
+          _template: 'table',
+          _captcha: 'false',
+          ...Object.fromEntries(rows),
+          'App language': lang,
+        };
+        try {
+          const res = await fetch(data.request.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body) });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok || String(out.success) !== 'true') throw new Error(out.message || res.statusText);
+          store.set('etude-req-contact', JSON.stringify({ name: req.name.trim(), phone: req.phone.trim() }));
+          lastSent = reqRows(lang);
+          Object.assign(req, { type: '', trainer: '', length: '', pdate: '', ptime: '', date: '', from: '', to: '', hall: '', note: '' });
+          reqStep = 'form';
+          reqFormLang = '';
+          location.hash = '#sent';
+          renderRequest();
+        } catch {
+          renderRequest();
+          const err = $('reqErr');
+          err.hidden = false;
+          err.innerHTML = `${esc(t.sendErr)} <a class="btn" href="https://wa.me/${data.contact.whatsapp}?text=${encodeURIComponent(waText())}" target="_blank" rel="noopener">${icon('chat')}${t.viaWa}</a>`;
+        }
+      });
+
+      // ----- Pop-ups: notice (popup mode, once per version) and the payment day (once a month) -----
+      function openPop(html: string) {
+        const d = $('pop') as HTMLDialogElement;
+        d.innerHTML = html;
+        if (!d.open) d.showModal();
+      }
+      /** Shows the popup that's due, if any; true if one opened. */
+      function maybePop() {
+        if (noticeLive() && data.notice!.mode === 'popup' && store.get('etude-notice-seen') !== data.notice!.id) {
+          store.set('etude-notice-seen', data.notice!.id);
+          openPop(`<p class="sa-badge">${icon('megaphone')}${t.important}</p><h2 dir="auto">${esc(data.notice!.title[lang])}</h2>
+            <a class="btn" href="#notice" data-close>${t.readMore}</a><button type="button" class="btn btn--ghost" data-close>${t.close}</button>`);
+          return true;
+        }
+        const due = payDue();
+        if (due && due.diff === 0 && store.get('etude-paid') !== due.iso && store.get('etude-pay-pop') !== due.iso) {
+          store.set('etude-pay-pop', due.iso);
+          openPop(`<p class="sa-badge sa-badge--pay">${icon('wallet')}${t.payTitle}</p><h2>${t.payDueToday}</h2><p>${esc(data.payment.body[lang])}</p>
+            <button type="button" class="btn" data-paid="${due.iso}" data-close>${icon('check')}${t.paid}</button>
+            <button type="button" class="btn btn--ghost" data-close>${t.close}</button>`);
+          return true;
+        }
+        return false;
+      }
+      $('pop').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-close]')) ($('pop') as HTMLDialogElement).close();
+      });
+      // "Invite a friend" through the phone's share menu.
+      document.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('[data-invite]')) navigator.share?.({ text: data.invite.text[lang] }).catch(() => {});
+      });
+      // "Already paid" hides this month's payment banner.
+      document.addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLElement>('[data-paid]');
+        if (b) { store.set('etude-paid', b.dataset.paid!); renderAlerts(); }
+      });
 
       function render() {
         document.documentElement.lang = lang;
@@ -408,10 +896,14 @@ const data = {
         $('codeLabel').textContent = t.code;
         $('codeBad').textContent = t.bad;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => (a.querySelector('b')!.textContent = t[a.dataset.go as 'home']));
+        renderAlerts();
         renderHome();
         renderNews();
+        renderNotice();
+        renderEvents();
         renderSchedule();
         renderClasses();
+        renderRequest();
         renderStudio();
         renderInstall();
         $('updated').textContent = data.updatedAt
@@ -420,22 +912,28 @@ const data = {
       }
 
       // ----- Tabs via #hash, so the back button works -----
+      const TABS = ['home', 'schedule', 'news', 'classes', 'request', 'sent', 'studio', 'notice', 'events'];
+      const NAV_OF: Record<string, string> = { news: 'home', post: 'home', notice: 'home', events: 'home', event: 'home', sent: 'request' };
       function showTab() {
         const [name, id] = location.hash.slice(1).split('/');
         post = name === 'news' && id ? decodeURIComponent(id) : '';
         if (post && !data.news.some((n) => n.id === post)) post = '';
-        const tab = post ? 'post' : ['home', 'schedule', 'news', 'classes', 'studio'].includes(name) ? name : 'home';
+        eventId = name === 'event' && id ? decodeURIComponent(id) : '';
+        if (eventId && !data.events.some((e) => e.id === eventId)) eventId = '';
+        let tab = post ? 'post' : eventId ? 'event' : TABS.includes(name) ? name : 'home';
+        if (tab === 'notice' && !data.notice) tab = 'home';
         if (post) renderNews();
+        if (eventId) renderEvents();
         document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
-        const navTab = tab === 'news' || tab === 'post' ? 'home' : tab;
+        const navTab = NAV_OF[tab] ?? tab;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
-        scrollTo(0, 0);
+        $('app').scrollTo(0, 0);
       }
       addEventListener('hashchange', showTab);
 
       // ----- Events -----
       $('q').addEventListener('input', (e) => { query = (e.target as HTMLInputElement).value; mineView = false; renderSchedule(); });
-      // "★ Mine" (chip, or "Edit" on the home screen) shows every followed class together.
+      // "Mine" (chip, or "Edit" on the home screen) shows every followed class together.
       document.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('[data-mine-view]')) { mineView = true; renderSchedule(); }
       });
@@ -473,21 +971,25 @@ const data = {
         $('app').hidden = false;
         $('nav').hidden = false;
         showTab();
-        if (!installed && !store.get('etude-install-seen')) setTimeout(openInstall, 1500);
+        if (maybePop()) return;
+        if (!installed && !preview && !store.get('etude-install-seen')) setTimeout(openInstall, 1500);
       }
 
       // ----- "Add to home screen" -----
       // Chrome/Android offers a real install prompt; iPhone only has Safari's
       // Share → Add to Home Screen, so it gets the steps instead.
-      const installed = matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+      const installed = ['standalone', 'fullscreen', 'minimal-ui'].some((m) => matchMedia(`(display-mode: ${m})`).matches) || (navigator as any).standalone === true;
+      // Staff can look at the app in a browser with /student/?preview (linked from /admin/).
+      const preview = new URLSearchParams(location.search).has('preview');
       const isAndroid = /Android/.test(navigator.userAgent);
       // iPadOS reports itself as a Mac with a touch screen.
       const isIos = !isAndroid && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
       let installEvent: any = null;
       addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderInstall(); });
-      addEventListener('appinstalled', () => ($('install') as HTMLDialogElement).close());
+      addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; appAdded = true; renderInstall(); });
+      let appAdded = false;
       function renderInstall() {
-        $('inTitle').textContent = t.inTitle;
+        $('inTitle').innerHTML = `${icon('install')}${t.inTitle}`;
         $('inText').textContent = t.inText;
         $('inButton').textContent = t.inButton;
         $('inButton').hidden = !installEvent;
@@ -498,14 +1000,25 @@ const data = {
         // Phones see their own steps; a computer sees both.
         $('inIos').hidden = !!installEvent || isAndroid;
         $('inAndroid').hidden = !!installEvent || isIos;
-        $('howInstall').textContent = t.howInstall;
+        // The browser-tab gate.
+        $('gTitle').textContent = t.gTitle;
+        $('gText').textContent = t.gText;
+        $('gButton').innerHTML = `${icon('install')}${t.inButton}`;
+        $('gButton').hidden = !installEvent || appAdded;
+        $('gIos').innerHTML = $('inIos').innerHTML;
+        $('gAndroid').innerHTML = $('inAndroid').innerHTML;
+        $('gIos').hidden = $('inIos').hidden || appAdded;
+        $('gAndroid').hidden = $('inAndroid').hidden || appAdded;
+        $('gDone').innerHTML = `${icon('check')}<span>${t.gDone}</span>`;
+        $('gDone').hidden = !appAdded;
+        $('howInstall').innerHTML = `${icon('install')}${t.howInstall}`;
         $('howInstall').hidden = installed;
       }
       function openInstall() {
         renderInstall();
         store.set('etude-install-seen', '1');
         const d = $('install') as HTMLDialogElement;
-        if (!d.open) d.showModal();
+        if (!d.open && !($('pop') as HTMLDialogElement).open) d.showModal();
       }
       $('inLater').addEventListener('click', () => ($('install') as HTMLDialogElement).close());
       $('howInstall').addEventListener('click', openInstall);
@@ -517,6 +1030,11 @@ const data = {
         ($('install') as HTMLDialogElement).close();
       });
       // Tap on the dimmed backdrop closes it too.
+      $('gButton').addEventListener('click', async () => {
+        if (!installEvent) return;
+        installEvent.prompt();
+        await installEvent.userChoice;
+      });
       $('install').addEventListener('click', (e) => { if (e.target === e.currentTarget) ($('install') as HTMLDialogElement).close(); });
       const code = $('code') as HTMLInputElement;
       code.addEventListener('input', async () => {
@@ -529,16 +1047,21 @@ const data = {
       $('lock').addEventListener('submit', (e) => e.preventDefault());
 
       render();
-      if (store.get('etude-student') === CODE) unlock();
-      else code.focus();
-      // Keep "next class" right if the app stays open.
+      if (!installed && !preview) $('gate').hidden = false;
+      else if (store.get('etude-student') === CODE) unlock();
+      else { $('lock').hidden = false; code.focus(); }
+      // Keep "next class" and the payment countdown right if the app stays open.
       setInterval(render, 5 * 60 * 1000);
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('/student/sw.js', { scope: '/student/' }).catch(() => {});
     </script>
 
     <style is:global>
+      /* App shell: the page itself never scrolls or rubber-bands (so the menu
+         can't drift); only the content between the header and the menu scrolls. */
+      html:has(body.sa) { block-size: 100%; overflow: hidden; overscroll-behavior: none; }
       body.sa {
-        margin: 0; min-block-size: 100vh; background: var(--color-ground); color: var(--color-ink);
+        margin: 0; block-size: 100%; block-size: 100dvh; overflow: hidden; overscroll-behavior: none;
+        display: flex; flex-direction: column; background: var(--color-ground); color: var(--color-ink);
         font-family: 'Heebo', 'Montserrat', system-ui, sans-serif;
       }
       :lang(en) body.sa, :lang(ru) body.sa { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
@@ -549,11 +1072,14 @@ const data = {
       .sa h2 { font-size: 1.1rem; margin: 22px 0 10px; color: var(--color-navy-900); }
       .sa .card h2 { margin-block-start: 0; }
       .hint { font-size: 0.88rem; color: var(--color-ink-soft); }
+      /* SVG icons (src/lib/icons.ts): a bit larger than the text beside them. */
+      .sa .ic { inline-size: 1.45em; block-size: 1.45em; flex: none; vertical-align: -0.35em; }
+      [dir='rtl'] .sa .ic--flip { transform: scaleX(-1); }
 
       .sa-top {
         display: flex; align-items: center; justify-content: space-between; gap: 12px;
         background: var(--color-navy-900); padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-        position: sticky; inset-block-start: 0; z-index: 5;
+        flex: none; z-index: 5;
       }
       .sa-top img { display: block; block-size: 32px; inline-size: auto; }
       .sa-langs { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 999px; padding: 3px; }
@@ -563,7 +1089,14 @@ const data = {
       }
       .sa-langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); }
 
-      .sa-lock { display: grid; gap: 12px; justify-items: center; padding: 18vh 16px 0; }
+      .sa-gate { flex: 1; overflow: auto; display: grid; gap: 14px; justify-items: center; align-content: start; text-align: center; padding: 8vh 24px 32px; }
+      .sa-gate img { border-radius: 22px; box-shadow: 0 10px 28px rgba(23, 34, 74, 0.25); }
+      .sa .sa-gate h1 { margin: 6px 0 0; }
+      .sa-gate p { max-inline-size: 30em; }
+      .sa-gate ol { text-align: start; margin: 0; padding-block: 16px; padding-inline: 2.4em 16px; display: grid; gap: 10px; line-height: 1.45; background: #fff; border: 1px solid var(--color-line); border-radius: 16px; max-inline-size: 30em; }
+      .sa-gate b { color: var(--color-navy-900); }
+      .sa-gate .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
+      .sa-lock { flex: 1; display: grid; gap: 12px; justify-items: center; align-content: start; padding: 18vh 16px 0; overflow: auto; }
       .sa-lock label { font-weight: 700; font-size: 1.2rem; color: var(--color-navy-900); }
       .sa-lock input {
         inline-size: 9ch; text-align: center; font: 700 2rem 'Montserrat', sans-serif; letter-spacing: 0.25em;
@@ -572,18 +1105,24 @@ const data = {
       .sa-lock input:focus { outline: none; border-color: var(--color-blue-600); }
       .sa-bad { color: #b3261e; font-weight: 600; }
 
-      .sa-main { max-inline-size: 640px; margin-inline: auto; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+      .sa-main {
+        flex: 1; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+        padding: 16px max(16px, calc((100% - 608px) / 2)) 24px; box-sizing: border-box;
+      }
       .card { background: #fff; border: 1px solid var(--color-line); border-radius: 16px; padding: 14px; margin-block-end: 10px; }
       details.card summary { font-weight: 700; cursor: pointer; color: var(--color-navy-900); min-block-size: 28px; }
       details.card[open] summary { margin-block-end: 8px; }
       .btn {
         display: inline-flex; align-items: center; justify-content: center; min-block-size: 44px; padding: 0 16px;
         border-radius: 12px; border: 1px solid var(--color-navy-900); background: var(--color-navy-900); color: #fff;
-        font: inherit; font-weight: 600; font-size: 0.95rem; text-decoration: none; cursor: pointer;
+        font: inherit; font-weight: 600; font-size: 0.95rem; text-decoration: none; cursor: pointer; gap: 8px;
       }
+      .btn[disabled] { opacity: 0.6; cursor: progress; }
+      .btn--big { min-block-size: 52px; font-size: 1.05rem; padding: 0 22px; }
       .btn--ghost { background: #fff; color: var(--color-navy-900); border-color: var(--color-line); }
       .sa-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-block: 8px; }
-      .tag { font-weight: 700; color: var(--color-blue-600); }
+      .tag { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--color-blue-600); }
+      .sa-row--end { justify-content: flex-end; }
 
       .sa-search {
         inline-size: 100%; box-sizing: border-box; min-block-size: 48px; padding: 0 14px; font: inherit; font-size: 1rem;
@@ -594,7 +1133,12 @@ const data = {
       .chips button {
         white-space: nowrap; border: 1px solid var(--color-line); background: #fff; color: var(--color-navy-900);
         font: inherit; font-size: 0.9rem; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; min-block-size: 40px;
+        display: inline-flex; align-items: center; gap: 6px;
       }
+      .chips .ic { inline-size: 1.3em; block-size: 1.3em; color: #e0a100; }
+      .chips button[aria-pressed='true'] .ic { color: #ffd34d; }
+      /* Student names (private lessons) — told apart from groups at a glance. */
+      .chips .chip--name { border-style: dashed; background: var(--color-blue-100); }
       .chips button[aria-pressed='true'] { background: var(--color-navy-900); color: #fff; border-color: var(--color-navy-900); }
       #alarm { min-block-size: 44px; font: inherit; padding: 0 10px; border-radius: 10px; border: 1px solid var(--color-line); margin: 4px 0 10px; inline-size: 100%; }
       .feed { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-block: 8px; border-block-start: 1px solid var(--color-line); }
@@ -616,10 +1160,12 @@ const data = {
       .prices dd { margin: 0; font-weight: 700; color: var(--color-navy-900); text-align: end; }
       .sa-updated { text-align: center; margin-block-start: 24px; }
       .sa-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-      .sa-head a { font-weight: 600; color: var(--color-blue-600); }
-      .sa .follow { font-size: 0.95rem; margin: 0 0 6px; color: var(--color-blue-600); }
+      .sa-head a { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--color-blue-600); }
+      .sa .follow { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; margin: 0 0 6px; color: var(--color-blue-600); }
+      .sa .follow .ic, .tag .ic, #mineRow .ic { color: #e0a100; }
+      details.card summary .ic { margin-inline-end: 6px; color: var(--color-blue-600); }
       .sa-more { margin-block-start: 10px; }
-      .sa-back { display: inline-flex; align-items: center; min-block-size: 44px; font-weight: 700; color: var(--color-blue-600); text-decoration: none; }
+      .sa-back { display: inline-flex; align-items: center; gap: 4px; min-block-size: 44px; font-weight: 700; color: var(--color-blue-600); text-decoration: none; }
       .post img { display: block; inline-size: 100%; block-size: auto; border-radius: 16px; margin-block-end: 12px; }
       .post h1 { margin-block-start: 4px; }
       .post__body { line-height: 1.6; overflow-wrap: anywhere; }
@@ -634,19 +1180,120 @@ const data = {
       }
       .sa-install::backdrop { background: rgba(23, 34, 74, 0.45); }
       .sa-install[open] { display: grid; gap: 12px; }
-      .sa .sa-install h2 { margin: 0; }
+      .sa .sa-install h2 { margin: 0; display: flex; align-items: center; gap: 8px; }
       .sa-install ol { margin: 0; padding-inline-start: 1.4em; display: grid; gap: 8px; line-height: 1.45; }
       .sa-install b { color: var(--color-navy-900); }
       .sa-install .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
       .sa-nav {
-        position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, 1fr);
+        flex: none; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
         background: #fff; border-block-start: 1px solid var(--color-line); padding-block-end: env(safe-area-inset-bottom);
       }
       .sa-nav[hidden] { display: none; }
       .sa-nav a { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; min-block-size: 56px; box-sizing: border-box; text-decoration: none; color: var(--color-ink-soft); font-size: 0.75rem; }
-      .sa-nav a span { font-size: 1.3rem; line-height: 1; }
+      .sa-nav .ic { inline-size: 28px; block-size: 28px; }
+      .sa-nav b { font-weight: 600; white-space: nowrap; }
       .sa-nav a[aria-current] { color: var(--color-navy-900); }
       .sa-nav a[aria-current] b { text-decoration: underline; text-underline-offset: 3px; }
+      .sa-nav a[aria-current] .ic { color: var(--color-blue-600); }
+
+      /* "Important" notice and payment countdown, above every tab. */
+      .sa-alerts { display: grid; gap: 8px; }
+      .sa-alerts:not(:empty) { margin-block-end: 14px; }
+      .sa-alert {
+        display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; text-decoration: none;
+        background: var(--color-navy-900); color: #fff;
+      }
+      .sa-alert > .ic { inline-size: 30px; block-size: 30px; }
+      .sa-alert > span { flex: 1; display: grid; gap: 2px; min-inline-size: 0; }
+      .sa-alert small { font-size: 0.8rem; opacity: 0.85; }
+      .sa-alert b { overflow-wrap: anywhere; }
+      .sa-alert--notice small { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: #ffd34d; opacity: 1; }
+      #important .sa-alert { margin-block-end: 12px; }
+      .sa-alert--pay { background: #fff4dc; color: #5a3d00; border: 1px solid #f0c674; }
+      .sa-alert--pay.is-late { background: #fde8e6; color: #7a1d16; border-color: #eab8b3; }
+      .sa-link {
+        justify-self: start; display: inline-flex; align-items: center; gap: 4px; margin-block-start: 4px; padding: 4px 0; text-align: start;
+        border: 0; background: none; color: inherit; font: inherit; font-size: 0.85rem; font-weight: 700; text-decoration: underline; cursor: pointer;
+      }
+      .sa-link .ic { inline-size: 1.3em; block-size: 1.3em; }
+      .sa-timer {
+        flex: none; display: grid; justify-items: center; align-content: center; min-inline-size: 64px; padding: 6px 8px; border-radius: 12px;
+        background: #fff; color: inherit; line-height: 1.1; text-align: center; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+      .sa-timer b { font: 800 1.9rem 'Montserrat', sans-serif; font-variant-numeric: tabular-nums; }
+      .sa-timer small { font-size: 0.72rem; font-weight: 600; opacity: 0.8; }
+      .sa-timer--today b { font-size: 1rem; }
+      .sa-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.85rem; color: #b3261e; }
+      .sa-badge--pay { color: #8a5a00; }
+      .sa-pay h2 { display: flex; align-items: center; gap: 8px; }
+      .sa-pay .hint .ic { margin-inline-end: 4px; }
+
+      /* Birthdays, events, music, invite */
+      .sa-bday { display: flex; gap: 14px; align-items: center; background: linear-gradient(135deg, #fff4dc, #fde8f0); border-color: #f0c674; }
+      .sa-bday > .ic { inline-size: 48px; block-size: 48px; color: #c2185b; }
+      .sa-bday h2 { margin: 0 0 4px; }
+      .sa-bday p { font-weight: 700; font-size: 1.05rem; color: var(--color-navy-900); }
+      .sa-soon ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+      .sa-soon li { display: flex; justify-content: space-between; gap: 12px; }
+      .sa .sa-soon__t { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 0.95rem; color: var(--color-navy-900); }
+      .sa-soon .ic { color: #c2185b; }
+      .sa-ev { display: flex !important; align-items: center; gap: 12px; }
+      .sa-ev > span { display: grid; gap: 2px; min-inline-size: 0; }
+      .sa-ev > .ic { inline-size: 30px; block-size: 30px; color: var(--color-blue-600); }
+      .sa .sa-style { font-size: 1rem; margin: 16px 0 8px; color: var(--color-blue-600); }
+      .sa-dances a, .sa-dance-multi { display: flex !important; align-items: center; gap: 12px; }
+      .sa-dance-multi { flex-wrap: wrap; background: #fff; border: 1px solid var(--color-line); border-radius: 14px; padding: 12px 14px; font-weight: 700; color: var(--color-navy-900); }
+      .sa-dance-multi .sa-row { flex-basis: 100%; margin: 0; }
+      .sa-dances a { font-weight: 700; }
+      .sa-dances a small { margin-inline-start: auto; font-weight: 600; font-size: 0.8rem; color: var(--color-blue-600); }
+      .sa-dances .ic { inline-size: 26px; block-size: 26px; color: var(--color-blue-600); }
+      .sa-h { display: flex; align-items: center; gap: 8px; }
+      .sa .sa-h:first-child { margin-block-start: 0; }
+      .sa-meta { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--color-navy-900); }
+      .sa-meta .ic { color: var(--color-blue-600); }
+      .sa-badge--event { color: var(--color-blue-600); }
+      .sa-invite { display: flex; gap: 14px; align-items: flex-start; margin-block-start: 22px; background: var(--color-blue-100); border-color: transparent; }
+      .sa-invite > .ic { inline-size: 44px; block-size: 44px; color: var(--color-blue-600); }
+      .sa-invite h2 { margin: 0 0 4px; }
+
+      /* Request form */
+      .sa-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--color-blue-100); color: var(--color-navy-900); font-weight: 600; line-height: 1.4; }
+      .sa-note .ic { color: var(--color-blue-600); }
+      .sa-form { display: grid; gap: 16px; }
+      .sa-form [data-show] { display: grid; gap: 16px; }
+      .sa-field { display: grid; gap: 6px; }
+      .sa-field > span, .sa-choices legend { font-weight: 700; color: var(--color-navy-900); }
+      .sa-field input, .sa-field select, .sa-field textarea {
+        inline-size: 100%; box-sizing: border-box; min-block-size: 48px; padding: 10px 14px; font: inherit; font-size: 1rem;
+        border: 1px solid var(--color-line); border-radius: 12px; background: #fff; color: var(--color-ink);
+      }
+      .sa-field input:focus, .sa-field select:focus, .sa-field textarea:focus { outline: 2px solid var(--color-blue-600); outline-offset: 1px; }
+      .sa-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .sa-choices { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+      .sa-choices legend { padding: 0; margin-block-end: 8px; }
+      .sa-choices--type { grid-template-columns: 1fr 1fr; }
+      .sa-choices--row { grid-template-columns: repeat(3, 1fr); }
+      .sa-choices--row legend, .sa-choices--row .sa-err { grid-column: 1 / -1; }
+      .sa-choices--type legend, .sa-choices--type .sa-err { grid-column: 1 / -1; }
+      .sa-choice {
+        position: relative; display: flex; align-items: center; gap: 10px; min-block-size: 52px; padding: 10px 14px; box-sizing: border-box;
+        border: 1px solid var(--color-line); border-radius: 14px; background: #fff; cursor: pointer; font-weight: 600; color: var(--color-navy-900);
+      }
+      .sa-choice input { inline-size: 20px; block-size: 20px; margin: 0; accent-color: var(--color-navy-900); flex: none; }
+      .sa-choices--type .sa-choice { flex-direction: column; justify-content: center; text-align: center; padding: 16px 10px; }
+      .sa-choices--type .sa-choice input { position: absolute; inset-block-start: 10px; inset-inline-start: 10px; }
+      .sa-choices--type .ic { inline-size: 34px; block-size: 34px; color: var(--color-blue-600); }
+      .sa-choice:has(input:checked) { border-color: var(--color-navy-900); box-shadow: inset 0 0 0 1px var(--color-navy-900); background: var(--color-blue-100); }
+      .sa .sa-err { color: #b3261e; font-weight: 600; font-size: 0.88rem; margin: 0; }
+      #reqErr { display: grid; gap: 8px; justify-items: start; }
+      .sa-summary h2 { margin-block-start: 0; }
+      .sa-dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0 0 12px; }
+      .sa-dl dt { color: var(--color-ink-soft); }
+      .sa-dl dd { margin: 0; font-weight: 700; color: var(--color-navy-900); overflow-wrap: anywhere; white-space: pre-line; }
+      .sa-done { display: grid; gap: 10px; justify-items: center; text-align: center; padding-block-start: 6vh; }
+      .sa-done .card { inline-size: 100%; box-sizing: border-box; text-align: start; }
+      .sa .sa-done__ic { inline-size: 72px; block-size: 72px; color: #117a3e; }
+      .sa-done .sa-row { justify-content: center; }
     </style>
   </body>
 </html>
