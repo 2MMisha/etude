@@ -34,6 +34,8 @@ const INVITE_DEFAULT = {
 // Requests (private lesson / hall rental) go straight to the studio's inbox.
 // FormSubmit's AJAX endpoint answers with JSON, so the app stays open; the
 // first request to a new address only triggers FormSubmit's activation email.
+const DESTINATION = 'ETUDE Dance School, Rothschild 49, Rishon LeZion';
+
 const REQUEST_ENDPOINT = 'https://formsubmit.co/ajax/etude.dance@gmail.com';
 
 const tt = await getTimetable();
@@ -83,7 +85,10 @@ const data = {
   rules: app.rules,
   notice,
   events: appEvents().map(({ text: _text, body, ...e }) => ({ ...e, html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(body[l])])) })),
-  playlists: app.playlists ?? [],
+  // Songs by dance style → dance; dances and styles without songs are left out.
+  music: (app.music ?? [])
+    .map((st) => ({ style: st.style, dances: st.dances.filter((d) => d.tracks.length) }))
+    .filter((st) => st.dances.length),
   birthdays: app.birthdays ?? [],
   invite: {
     active: app.invite?.active !== false,
@@ -102,7 +107,9 @@ const data = {
     phoneDisplay: SITE.phoneDisplay,
     whatsapp: SITE.whatsapp,
     instagram: SITE.social.instagram,
-    maps: SITE.googleMapsUrl,
+    // Directions straight to the studio, in Google Maps or Waze.
+    google: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(DESTINATION)}`,
+    waze: `https://waze.com/ul?ll=${SITE.geo.lat},${SITE.geo.lng}&navigate=yes`,
     street: SITE.address.street,
     city: SITE.address.cityLocalized,
   },
@@ -283,7 +290,7 @@ const data = {
           important: 'חשוב', readMore: 'לפרטים', close: 'סגירה', home2: 'לדף הראשי',
           payTitle: 'תשלום מנוי', payLeft: 'נותרו', payAgo: 'עברו', payToday: 'היום', payDue: 'נא לשלם עד ה-{day} בחודש', payDueToday: 'היום היום האחרון לתשלום המנוי', payLate: 'מועד התשלום עבר — אם עוד לא שילמתם, נא לשלם', paid: 'כבר שילמתי', payCal: 'תזכורת חודשית ביומן', days: (n: number) => (n === 1 ? 'יום' : 'ימים'),
           reqTitle: 'בקשה לשיעור פרטי או להשכרת אולם', reqOnly: 'זו בקשה בלבד ולא הזמנה — ניצור איתכם קשר כדי לאשר את המועד.', reqType: 'מה מעניין אתכם?', private: 'שיעור פרטי', rental: 'השכרת אולם',
-          fullName: 'שם מלא', phone: 'טלפון', phoneBad: 'הזינו מספר טלפון תקין', nameBad: 'הזינו שם מלא', pickOne: 'בחרו אחת מהאפשרויות', trainer: 'עם איזה מאמן?', date: 'תאריך', dateBad: 'בחרו תאריך מהיום והלאה', from: 'משעה', to: 'עד שעה', toBad: 'שעת הסיום צריכה להיות אחרי שעת ההתחלה', hall: 'איזה אולם?', note: 'הערה (לא חובה)', time: 'שעות', type: 'סוג הבקשה', trainerS: 'מאמן', hallS: 'אולם', noteS: 'הערה',
+          fullName: 'שם מלא', phone: 'טלפון', phoneBad: 'הזינו מספר טלפון תקין', nameBad: 'הזינו שם מלא', pickOne: 'בחרו אחת מהאפשרויות', trainer: 'עם איזה מאמן?', date: 'תאריך', dateBad: 'בחרו תאריך מהיום והלאה', from: 'משעה', to: 'עד שעה', toBad: 'שעת הסיום צריכה להיות אחרי שעת ההתחלה', hall: 'איזה אולם?', note: 'הערה (לא חובה)', time: 'שעות', type: 'סוג הבקשה', trainerS: 'מאמן', length: 'משך השיעור', lengthS: 'משך', min: 'דק׳', hallS: 'אולם', noteS: 'הערה',
           continue: 'המשך', sumTitle: 'בדקו את הבקשה', editReq: 'עריכה', send: 'שליחת הבקשה', sending: 'שולחים…', sendErr: 'השליחה נכשלה. בדקו את החיבור לאינטרנט או שלחו את הבקשה בוואטסאפ.', viaWa: 'שליחה בוואטסאפ',
           events: 'אירועים', allEvents: 'כל האירועים', eventsSub: 'כל האירועים ביומן — חדשים יתווספו לבד', addCal: 'הוספה ליומן', allDay: 'כל היום',
           music: 'מוזיקה לשיעורים', forAll: 'לכולם', bdayToday: 'היום יום הולדת!', bdayWish: 'מזל טוב ל{names}!', bdaySoon: 'ימי הולדת בקרוב',
@@ -305,7 +312,7 @@ const data = {
           important: 'Important', readMore: 'Read more', close: 'Close', home2: 'Back home',
           payTitle: 'Membership payment', payLeft: 'due in', payAgo: 'overdue', payToday: 'Today', payDue: 'Please pay by the {day}', payDueToday: 'Today is the last day to pay the membership', payLate: "The due date has passed — if you haven't paid yet, please do", paid: 'Already paid', payCal: 'Monthly reminder in your calendar', days: (n: number) => (n === 1 ? 'day' : 'days'),
           reqTitle: 'Private lesson or hall rental request', reqOnly: "This is only a request, not a booking — we'll get in touch to confirm the time.", reqType: 'What would you like?', private: 'Private lesson', rental: 'Hall rental',
-          fullName: 'Full name', phone: 'Phone', phoneBad: 'Enter a valid phone number', nameBad: 'Enter your full name', pickOne: 'Choose one of the options', trainer: 'With which trainer?', date: 'Date', dateBad: 'Choose a date from today on', from: 'From', to: 'To', toBad: 'The end time must be after the start', hall: 'Which hall?', note: 'Comment (optional)', time: 'Time', type: 'Request', trainerS: 'Trainer', hallS: 'Hall', noteS: 'Comment',
+          fullName: 'Full name', phone: 'Phone', phoneBad: 'Enter a valid phone number', nameBad: 'Enter your full name', pickOne: 'Choose one of the options', trainer: 'With which trainer?', date: 'Date', dateBad: 'Choose a date from today on', from: 'From', to: 'To', toBad: 'The end time must be after the start', hall: 'Which hall?', note: 'Comment (optional)', time: 'Time', type: 'Request', trainerS: 'Trainer', length: 'Lesson length', lengthS: 'Length', min: 'min', hallS: 'Hall', noteS: 'Comment',
           continue: 'Next', sumTitle: 'Check your request', editReq: 'Edit', send: 'Send request', sending: 'Sending…', sendErr: "Couldn't send. Check your connection or send the request on WhatsApp.", viaWa: 'Send on WhatsApp',
           events: 'Events', allEvents: 'All events', eventsSub: 'All events in your calendar — new ones appear by themselves', addCal: 'Add to calendar', allDay: 'All day',
           music: 'Music for classes', forAll: 'For everyone', bdayToday: "It's a birthday today!", bdayWish: 'Happy birthday, {names}!', bdaySoon: 'Birthdays coming up',
@@ -327,7 +334,7 @@ const data = {
           important: 'Важно', readMore: 'Подробнее', close: 'Закрыть', home2: 'На главную',
           payTitle: 'Оплата абонемента', payLeft: 'осталось', payAgo: 'прошло', payToday: 'Сегодня', payDue: 'Оплатите до {day} числа', payDueToday: 'Сегодня последний день оплаты абонемента', payLate: 'Срок оплаты прошёл — если ещё не оплатили, оплатите, пожалуйста', paid: 'Уже оплатил(а)', payCal: 'Ежемесячное напоминание в календаре', days: (_n: number) => 'дн.',
           reqTitle: 'Заявка на личный урок или аренду зала', reqOnly: 'Это только просьба, а не бронирование — мы свяжемся с вами, чтобы подтвердить время.', reqType: 'Что вас интересует?', private: 'Личный урок', rental: 'Аренда зала',
-          fullName: 'Полное имя', phone: 'Телефон', phoneBad: 'Введите правильный номер телефона', nameBad: 'Введите имя и фамилию', pickOne: 'Выберите один из вариантов', trainer: 'С каким тренером?', date: 'Дата', dateBad: 'Выберите дату не раньше сегодняшней', from: 'С', to: 'До', toBad: 'Время окончания должно быть позже начала', hall: 'Какой зал?', note: 'Комментарий (необязательно)', time: 'Время', type: 'Заявка', trainerS: 'Тренер', hallS: 'Зал', noteS: 'Комментарий',
+          fullName: 'Полное имя', phone: 'Телефон', phoneBad: 'Введите правильный номер телефона', nameBad: 'Введите имя и фамилию', pickOne: 'Выберите один из вариантов', trainer: 'С каким тренером?', date: 'Дата', dateBad: 'Выберите дату не раньше сегодняшней', from: 'С', to: 'До', toBad: 'Время окончания должно быть позже начала', hall: 'Какой зал?', note: 'Комментарий (необязательно)', time: 'Время', type: 'Заявка', trainerS: 'Тренер', length: 'Длительность урока', lengthS: 'Длительность', min: 'мин', hallS: 'Зал', noteS: 'Комментарий',
           continue: 'Далее', sumTitle: 'Проверьте заявку', editReq: 'Изменить', send: 'Отправить заявку', sending: 'Отправляем…', sendErr: 'Не получилось отправить. Проверьте интернет или отправьте заявку в WhatsApp.', viaWa: 'Отправить в WhatsApp',
           events: 'События', allEvents: 'Все события', eventsSub: 'Все события в календаре — новые появятся сами', addCal: 'Добавить в календарь', allDay: 'Весь день',
           music: 'Музыка к занятиям', forAll: 'Для всех', bdayToday: 'Сегодня день рождения!', bdayWish: 'Поздравляем: {names}!', bdaySoon: 'Скоро день рождения',
@@ -352,13 +359,13 @@ const data = {
         prices: Record<Lang, string[]>;
         rules: Record<Lang, string[]>;
         events: { id: string; date: string; start: string; end: string; place: string; title: Loc; html: Loc }[];
-        playlists: { group: string; title: string; url: string }[];
+        music: { style: string; dances: { name: string; tracks: { title: string; url: string }[] }[] }[];
         birthdays: { name: string; day: number; month: number }[];
         invite: { active: boolean; text: Loc };
         notice: { id: string; mode: 'banner' | 'popup'; until: string; title: Loc; html: Loc } | null;
         payment: { active: boolean; day: number; before: number; after: number; body: Loc };
         request: { endpoint: string; trainers: { id: string; name: Loc }[]; halls: Record<Lang, string[]>; opens: string; closes: string };
-        contact: { phone: string; phoneDisplay: string; whatsapp: string; instagram: string; maps: string; street: string; city: Loc };
+        contact: { phone: string; phoneDisplay: string; whatsapp: string; instagram: string; google: string; waze: string; street: string; city: Loc };
       }
       const data: Data = JSON.parse(document.getElementById('sa-data')!.textContent || '{}');
       const CODE: string = JSON.parse(document.getElementById('sa-code')!.textContent || '""');
@@ -482,8 +489,6 @@ const data = {
         `${cap(new Date(`${e.date}T12:00:00`).toLocaleDateString(t.locale, { weekday: 'short', day: 'numeric', month: 'long' }))} · ${e.start ? `<span dir="ltr">${e.start}${e.end ? `–${e.end}` : ''}</span>` : t.allDay}`;
       const eventItem = (e: Data['events'][number]) =>
         `<li><a class="sa-ev" href="#event/${encodeURIComponent(e.id)}">${icon('trophy')}<span><b dir="auto">${esc(e.title[lang])}</b><span class="hint">${evWhen(e)}</span></span></a></li>`;
-      /** Playlists of a followed group. */
-      const playlistsFor = (f: string) => data.playlists.filter((m) => m.group && (norm(m.group) === norm(f) || norm(m.group).includes(norm(f))));
 
       // ----- Rendering -----
       function renderHome() {
@@ -500,7 +505,7 @@ const data = {
         };
         $('next').innerHTML = follows.length
           ? `<div class="sa-head"><h2>${t.myClasses}</h2><a href="#schedule" data-mine-view>${icon('edit')}${t.edit}</a></div>` +
-            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">${STAR}${esc(f)}</h3>${nextHtml((i) => matches(i, f))}${playlistsFor(f).map((m) => `<a class="sa-track" href="${esc(m.url)}" target="_blank" rel="noopener">${icon('music')}<span dir="auto">${esc(m.title)}</span></a>`).join('')}</div>`).join('')
+            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">${STAR}${esc(f)}</h3>${nextHtml((i) => matches(i, f))}</div>`).join('')
           : `<div class="card"><h2>${t.nextAll}</h2>${nextHtml(() => true)}<p class="hint">${t.pickMine}</p><a class="btn" href="#schedule">${icon('star')}${t.choose}</a></div>`;
         // Birthdays: today's, and the next 7 days.
         const now = new Date();
@@ -609,13 +614,16 @@ const data = {
       }
 
       function renderClasses() {
-        // Playlists: the student's own groups first.
-        const mine = (m: Data['playlists'][number]) => !!m.group && follows.some((f) => norm(m.group) === norm(f) || norm(m.group).includes(norm(f)));
-        const lists = [...data.playlists].sort((a, b) => Number(mine(b)) - Number(mine(a)));
-        $('music').innerHTML = lists.length
-          ? `<h2 class="sa-h">${icon('music')}${t.music}</h2><ul class="list sa-music">${lists
-              .map((m) => `<li><a href="${esc(m.url)}" target="_blank" rel="noopener">${icon('music')}<span><b dir="auto">${esc(m.title)}</b><span class="hint" dir="auto">${mine(m) ? STAR : ''}${esc(m.group || t.forAll)}</span></span></a></li>`)
-              .join('')}</ul>`
+        // Music: a section per dance style, a fold-out list of songs per dance.
+        $('music').innerHTML = data.music.length
+          ? `<h2 class="sa-h">${icon('music')}${t.music}</h2>` +
+            data.music
+              .map((st) => `<h3 class="sa-style" dir="auto">${esc(st.style)}</h3>` + st.dances
+                .map((d) => `<details class="card sa-dance"><summary><span dir="auto">${esc(d.name)}</span><small>${d.tracks.length}</small></summary><ul class="sa-songs">${d.tracks
+                  .map((tr) => `<li><a href="${esc(tr.url)}" target="_blank" rel="noopener">${icon('music')}<span dir="auto">${esc(tr.title)}</span></a></li>`)
+                  .join('')}</ul></details>`)
+                .join(''))
+              .join('')
           : '';
         const c = data.classes[lang];
         $('classesTitle').textContent = t.classesT;
@@ -644,21 +652,28 @@ const data = {
           <div class="sa-row">
             <a class="btn" href="https://wa.me/${c.whatsapp}" target="_blank" rel="noopener">${icon('chat')}${t.whatsapp}</a>
             <a class="btn btn--ghost" href="tel:${c.phone}">${icon('phone')}<span dir="ltr">${esc(c.phoneDisplay)}</span></a>
-            <a class="btn btn--ghost" href="${c.maps}" target="_blank" rel="noopener">${icon('pin')}${t.route}</a>
             <a class="btn btn--ghost" href="${c.instagram}" target="_blank" rel="noopener">${icon('instagram')}Instagram</a>
+          </div>
+          <p class="hint">${t.route}</p>
+          <div class="sa-row">
+            <a class="btn btn--ghost" href="${c.google}" target="_blank" rel="noopener">${icon('pin')}Google Maps</a>
+            <a class="btn btn--ghost" href="${c.waze}" target="_blank" rel="noopener">${icon('pin')}Waze</a>
           </div>`;
       }
 
       // ----- Request: private lesson or hall rental → summary → sent by email (FormSubmit) -----
       type ReqType = '' | 'private' | 'rental';
       const contactSaved = (() => { try { return JSON.parse(store.get('etude-req-contact') || '{}'); } catch { return {}; } })();
-      const req = { type: '' as ReqType, name: contactSaved.name || '', phone: contactSaved.phone || '', trainer: '', date: '', from: '', to: '', hall: '', note: '' };
+      const req = { type: '' as ReqType, name: contactSaved.name || '', phone: contactSaved.phone || '', trainer: '', length: '', pdate: '', ptime: '', date: '', from: '', to: '', hall: '', note: '' };
       let reqStep: 'form' | 'summary' = 'form';
       let reqFormLang = ''; // the form is rebuilt only when the language changes, so typing isn't lost
       let lastSent: [string, string][] = [];
       const pad = (n: number) => String(n).padStart(2, '0');
       /** Whole hours the halls can be booked, e.g. 08:00 … 21:00. */
       const hours = () => { const out: string[] = []; for (let m = toMin(data.request.opens); m <= toMin(data.request.closes); m += 60) out.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`); return out; };
+      /** Lesson start times every 30 minutes, leaving room for a 45-minute lesson before closing. */
+      const halfHours = () => { const out: string[] = []; for (let m = toMin(data.request.opens); m <= toMin(data.request.closes) - 45; m += 30) out.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`); return out; };
+      const LENGTHS = ['45', '60', '90'];
       const trainerName = (id: string, l: Lang = lang) => data.request.trainers.find((x) => x.id === id)?.name[l] ?? '';
       const hallName = (i: string, l: Lang = lang) => data.request.halls[l][Number(i)] ?? '';
 
@@ -677,6 +692,13 @@ const data = {
             <fieldset class="sa-choices"><legend>${t.trainer}</legend>
               ${data.request.trainers.map((x) => radio('trainer', x.id, x.name[lang])).join('')}
               <p class="sa-err" data-err="trainer" hidden>${t.pickOne}</p></fieldset>
+            <fieldset class="sa-choices sa-choices--row"><legend>${t.length}</legend>
+              ${LENGTHS.map((m) => radio('length', m, `${m} ${t.min}`)).join('')}
+              <p class="sa-err" data-err="length" hidden>${t.pickOne}</p></fieldset>
+            <div class="sa-pair">
+              <label class="sa-field"><span>${t.date}</span><input name="pdate" type="date" required min="${today()}" value="${esc(req.pdate)}" /><small class="sa-err" hidden>${t.dateBad}</small></label>
+              <label class="sa-field"><span>${t.time}</span><select name="ptime" required>${opts(req.ptime, halfHours())}</select><small class="sa-err" hidden>${t.pickOne}</small></label>
+            </div>
           </div>
           <div data-show="rental" hidden>
             <label class="sa-field"><span>${t.date}</span><input name="date" type="date" required min="${today()}" value="${esc(req.date)}" /><small class="sa-err" hidden>${t.dateBad}</small></label>
@@ -714,7 +736,12 @@ const data = {
         mark(field('name'), req.name.trim().length >= 2);
         mark(field('phone'), (req.phone.match(/\d/g) || []).length >= 9 && /^[0-9 +()\-]+$/.test(req.phone.trim()));
         mark(f.querySelector('[name="type"]')!, !!req.type, errOf('type'));
-        if (req.type === 'private') mark(f.querySelector('[name="trainer"]')!, !!req.trainer, errOf('trainer'));
+        if (req.type === 'private') {
+          mark(f.querySelector('[name="trainer"]')!, !!req.trainer, errOf('trainer'));
+          mark(f.querySelector('[name="length"]')!, !!req.length, errOf('length'));
+          mark(field('pdate'), !!req.pdate && req.pdate >= today());
+          mark(field('ptime'), !!req.ptime);
+        }
         if (req.type === 'rental') {
           mark(field('date'), !!req.date && req.date >= today());
           mark(field('from'), !!req.from && !!req.to && toMin(req.to) > toMin(req.from), errOf('time'));
@@ -727,8 +754,10 @@ const data = {
       function reqRows(l: Lang): [string, string][] {
         const tl = L[l];
         const rows: [string, string][] = [[tl.type, req.type === 'private' ? tl.private : tl.rental], [tl.fullName, req.name.trim()], [tl.phone, req.phone.trim()]];
-        if (req.type === 'private') rows.push([tl.trainerS, trainerName(req.trainer, l)]);
-        else rows.push([tl.date, new Date(`${req.date}T12:00:00`).toLocaleDateString(tl.locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })], [tl.time, `${req.from}–${req.to}`], [tl.hallS, hallName(req.hall, l)]);
+        const longDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(tl.locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        if (req.type === 'private')
+          rows.push([tl.trainerS, trainerName(req.trainer, l)], [tl.lengthS, `${req.length} ${tl.min}`], [tl.date, longDate(req.pdate)], [tl.time, req.ptime]);
+        else rows.push([tl.date, longDate(req.date)], [tl.time, `${req.from}–${req.to}`], [tl.hallS, hallName(req.hall, l)]);
         if (req.note.trim()) rows.push([tl.noteS, req.note.trim()]);
         return rows;
       }
@@ -765,7 +794,7 @@ const data = {
         if (!validReq()) return;
         reqStep = 'summary';
         renderRequest();
-        scrollTo(0, 0);
+        $('app').scrollTo(0, 0);
       });
       document.addEventListener('click', async (e) => {
         const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-req]');
@@ -791,7 +820,7 @@ const data = {
           if (!res.ok || String(out.success) !== 'true') throw new Error(out.message || res.statusText);
           store.set('etude-req-contact', JSON.stringify({ name: req.name.trim(), phone: req.phone.trim() }));
           lastSent = reqRows(lang);
-          Object.assign(req, { type: '', trainer: '', date: '', from: '', to: '', hall: '', note: '' });
+          Object.assign(req, { type: '', trainer: '', length: '', pdate: '', ptime: '', date: '', from: '', to: '', hall: '', note: '' });
           reqStep = 'form';
           reqFormLang = '';
           location.hash = '#sent';
@@ -879,7 +908,7 @@ const data = {
         document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
         const navTab = NAV_OF[tab] ?? tab;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
-        scrollTo(0, 0);
+        $('app').scrollTo(0, 0);
       }
       addEventListener('hashchange', showTab);
 
@@ -988,8 +1017,12 @@ const data = {
     </script>
 
     <style is:global>
+      /* App shell: the page itself never scrolls or rubber-bands (so the menu
+         can't drift); only the content between the header and the menu scrolls. */
+      html:has(body.sa) { block-size: 100%; overflow: hidden; overscroll-behavior: none; }
       body.sa {
-        margin: 0; min-block-size: 100vh; background: var(--color-ground); color: var(--color-ink);
+        margin: 0; block-size: 100%; block-size: 100dvh; overflow: hidden; overscroll-behavior: none;
+        display: flex; flex-direction: column; background: var(--color-ground); color: var(--color-ink);
         font-family: 'Heebo', 'Montserrat', system-ui, sans-serif;
       }
       :lang(en) body.sa, :lang(ru) body.sa { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
@@ -1007,7 +1040,7 @@ const data = {
       .sa-top {
         display: flex; align-items: center; justify-content: space-between; gap: 12px;
         background: var(--color-navy-900); padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-        position: sticky; inset-block-start: 0; z-index: 5;
+        flex: none; z-index: 5;
       }
       .sa-top img { display: block; block-size: 32px; inline-size: auto; }
       .sa-langs { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 999px; padding: 3px; }
@@ -1017,7 +1050,7 @@ const data = {
       }
       .sa-langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); }
 
-      .sa-lock { display: grid; gap: 12px; justify-items: center; padding: 18vh 16px 0; }
+      .sa-lock { flex: 1; display: grid; gap: 12px; justify-items: center; align-content: start; padding: 18vh 16px 0; overflow: auto; }
       .sa-lock label { font-weight: 700; font-size: 1.2rem; color: var(--color-navy-900); }
       .sa-lock input {
         inline-size: 9ch; text-align: center; font: 700 2rem 'Montserrat', sans-serif; letter-spacing: 0.25em;
@@ -1026,7 +1059,10 @@ const data = {
       .sa-lock input:focus { outline: none; border-color: var(--color-blue-600); }
       .sa-bad { color: #b3261e; font-weight: 600; }
 
-      .sa-main { max-inline-size: 640px; margin-inline: auto; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+      .sa-main {
+        flex: 1; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+        padding: 16px max(16px, calc((100% - 608px) / 2)) 24px; box-sizing: border-box;
+      }
       .card { background: #fff; border: 1px solid var(--color-line); border-radius: 16px; padding: 14px; margin-block-end: 10px; }
       details.card summary { font-weight: 700; cursor: pointer; color: var(--color-navy-900); min-block-size: 28px; }
       details.card[open] summary { margin-block-end: 8px; }
@@ -1103,7 +1139,7 @@ const data = {
       .sa-install b { color: var(--color-navy-900); }
       .sa-install .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
       .sa-nav {
-        position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
+        flex: none; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
         background: #fff; border-block-start: 1px solid var(--color-line); padding-block-end: env(safe-area-inset-bottom);
       }
       .sa-nav[hidden] { display: none; }
@@ -1155,14 +1191,18 @@ const data = {
       .sa-soon li { display: flex; justify-content: space-between; gap: 12px; }
       .sa .sa-soon__t { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 0.95rem; color: var(--color-navy-900); }
       .sa-soon .ic { color: #c2185b; }
-      .sa-ev, .sa-music a { display: flex !important; align-items: center; gap: 12px; }
-      .sa-ev > span, .sa-music a > span { display: grid; gap: 2px; min-inline-size: 0; }
-      .sa-ev > .ic, .sa-music a > .ic { inline-size: 30px; block-size: 30px; color: var(--color-blue-600); }
-      .sa-music .hint { display: inline-flex; align-items: center; gap: 4px; }
-      .sa-music .hint .ic { color: #e0a100; inline-size: 1.2em; block-size: 1.2em; }
+      .sa-ev { display: flex !important; align-items: center; gap: 12px; }
+      .sa-ev > span { display: grid; gap: 2px; min-inline-size: 0; }
+      .sa-ev > .ic { inline-size: 30px; block-size: 30px; color: var(--color-blue-600); }
+      .sa .sa-style { font-size: 1rem; margin: 16px 0 8px; color: var(--color-blue-600); }
+      .sa-dance summary { display: flex; align-items: center; gap: 8px; }
+      .sa-dance summary small { margin-inline-start: auto; min-inline-size: 1.8em; text-align: center; border-radius: 999px; background: var(--color-blue-100); color: var(--color-blue-600); font-weight: 700; padding: 1px 8px; }
+      .sa-songs { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+      .sa-songs a { display: flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 4px 6px; border-radius: 10px; color: var(--color-navy-900); text-decoration: none; font-weight: 600; }
+      .sa-songs a:active { background: var(--color-blue-100); }
+      .sa-songs .ic { color: var(--color-blue-600); }
       .sa-h { display: flex; align-items: center; gap: 8px; }
       .sa .sa-h:first-child { margin-block-start: 0; }
-      .sa-track { display: flex; align-items: center; gap: 8px; margin-block-start: 10px; font-weight: 600; color: var(--color-blue-600); text-decoration: none; }
       .sa-meta { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--color-navy-900); }
       .sa-meta .ic { color: var(--color-blue-600); }
       .sa-badge--event { color: var(--color-blue-600); }
@@ -1186,6 +1226,8 @@ const data = {
       .sa-choices { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
       .sa-choices legend { padding: 0; margin-block-end: 8px; }
       .sa-choices--type { grid-template-columns: 1fr 1fr; }
+      .sa-choices--row { grid-template-columns: repeat(3, 1fr); }
+      .sa-choices--row legend, .sa-choices--row .sa-err { grid-column: 1 / -1; }
       .sa-choices--type legend, .sa-choices--type .sa-err { grid-column: 1 / -1; }
       .sa-choice {
         position: relative; display: flex; align-items: center; gap: 10px; min-block-size: 52px; padding: 10px 14px; box-sizing: border-box;

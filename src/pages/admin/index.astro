@@ -566,15 +566,15 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
 
           <div data-subpanel="music" hidden>
             <div class="panel">
-              <h2 style="font-size:1.05rem">Music for classes</h2>
+              <h2 style="font-size:1.05rem">Music — songs by dance</h2>
               <p class="hint">
-                Playlists or tracks (Spotify, YouTube, Apple Music… — any link). Pick the group from the list (it comes from the
-                timetable) or leave it empty for everyone. Shown on the Classes tab, and next to the student's own groups on the
-                home screen.
+                A section per dance style (Standard, Latin…), and in it the dances with their songs. In the box: a line with just a
+                name starts a dance; under it, one song per line — the name, a dash, the link (Spotify, YouTube…), e.g.
+                <code>Moon River — https://youtu.be/…</code>. Dances without songs aren't shown in the app. Shown on the app's
+                Classes tab.
               </p>
-              <datalist id="saGroupList"></datalist>
               <div id="saMusic" class="rows"></div>
-              <button type="button" class="btn-mini" id="saAddMusic">+ Add playlist</button>
+              <button type="button" class="btn-mini" id="saAddMusic">+ Add a dance style</button>
             </div>
           </div>
 
@@ -1424,17 +1424,30 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             <textarea data-f="body.en" rows="3" placeholder="English">${escAttr(b.en)}</textarea></div></div>`;
         return card;
       }
-      function musicCard(m = {}) {
+      /** A dance style: its name and its dances/songs as text (see parseDances). */
+      function musicCard(st = { style: '', dances: [] }) {
         const card = document.createElement('div');
         card.className = 'row-card';
+        const text = (st.dances || []).map((d) => [d.name, ...d.tracks.map((tr) => `${tr.title} — ${tr.url}`)].join('\n')).join('\n\n');
         card.innerHTML = `
-          <div class="row-head"><span>Playlist</span><button type="button" class="btn-mini danger" data-remove>Remove</button></div>
-          <div class="row-3">
-            <div><label>Group (empty = everyone)</label><input data-f="group" list="saGroupList" value="${escAttr(m.group)}" /></div>
-            <div><label>Name</label><input data-f="title" placeholder="Cha-cha — warm-up" value="${escAttr(m.title)}" /></div>
-            <div><label>Link</label><input data-f="url" type="url" placeholder="https://open.spotify.com/…" value="${escAttr(m.url)}" /></div>
-          </div>`;
+          <div class="row-head"><span>Dance style</span><button type="button" class="btn-mini danger" data-remove>Remove</button></div>
+          <div><label>Style</label><input data-f="style" placeholder="Латина / Latin" value="${escAttr(st.style)}" /></div>
+          <div><label>Dances and songs</label><textarea data-f="dances" rows="10" placeholder="Cha-cha-cha&#10;Song name — https://…&#10;&#10;Rumba&#10;…">${escAttr(text)}</textarea></div>`;
         return card;
+      }
+      /** "Dance" lines and "Song — https://…" lines under them → [{ name, tracks: [{ title, url }] }]. */
+      function parseDances(text) {
+        const dances = [];
+        for (const raw of text.split('\n')) {
+          const line = raw.trim();
+          if (!line) continue;
+          const url = line.match(/https?:\/\/\S+/);
+          if (!url) { dances.push({ name: line, tracks: [] }); continue; }
+          if (!dances.length) return { error: `A song comes before any dance name: "${line}"` };
+          const title = line.replace(url[0], '').replace(/[\s—–:-]+$/, '').trim();
+          dances[dances.length - 1].tracks.push({ title: title || url[0].replace(/^https?:\/\/(www\.)?/, '').slice(0, 40), url: url[0] });
+        }
+        return { dances };
       }
       document.addEventListener('click', (e) => {
         const r = e.target.closest('#studentSection [data-remove]');
@@ -1453,16 +1466,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         });
         return o;
       }
-
-      // Groups for the music list come from the timetable the site is built with.
-      fetch('/data/timetable.json', { cache: 'no-store' })
-        .then((r) => r.json())
-        .then((tt) => {
-          const groups = new Set();
-          for (const d of tt.days || []) for (const i of d.items || []) if (!/\brent\b|השכרה|аренд/i.test(i.column)) groups.add(i.title.replace(/^\s*\[[^\]]*\]\s*/, '').trim());
-          $('saGroupList').innerHTML = [...groups].sort().map((g) => `<option value="${escAttr(g)}"></option>`).join('');
-        })
-        .catch(() => {});
 
       const pad2 = (n) => String(n).padStart(2, '0');
       /** "Маша К. — 15.03" lines → [{ name, day, month }]; null + message on a bad line. */
@@ -1503,7 +1506,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           $('saPayBefore').value = pay.before;
           $('saPayAfter').value = pay.after;
           $('saEvents').replaceChildren(...[...(s.events || [])].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(eventCard));
-          $('saMusic').replaceChildren(...(s.playlists || []).map(musicCard));
+          $('saMusic').replaceChildren(...(s.music || []).map(musicCard));
           $('saBirthdays').value = (s.birthdays || []).map((b) => `${b.name} — ${pad2(b.day)}.${pad2(b.month)}`).join('\n');
           $('saInviteActive').checked = s.invite?.active !== false;
           $('saNewCode').value = '';
@@ -1533,13 +1536,20 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         const events = [...$('saEvents').children].map((c) => ({ id: c.dataset.id, ...readCard(c) }));
         const badEvent = events.find((e) => !e.date || !(e.title.he || e.title.ru || e.title.en));
         if (badEvent) return saveError('Every event needs a date and a title (at least in one language).', 'events');
-        const playlists = [...$('saMusic').children].map(readCard);
-        if (playlists.some((m) => !/^https?:\/\//i.test(m.url) || !m.title)) return saveError('Every playlist needs a name and a link starting with https://', 'music');
+        const music = [];
+        for (const c of $('saMusic').children) {
+          const { style, dances: text } = readCard(c);
+          const parsed = parseDances(text);
+          if (parsed.error) return saveError(parsed.error, 'music');
+          if (!style) return saveError('Every dance style needs a name.', 'music');
+          music.push({ style, dances: parsed.dances });
+        }
         const newCode = $('saNewCode').value.trim();
         if (newCode && !/^\d{6}$/.test(newCode)) { $('saCodeError').textContent = 'The code must be exactly 6 digits.'; return saveError('The code must be exactly 6 digits.', 'access'); }
 
+        const { playlists: _old, ...rest } = studentData; // replaced by "music"
         const data = {
-          ...studentData,
+          ...rest,
           prices: {},
           rules: {},
           notice: { active: $('saNoticeActive').checked, mode: $('saNoticeMode').value, until: $('saNoticeUntil').value, title: {}, body: {} },
@@ -1550,7 +1560,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             after: num('saPayAfter', 0, 14, 3),
           },
           events: events.sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || '')),
-          playlists,
+          music,
           birthdays: birthdays.list,
           invite: { active: $('saInviteActive').checked, text: {} },
         };

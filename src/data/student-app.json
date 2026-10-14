@@ -67,7 +67,6 @@
     "after": 3
   },
   "events": [],
-  "playlists": [],
   "birthdays": [],
   "invite": {
     "active": true,
@@ -76,5 +75,57 @@
       "en": "",
       "ru": ""
     }
-  }
+  },
+  "music": [
+    {
+      "style": "Стандарт (европейская программа)",
+      "dances": [
+        {
+          "name": "Waltz",
+          "tracks": []
+        },
+        {
+          "name": "Tango",
+          "tracks": []
+        },
+        {
+          "name": "Viennese Waltz",
+          "tracks": []
+        },
+        {
+          "name": "Slow Foxtrot",
+          "tracks": []
+        },
+        {
+          "name": "Quickstep",
+          "tracks": []
+        }
+      ]
+    },
+    {
+      "style": "Латина (латиноамериканская программа)",
+      "dances": [
+        {
+          "name": "Samba",
+          "tracks": []
+        },
+        {
+          "name": "Cha-cha-cha",
+          "tracks": []
+        },
+        {
+          "name": "Rumba",
+          "tracks": []
+        },
+        {
+          "name": "Paso Doble",
+          "tracks": []
+        },
+        {
+          "name": "Jive",
+          "tracks": []
+        }
+      ]
+    }
+  ]
 }
