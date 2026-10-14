@@ -47,7 +47,7 @@
   },
   "notice": {
     "active": true,
-    "mode": "banner",
+    "mode": "popup",
     "until": "",
     "title": {
       "he": "בדיקה",
