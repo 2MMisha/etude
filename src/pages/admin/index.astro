@@ -560,6 +560,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       async function ghRequest(path, options = {}) {
         const token = getToken();
         const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+          cache: 'no-store', // GitHub caches GETs ~60s; a stale sha makes the next save fail with 409
           ...options,
           headers: {
             Authorization: `Bearer ${token}`,
@@ -593,18 +594,25 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           branch: ADMIN_BRANCH,
         };
         if (sha) body.sha = sha;
-        const res = await ghRequest(path, { method: 'PUT', body: JSON.stringify(body) });
-        if (!res.ok) throw await ghError(res);
-        return res.json();
+        return ghWrite(path, 'PUT', body);
       }
 
       async function ghDeleteFile(path, sha, message) {
-        const res = await ghRequest(path, {
-          method: 'DELETE',
-          body: JSON.stringify({ message, sha, branch: ADMIN_BRANCH }),
-        });
-        if (!res.ok) throw await ghError(res);
-        return res.json();
+        return ghWrite(path, 'DELETE', { message, sha, branch: ADMIN_BRANCH });
+      }
+
+      // On 409 (our sha is stale, or another commit landed at the same moment)
+      // re-read the file's current sha and retry. New files (no sha) never conflict this way.
+      async function ghWrite(path, method, body) {
+        for (let attempt = 0; ; attempt++) {
+          const res = await ghRequest(path, { method, body: JSON.stringify(body) });
+          if (res.ok) return res.json();
+          if (res.status !== 409 || !body.sha || attempt >= 3) throw await ghError(res);
+          const latest = await ghGetFile(path);
+          if (!latest) throw new Error('The file was removed by someone else — reload the page.');
+          body.sha = latest.sha;
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        }
       }
 
       async function ghError(res) {
@@ -1450,6 +1458,7 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       // which re-reads the sheet. Needs only the token's Contents permission.
       async function ghApi(path, options = {}) {
         const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${path}`, {
+          cache: 'no-store',
           ...options,
           headers: {
             Authorization: `Bearer ${getToken()}`,
