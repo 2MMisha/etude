@@ -46,7 +46,7 @@
     ]
   },
   "notice": {
-    "active": true,
+    "active": false,
     "mode": "popup",
     "until": "",
     "title": {
@@ -66,25 +66,7 @@
     "before": 3,
     "after": 7
   },
-  "events": [
-    {
-      "id": "4pf041qh",
-      "date": "2026-10-16",
-      "start": "10:00",
-      "end": "10:30",
-      "place": "",
-      "title": {
-        "he": "בדיקה",
-        "ru": "тест",
-        "en": "test"
-      },
-      "body": {
-        "he": "בדיקה",
-        "ru": "тест",
-        "en": "test"
-      }
-    }
-  ],
+  "events": [],
   "birthdays": [],
   "invite": {
     "active": true,
@@ -96,7 +78,7 @@
   },
   "music": [
     {
-      "style": "Стандарт (европейская программа)",
+      "style": "ST",
       "dances": [
         {
           "name": "Waltz",
@@ -131,26 +113,49 @@
       ]
     },
     {
-      "style": "Латина (латиноамериканская программа)",
+      "style": "LA",
       "dances": [
         {
           "name": "Samba",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/samba/pl.u-yZyVVKrFdy6KpK6"
+          ]
         },
         {
           "name": "Cha-cha-cha",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/cha-cha-cha/pl.u-zPyLLe9Ier40j04"
+          ]
         },
         {
           "name": "Rumba",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/rumba/pl.u-qxyllMxt3vJm4mJ"
+          ]
         },
         {
-          "name": "Paso Doble",
-          "links": []
+          "name": "Pasodoble",
+          "links": [
+            "https://music.apple.com/il/playlist/pasodoble/pl.u-4JommD9uJxyLrLy"
+          ]
         },
         {
           "name": "Jive",
+          "links": [
+            "https://music.apple.com/il/playlist/jive/pl.u-XkD00bJT2vWPjPW"
+          ]
+        }
+      ]
+    },
+    {
+      "style": "KIDS",
+      "dances": [
+        {
+          "name": "Polka",
+          "links": []
+        },
+        {
+          "name": "Laundry dance",
           "links": []
         }
       ]
