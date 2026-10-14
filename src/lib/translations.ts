@@ -116,6 +116,7 @@ export const translations = {
         'בשיעורי הסטנדרט לומדים את כל חמשת הריקודים: ואלס אנגלי, טנגו, ואלס וינאי, פוקסטרוט וקוויקסטפ, ובשיעורים הלטיניים — סמבה, צ׳ה-צ׳ה, רומבה, פאסו דובלה וג׳ייב. לצדם מתקיימים שיעורי ספורט ותנועה המשלבים כושר, קואורדינציה ומוזיקליות. הסטודיו נמצא בראשון לציון, ולוח השיעורים המלא מתעדכן באתר באופן שוטף.',
       highlightsTitle: 'למה ETUDE',
       highlights: [
+        { title: 'ברמה עולמית', body: 'המורים והתלמידים שלנו מגיעים למקומות גבוהים בדירוג העולמי: מיכאל מוקרושוב וסופיה קמפף — מקום 8 בעולם.' },
         { title: 'מתאים לכל הרמות', body: 'קבוצות מתחילים, ממשיכים ומתקדמים, וגם שיעורים פרטיים בקצב אישי.' },
         { title: 'סגנונות מגוונים', body: 'ריקודי סטנדרט, לטינית וסדנאות תנועה - במקום אחד.' },
         { title: 'ליווי צמוד', body: 'קבוצות קטנות ותשומת לב אישית בכל שיעור.' },
@@ -201,7 +202,7 @@ export const translations = {
       metaTitle: 'מורים לריקודים סלוניים ולטיניים',
       metaDescription: 'הכירו את צוות ההוראה של אטיוד: יבגניה גרומוב, רומן מוקרושוב ומיכאל מוקרושוב, מורים לריקודים סלוניים ולטיניים בראשון לציון.',
       title: 'צוות ההוראה',
-      intro: 'מדריכים מוסמכים ומנוסים, שמלווים כל תלמיד באופן אישי.',
+      intro: 'מדריכים מוסמכים ומנוסים, שמלווים כל תלמיד באופן אישי. המורים והתלמידים שלנו מתחרים ברמה בינלאומית ומגיעים למקומות גבוהים בדירוג העולמי.',
       placeholderNotice: 'פרופילי המדריכים המלאים יעלו בקרוב.',
     },
     pricing: {
@@ -585,6 +586,7 @@ export const translations = {
         'Ballroom classes cover all five standard dances: slow waltz, tango, Viennese waltz, slow foxtrot and quickstep; Latin classes cover samba, cha-cha, rumba, paso doble and jive. Alongside them, sport and movement classes combine fitness, coordination, and musicality. The studio is in Rishon LeZion, and the full class schedule is kept up to date on this site.',
       highlightsTitle: 'Why ETUDE',
       highlights: [
+        { title: 'World-class level', body: 'Our teachers and students reach top places in the world rankings: Michael Mokrushov and Sofia Kempf are #8 in the world.' },
         { title: 'Every level welcome', body: 'Beginner, intermediate, and advanced groups, and private lessons at your own pace.' },
         { title: 'A range of styles', body: 'Ballroom, Latin, and movement workshops - all under one roof.' },
         { title: 'Close guidance', body: 'Small groups and personal attention in every class.' },
@@ -670,7 +672,7 @@ export const translations = {
       metaTitle: 'Ballroom & Latin Dance Teachers',
       metaDescription: 'Meet the ETUDE teaching team: Evgenia Gromova, Roman Mokrushov and Michael Mokrushov, ballroom and Latin dance teachers in Rishon LeZion.',
       title: 'Instructors',
-      intro: 'Certified, experienced instructors who guide every student personally.',
+      intro: 'Certified, experienced instructors who guide every student personally. Our teachers and students compete internationally and reach top places in the world rankings.',
       placeholderNotice: 'Full instructor profiles are coming soon.',
     },
     pricing: {
@@ -1054,6 +1056,7 @@ export const translations = {
         'На занятиях европейской программой изучают все пять танцев: медленный вальс, танго, венский вальс, медленный фокстрот и квикстеп, на латиноамериканских — самбу, ча-ча-ча, румбу, пасодобль и джайв. Кроме того, проходят спортивно-танцевальные занятия, сочетающие физическую подготовку, координацию и музыкальность. Студия находится в Ришон-ле-Ционе, а полное расписание занятий регулярно обновляется на сайте.',
       highlightsTitle: 'Почему ETUDE',
       highlights: [
+        { title: 'Мировой уровень', body: 'Наши педагоги и ученики занимают высокие места в мировом рейтинге: Михаил Мокрушов и София Кемпф — 8-е место в мире.' },
         { title: 'Подходит любому уровню', body: 'Группы для начинающих, продолжающих и продвинутых, а также индивидуальные занятия.' },
         { title: 'Разные стили', body: 'Бальные, латиноамериканские танцы и танцевальные мастер-классы в одном месте.' },
         { title: 'Индивидуальный подход', body: 'Небольшие группы и внимание к каждому ученику на каждом занятии.' },
@@ -1139,7 +1142,7 @@ export const translations = {
       metaTitle: 'Преподаватели бальных танцев',
       metaDescription: 'Преподаватели школы танцев «Этюд»: Евгения Громова, Роман Мокрушов и Михаил Мокрушов. Бальные и латиноамериканские танцы в Ришон-ле-Ционе.',
       title: 'Преподаватели',
-      intro: 'Сертифицированные, опытные преподаватели, которые сопровождают каждого ученика лично.',
+      intro: 'Сертифицированные, опытные преподаватели, которые сопровождают каждого ученика лично. Наши педагоги и ученики выступают на международных турнирах и занимают высокие места в мировом рейтинге.',
       placeholderNotice: 'Полные профили преподавателей будут добавлены в ближайшее время.',
     },
     pricing: {
