@@ -85,7 +85,13 @@
       }
     }
   ],
-  "birthdays": [],
+  "birthdays": [
+    {
+      "name": "test",
+      "day": 15,
+      "month": 10
+    }
+  ],
   "invite": {
     "active": true,
     "text": {
