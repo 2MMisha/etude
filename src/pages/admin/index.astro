@@ -468,6 +468,68 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
               <span class="status-msg" id="studentSaveStatus"></span>
             </div>
           </div>
+
+          <div class="panel">
+            <h2 style="font-size:1.05rem">Important notice</h2>
+            <p class="hint">
+              A message marked <strong>Important</strong> in the students' app. <strong>Banner</strong> — a strip at the top of every
+              screen; <strong>Pop-up</strong> — opens once on each phone (again after you edit the text) and then stays as a card on
+              the home screen. Tapping it opens the full text inside the app, like a news post — it isn't published on the website.
+              A language left empty shows the Hebrew text. Saved together with the prices and rules above.
+            </p>
+            <div class="form-grid">
+              <label><input type="checkbox" id="saNoticeActive" style="width:auto; display:inline-block; margin-inline-end:0.4em" /> Show the notice</label>
+              <div class="row-3">
+                <div>
+                  <label for="saNoticeMode">Show as</label>
+                  <select id="saNoticeMode">
+                    <option value="banner">Banner at the top</option>
+                    <option value="popup">Pop-up</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="saNoticeUntil">Show until (including; empty = until turned off)</label>
+                  <input type="date" id="saNoticeUntil" />
+                </div>
+              </div>
+              <div>
+                <label>Title</label>
+                <div class="lang-grid">
+                  <input id="saNoticeTitleHe" placeholder="עברית" dir="rtl" />
+                  <input id="saNoticeTitleRu" placeholder="Русский" />
+                  <input id="saNoticeTitleEn" placeholder="English" />
+                </div>
+              </div>
+              <div>
+                <label>Text</label>
+                <div class="lang-grid">
+                  <textarea id="saNoticeBodyHe" placeholder="עברית" dir="rtl" data-rich></textarea>
+                  <textarea id="saNoticeBodyRu" placeholder="Русский" data-rich></textarea>
+                  <textarea id="saNoticeBodyEn" placeholder="English" data-rich></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 style="font-size:1.05rem">Membership payment reminder</h2>
+            <p class="hint">
+              A banner with a day countdown at the top of the app, from a few days before the payment day to a few days after it
+              (each student can hide it with "Already paid"), and a pop-up on the payment day itself. Students can also subscribe
+              to a monthly calendar reminder from the Studio tab.
+            </p>
+            <div class="form-grid">
+              <label><input type="checkbox" id="saPayActive" style="width:auto; display:inline-block; margin-inline-end:0.4em" /> Remind about the payment</label>
+              <div class="row-3">
+                <div><label for="saPayDay">Payment day of the month</label><input type="number" id="saPayDay" min="1" max="28" /></div>
+                <div><label for="saPayBefore">Banner — days before</label><input type="number" id="saPayBefore" min="0" max="14" /></div>
+                <div><label for="saPayAfter">Banner — days after</label><input type="number" id="saPayAfter" min="0" max="14" /></div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-mini primary" id="saveStudentBtn2">Save</button>
+            </div>
+          </div>
         </section>
 
         <section id="timetableSection" hidden>
@@ -1202,17 +1264,30 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
       let studentSha = null;
       const SA_LANGS = { He: 'he', Ru: 'ru', En: 'en' };
 
+      let studentData = {}; // the whole file, so fields this tab doesn't edit survive a save
+
       async function loadStudent() {
         $('studentStatus').textContent = 'Loading…';
         $('studentStatus').className = 'status-msg pending';
         try {
           const file = await ghGetFile(STUDENT_PATH);
           const s = file ? JSON.parse(file.content) : {};
+          studentData = s;
           studentSha = file?.sha ?? null;
           for (const [suffix, lang] of Object.entries(SA_LANGS)) {
             $('saPrices' + suffix).value = (s.prices?.[lang] || []).join('\n');
             $('saRules' + suffix).value = (s.rules?.[lang] || []).join('\n');
+            $('saNoticeTitle' + suffix).value = s.notice?.title?.[lang] || '';
+            $('saNoticeBody' + suffix).value = s.notice?.body?.[lang] || '';
           }
+          $('saNoticeActive').checked = !!s.notice?.active;
+          $('saNoticeMode').value = s.notice?.mode === 'popup' ? 'popup' : 'banner';
+          $('saNoticeUntil').value = s.notice?.until || '';
+          const pay = { active: true, day: 10, before: 3, after: 3, ...s.payment };
+          $('saPayActive').checked = pay.active !== false;
+          $('saPayDay').value = pay.day;
+          $('saPayBefore').value = pay.before;
+          $('saPayAfter').value = pay.after;
           $('studentStatus').textContent = '';
         } catch (err) {
           $('studentStatus').textContent = 'Could not load: ' + err.message;
@@ -1220,17 +1295,46 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
         }
       }
 
-      $('saveStudentBtn').addEventListener('click', async () => {
+      async function saveStudent() {
         const lines = (id) => $(id).value.split('\n').map((l) => l.trim()).filter(Boolean);
-        const data = { prices: {}, rules: {} };
+        const num = (id, lo, hi, fallback) => {
+          const n = Math.round(Number($(id).value));
+          return $(id).value === '' || !Number.isFinite(n) ? fallback : Math.min(hi, Math.max(lo, n));
+        };
+        const data = {
+          ...studentData,
+          prices: {},
+          rules: {},
+          notice: {
+            active: $('saNoticeActive').checked,
+            mode: $('saNoticeMode').value,
+            until: $('saNoticeUntil').value,
+            title: {},
+            body: {},
+          },
+          payment: {
+            active: $('saPayActive').checked,
+            day: num('saPayDay', 1, 28, 10),
+            before: num('saPayBefore', 0, 14, 3),
+            after: num('saPayAfter', 0, 14, 3),
+          },
+        };
         for (const [suffix, lang] of Object.entries(SA_LANGS)) {
           data.prices[lang] = lines('saPrices' + suffix);
           data.rules[lang] = lines('saRules' + suffix);
+          data.notice.title[lang] = $('saNoticeTitle' + suffix).value.trim();
+          data.notice.body[lang] = $('saNoticeBody' + suffix).value.trim();
+        }
+        if (data.notice.active && !data.notice.title.he && !data.notice.title.ru && !data.notice.title.en) {
+          $('studentSaveStatus').textContent = 'The notice needs a title (at least in one language).';
+          $('studentSaveStatus').className = 'status-msg bad';
+          $('studentSaveStatus').scrollIntoView({ block: 'center' });
+          return;
         }
         $('studentSaveStatus').textContent = 'Saving…';
         $('studentSaveStatus').className = 'status-msg pending';
         try {
-          await ghPutFile(STUDENT_PATH, data, studentSha, 'chore(student): update prices and rules via admin panel');
+          await ghPutFile(STUDENT_PATH, data, studentSha, 'chore(student): update student app via admin panel');
           $('studentSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
           $('studentSaveStatus').className = 'status-msg ok';
           loadStudent();
@@ -1238,7 +1342,10 @@ const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/
           $('studentSaveStatus').textContent = 'Save failed: ' + err.message;
           $('studentSaveStatus').className = 'status-msg bad';
         }
-      });
+      }
+      $('saveStudentBtn').addEventListener('click', saveStudent);
+      // The second Save (under the payment reminder) reports in the same status line above.
+      $('saveStudentBtn2').addEventListener('click', () => { saveStudent(); $('studentSaveStatus').scrollIntoView({ block: 'center' }); });
 
       // ---------- Timetable (Google Sheet) ----------
       // Shows exactly what the deployed site serves to /display/ (built from the

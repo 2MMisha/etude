@@ -15,6 +15,8 @@ export interface CalendarEvent {
   title: string;
   description?: string;
   location?: string;
+  rrule?: string; // repeat rule, e.g. "FREQ=MONTHLY;BYMONTHDAY=10"
+  alarms?: number[]; // reminders, minutes before the start (0 = at the start); overrides buildIcs' alarmMin
 }
 
 /** URL-safe id for a timetable column label: "Small Hall (rent)" → "small-hall-rent". */
@@ -83,7 +85,7 @@ function eventUid(e: CalendarEvent): string {
 }
 
 /** "15" → "-PT15M", "1440" → "-P1D" (RFC 5545 duration before the start). */
-const trigger = (min: number) => (min % 1440 === 0 ? `-P${min / 1440}D` : min % 60 === 0 ? `-PT${min / 60}H` : `-PT${min}M`);
+const trigger = (min: number) => (min === 0 ? 'PT0M' : min % 1440 === 0 ? `-P${min / 1440}D` : min % 60 === 0 ? `-PT${min / 60}H` : `-PT${min}M`);
 
 /** A complete .ics calendar for the given events; `alarmMin` adds a reminder that many minutes before each one. */
 export function buildIcs(events: CalendarEvent[], calendarName: string, alarmMin = 0): string {
@@ -112,8 +114,9 @@ export function buildIcs(events: CalendarEvent[], calendarName: string, alarmMin
     );
     if (e.description) lines.push(`DESCRIPTION:${escapeIcs(e.description)}`);
     if (e.location) lines.push(`LOCATION:${escapeIcs(e.location)}`);
-    if (alarmMin > 0)
-      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escapeIcs(e.title)}`, `TRIGGER:${trigger(alarmMin)}`, 'END:VALARM');
+    if (e.rrule) lines.push(`RRULE:${e.rrule}`);
+    for (const min of e.alarms ?? (alarmMin > 0 ? [alarmMin] : []))
+      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escapeIcs(e.title)}`, `TRIGGER:${trigger(min)}`, 'END:VALARM');
     lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');
