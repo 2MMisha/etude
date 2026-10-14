@@ -85,13 +85,7 @@
       }
     }
   ],
-  "birthdays": [
-    {
-      "name": "test",
-      "day": 15,
-      "month": 10
-    }
-  ],
+  "birthdays": [],
   "invite": {
     "active": true,
     "text": {
@@ -106,23 +100,33 @@
       "dances": [
         {
           "name": "Waltz",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/slow-waltz/pl.u-MDAWWlDIApXMjMX"
+          ]
         },
         {
           "name": "Tango",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/tango/pl.u-06oxx9AIYRygDgy"
+          ]
         },
         {
           "name": "Viennese Waltz",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/viennese-waltz/pl.u-XkD00lMS2vWPjPW"
+          ]
         },
         {
           "name": "Slow Foxtrot",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/foxtrot/pl.u-yZyVVjVIdy6KpK6"
+          ]
         },
         {
           "name": "Quickstep",
-          "links": []
+          "links": [
+            "https://music.apple.com/il/playlist/quickstep/pl.u-XkD009LT2vWPjPW"
+          ]
         }
       ]
     },
