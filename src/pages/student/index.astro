@@ -85,9 +85,9 @@ const data = {
   rules: app.rules,
   notice,
   events: appEvents().map(({ text: _text, body, ...e }) => ({ ...e, html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(body[l])])) })),
-  // Songs by dance style → dance; dances and styles without songs are left out.
+  // Playlists by dance style → dance; dances and styles without a playlist are left out.
   music: (app.music ?? [])
-    .map((st) => ({ style: st.style, dances: st.dances.filter((d) => d.tracks.length) }))
+    .map((st) => ({ style: st.style, dances: st.dances.filter((d) => d.links.length) }))
     .filter((st) => st.dances.length),
   birthdays: app.birthdays ?? [],
   invite: {
@@ -147,7 +147,18 @@ const data = {
       </div>
     </header>
 
-    <form class="sa-lock" id="lock">
+    <!-- Opened in a browser tab: the app works only from the home screen, so install it first. -->
+    <section class="sa-gate" id="gate" hidden>
+      <img src="/images/apple-touch-icon.png" alt="" width="88" height="88" />
+      <h1 id="gTitle"></h1>
+      <p id="gText"></p>
+      <button type="button" class="btn btn--big" id="gButton" hidden></button>
+      <ol id="gIos" hidden></ol>
+      <ol id="gAndroid" hidden></ol>
+      <p class="sa-note" id="gDone" hidden></p>
+    </section>
+
+    <form class="sa-lock" id="lock" hidden>
       <label for="code" id="codeLabel"></label>
       <input id="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" />
       <p class="sa-bad" id="codeBad" hidden></p>
@@ -285,6 +296,7 @@ const data = {
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'השיעורים שלנו', more: 'עוד באתר', prices: 'מחירים',
           noPrices: 'לפרטי מחירים כתבו לנו בוואטסאפ', rules: 'כללי הסטודיו', contact: 'יצירת קשר', whatsapp: 'וואטסאפ', call: 'שיחה',
           myClasses: 'השיעורים שלי', mineChip: 'שלי', edit: 'עריכה', allNews: 'כל החדשות', back: 'חדשות', unfollow: 'הסרה מהמעקב',
+          gTitle: 'התקינו את אפליקציית ETUDE', gText: 'האפליקציה נפתחת רק ממסך הבית של הטלפון. הוסיפו אותה — זה לוקח כמה שניות — ופתחו את הסמל של ETUDE.', gDone: 'מעולה! עכשיו פתחו את ETUDE מהסמל במסך הבית.',
           inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
           route: 'ניווט', updated: 'עודכן', locale: 'he-IL', dir: 'rtl',
           important: 'חשוב', readMore: 'לפרטים', close: 'סגירה', home2: 'לדף הראשי',
@@ -307,6 +319,7 @@ const data = {
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Our classes', more: 'More on the website', prices: 'Prices',
           noPrices: 'For prices, message us on WhatsApp', rules: 'Studio rules', contact: 'Contact', whatsapp: 'WhatsApp', call: 'Call',
           myClasses: 'My classes', mineChip: 'Mine', edit: 'Edit', allNews: 'All news', back: 'News', unfollow: 'Stop following',
+          gTitle: 'Install the ETUDE app', gText: 'The app opens only from your phone’s home screen. Add it — it takes a few seconds — then open the ETUDE icon.', gDone: 'Done! Now open ETUDE from the icon on your home screen.',
           inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
           route: 'Directions', updated: 'Updated', locale: 'en-GB', dir: 'ltr',
           important: 'Important', readMore: 'Read more', close: 'Close', home2: 'Back home',
@@ -329,6 +342,7 @@ const data = {
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Наши занятия', more: 'Подробнее на сайте', prices: 'Цены',
           noPrices: 'Цены уточняйте у нас в WhatsApp', rules: 'Правила студии', contact: 'Контакты', whatsapp: 'WhatsApp', call: 'Позвонить',
           myClasses: 'Мои занятия', mineChip: 'Моё', edit: 'Изменить', allNews: 'Все новости', back: 'Новости', unfollow: 'Не следить',
+          gTitle: 'Установите приложение ETUDE', gText: 'Приложение открывается только с экрана телефона. Добавьте его — это займёт несколько секунд — и откройте значок ETUDE.', gDone: 'Готово! Теперь откройте ETUDE со значка на экране телефона.',
           inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
           route: 'Маршрут', updated: 'Обновлено', locale: 'ru-RU', dir: 'ltr',
           important: 'Важно', readMore: 'Подробнее', close: 'Закрыть', home2: 'На главную',
@@ -359,7 +373,7 @@ const data = {
         prices: Record<Lang, string[]>;
         rules: Record<Lang, string[]>;
         events: { id: string; date: string; start: string; end: string; place: string; title: Loc; html: Loc }[];
-        music: { style: string; dances: { name: string; tracks: { title: string; url: string }[] }[] }[];
+        music: { style: string; dances: { name: string; links: string[] }[] }[];
         birthdays: { name: string; day: number; month: number }[];
         invite: { active: boolean; text: Loc };
         notice: { id: string; mode: 'banner' | 'popup'; until: string; title: Loc; html: Loc } | null;
@@ -483,6 +497,11 @@ const data = {
       }
 
       // ----- Events, music -----
+      /** "Spotify", "YouTube"… for a playlist link. */
+      const service = (u: string) => {
+        const h = u.replace(/^https?:\/\/(www\.|m\.|music\.|open\.)?/, '').split('/')[0];
+        return h.includes('spotify') ? 'Spotify' : /youtu/.test(h) ? 'YouTube' : h.includes('apple') ? 'Apple Music' : h.includes('yandex') ? 'Яндекс Музыка' : h.includes('deezer') ? 'Deezer' : h.includes('soundcloud') ? 'SoundCloud' : h;
+      };
       const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
       const upcomingEvents = () => data.events.filter((e) => e.date >= today());
       const evWhen = (e: Data['events'][number]) =>
@@ -614,15 +633,15 @@ const data = {
       }
 
       function renderClasses() {
-        // Music: a section per dance style, a fold-out list of songs per dance.
+        // Music: a section per dance style, a row per dance with its playlist(s).
         $('music').innerHTML = data.music.length
           ? `<h2 class="sa-h">${icon('music')}${t.music}</h2>` +
             data.music
-              .map((st) => `<h3 class="sa-style" dir="auto">${esc(st.style)}</h3>` + st.dances
-                .map((d) => `<details class="card sa-dance"><summary><span dir="auto">${esc(d.name)}</span><small>${d.tracks.length}</small></summary><ul class="sa-songs">${d.tracks
-                  .map((tr) => `<li><a href="${esc(tr.url)}" target="_blank" rel="noopener">${icon('music')}<span dir="auto">${esc(tr.title)}</span></a></li>`)
-                  .join('')}</ul></details>`)
-                .join(''))
+              .map((st) => `<h3 class="sa-style" dir="auto">${esc(st.style)}</h3><ul class="list sa-dances">` + st.dances
+                .map((d) => d.links.length === 1
+                  ? `<li><a href="${esc(d.links[0])}" target="_blank" rel="noopener">${icon('music')}<span dir="auto">${esc(d.name)}</span><small>${esc(service(d.links[0]))}</small></a></li>`
+                  : `<li class="sa-dance-multi">${icon('music')}<span dir="auto">${esc(d.name)}</span><span class="sa-row">${d.links.map((u) => `<a class="btn btn--ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(service(u))}</a>`).join('')}</span></li>`)
+                .join('') + '</ul>')
               .join('')
           : '';
         const c = data.classes[lang];
@@ -953,19 +972,22 @@ const data = {
         $('nav').hidden = false;
         showTab();
         if (maybePop()) return;
-        if (!installed && !store.get('etude-install-seen')) setTimeout(openInstall, 1500);
+        if (!installed && !preview && !store.get('etude-install-seen')) setTimeout(openInstall, 1500);
       }
 
       // ----- "Add to home screen" -----
       // Chrome/Android offers a real install prompt; iPhone only has Safari's
       // Share → Add to Home Screen, so it gets the steps instead.
-      const installed = matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+      const installed = ['standalone', 'fullscreen', 'minimal-ui'].some((m) => matchMedia(`(display-mode: ${m})`).matches) || (navigator as any).standalone === true;
+      // Staff can look at the app in a browser with /student/?preview (linked from /admin/).
+      const preview = new URLSearchParams(location.search).has('preview');
       const isAndroid = /Android/.test(navigator.userAgent);
       // iPadOS reports itself as a Mac with a touch screen.
       const isIos = !isAndroid && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
       let installEvent: any = null;
       addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderInstall(); });
-      addEventListener('appinstalled', () => ($('install') as HTMLDialogElement).close());
+      addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; appAdded = true; renderInstall(); });
+      let appAdded = false;
       function renderInstall() {
         $('inTitle').innerHTML = `${icon('install')}${t.inTitle}`;
         $('inText').textContent = t.inText;
@@ -978,6 +1000,17 @@ const data = {
         // Phones see their own steps; a computer sees both.
         $('inIos').hidden = !!installEvent || isAndroid;
         $('inAndroid').hidden = !!installEvent || isIos;
+        // The browser-tab gate.
+        $('gTitle').textContent = t.gTitle;
+        $('gText').textContent = t.gText;
+        $('gButton').innerHTML = `${icon('install')}${t.inButton}`;
+        $('gButton').hidden = !installEvent || appAdded;
+        $('gIos').innerHTML = $('inIos').innerHTML;
+        $('gAndroid').innerHTML = $('inAndroid').innerHTML;
+        $('gIos').hidden = $('inIos').hidden || appAdded;
+        $('gAndroid').hidden = $('inAndroid').hidden || appAdded;
+        $('gDone').innerHTML = `${icon('check')}<span>${t.gDone}</span>`;
+        $('gDone').hidden = !appAdded;
         $('howInstall').innerHTML = `${icon('install')}${t.howInstall}`;
         $('howInstall').hidden = installed;
       }
@@ -997,6 +1030,11 @@ const data = {
         ($('install') as HTMLDialogElement).close();
       });
       // Tap on the dimmed backdrop closes it too.
+      $('gButton').addEventListener('click', async () => {
+        if (!installEvent) return;
+        installEvent.prompt();
+        await installEvent.userChoice;
+      });
       $('install').addEventListener('click', (e) => { if (e.target === e.currentTarget) ($('install') as HTMLDialogElement).close(); });
       const code = $('code') as HTMLInputElement;
       code.addEventListener('input', async () => {
@@ -1009,8 +1047,9 @@ const data = {
       $('lock').addEventListener('submit', (e) => e.preventDefault());
 
       render();
-      if (store.get('etude-student') === CODE) unlock();
-      else code.focus();
+      if (!installed && !preview) $('gate').hidden = false;
+      else if (store.get('etude-student') === CODE) unlock();
+      else { $('lock').hidden = false; code.focus(); }
       // Keep "next class" and the payment countdown right if the app stays open.
       setInterval(render, 5 * 60 * 1000);
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('/student/sw.js', { scope: '/student/' }).catch(() => {});
@@ -1050,6 +1089,13 @@ const data = {
       }
       .sa-langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); }
 
+      .sa-gate { flex: 1; overflow: auto; display: grid; gap: 14px; justify-items: center; align-content: start; text-align: center; padding: 8vh 24px 32px; }
+      .sa-gate img { border-radius: 22px; box-shadow: 0 10px 28px rgba(23, 34, 74, 0.25); }
+      .sa .sa-gate h1 { margin: 6px 0 0; }
+      .sa-gate p { max-inline-size: 30em; }
+      .sa-gate ol { text-align: start; margin: 0; padding-block: 16px; padding-inline: 2.4em 16px; display: grid; gap: 10px; line-height: 1.45; background: #fff; border: 1px solid var(--color-line); border-radius: 16px; max-inline-size: 30em; }
+      .sa-gate b { color: var(--color-navy-900); }
+      .sa-gate .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
       .sa-lock { flex: 1; display: grid; gap: 12px; justify-items: center; align-content: start; padding: 18vh 16px 0; overflow: auto; }
       .sa-lock label { font-weight: 700; font-size: 1.2rem; color: var(--color-navy-900); }
       .sa-lock input {
@@ -1195,12 +1241,12 @@ const data = {
       .sa-ev > span { display: grid; gap: 2px; min-inline-size: 0; }
       .sa-ev > .ic { inline-size: 30px; block-size: 30px; color: var(--color-blue-600); }
       .sa .sa-style { font-size: 1rem; margin: 16px 0 8px; color: var(--color-blue-600); }
-      .sa-dance summary { display: flex; align-items: center; gap: 8px; }
-      .sa-dance summary small { margin-inline-start: auto; min-inline-size: 1.8em; text-align: center; border-radius: 999px; background: var(--color-blue-100); color: var(--color-blue-600); font-weight: 700; padding: 1px 8px; }
-      .sa-songs { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-      .sa-songs a { display: flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 4px 6px; border-radius: 10px; color: var(--color-navy-900); text-decoration: none; font-weight: 600; }
-      .sa-songs a:active { background: var(--color-blue-100); }
-      .sa-songs .ic { color: var(--color-blue-600); }
+      .sa-dances a, .sa-dance-multi { display: flex !important; align-items: center; gap: 12px; }
+      .sa-dance-multi { flex-wrap: wrap; background: #fff; border: 1px solid var(--color-line); border-radius: 14px; padding: 12px 14px; font-weight: 700; color: var(--color-navy-900); }
+      .sa-dance-multi .sa-row { flex-basis: 100%; margin: 0; }
+      .sa-dances a { font-weight: 700; }
+      .sa-dances a small { margin-inline-start: auto; font-weight: 600; font-size: 0.8rem; color: var(--color-blue-600); }
+      .sa-dances .ic { inline-size: 26px; block-size: 26px; color: var(--color-blue-600); }
       .sa-h { display: flex; align-items: center; gap: 8px; }
       .sa .sa-h:first-child { margin-block-start: 0; }
       .sa-meta { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--color-navy-900); }

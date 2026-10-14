@@ -82,23 +82,23 @@
       "dances": [
         {
           "name": "Waltz",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Tango",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Viennese Waltz",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Slow Foxtrot",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Quickstep",
-          "tracks": []
+          "links": []
         }
       ]
     },
@@ -107,23 +107,23 @@
       "dances": [
         {
           "name": "Samba",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Cha-cha-cha",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Rumba",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Paso Doble",
-          "tracks": []
+          "links": []
         },
         {
           "name": "Jive",
-          "tracks": []
+          "links": []
         }
       ]
     }

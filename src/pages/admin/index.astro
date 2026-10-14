@@ -468,7 +468,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           <div class="panel">
             <h2 style="font-size:1.05rem">Students' app</h2>
             <p class="hint">
-              Everything shown in the students' app <a href="/student/" target="_blank" rel="noopener">/student/</a> (not on the
+              Everything shown in the students' app <a href="/student/?preview" target="_blank" rel="noopener">/student/</a> (opens here
+              as a preview; students can only use it installed on their phone's home screen — not on the
               public website). One file for the whole tab: change any section, then press <strong>Save app settings</strong> at the
               bottom — the app updates in about 1–2 minutes. A language left empty shows the Hebrew text.
             </p>
@@ -566,12 +567,11 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
 
           <div data-subpanel="music" hidden>
             <div class="panel">
-              <h2 style="font-size:1.05rem">Music — songs by dance</h2>
+              <h2 style="font-size:1.05rem">Music — playlists by dance</h2>
               <p class="hint">
-                A section per dance style (Standard, Latin…), and in it the dances with their songs. In the box: a line with just a
-                name starts a dance; under it, one song per line — the name, a dash, the link (Spotify, YouTube…), e.g.
-                <code>Moon River — https://youtu.be/…</code>. Dances without songs aren't shown in the app. Shown on the app's
-                Classes tab.
+                A section per dance style (Standard, Latin…); in it, one line per dance: the dance, a dash, the link to your
+                playlist — e.g. <code>Cha-cha-cha — https://open.spotify.com/playlist/…</code>. Two links on a line (Spotify and
+                YouTube) give two buttons. A dance without a link isn't shown in the app. Shown on the app's Classes tab.
               </p>
               <div id="saMusic" class="rows"></div>
               <button type="button" class="btn-mini" id="saAddMusic">+ Add a dance style</button>
@@ -1428,24 +1428,23 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       function musicCard(st = { style: '', dances: [] }) {
         const card = document.createElement('div');
         card.className = 'row-card';
-        const text = (st.dances || []).map((d) => [d.name, ...d.tracks.map((tr) => `${tr.title} — ${tr.url}`)].join('\n')).join('\n\n');
+        const text = (st.dances || []).map((d) => [d.name, ...(d.links || [])].join(' — ').replace(/ — (https?:\/\/\S+) — /g, ' — $1 ')).join('\n');
         card.innerHTML = `
           <div class="row-head"><span>Dance style</span><button type="button" class="btn-mini danger" data-remove>Remove</button></div>
           <div><label>Style</label><input data-f="style" placeholder="Латина / Latin" value="${escAttr(st.style)}" /></div>
-          <div><label>Dances and songs</label><textarea data-f="dances" rows="10" placeholder="Cha-cha-cha&#10;Song name — https://…&#10;&#10;Rumba&#10;…">${escAttr(text)}</textarea></div>`;
+          <div><label>Dances and playlists</label><textarea data-f="dances" rows="7" placeholder="Cha-cha-cha — https://open.spotify.com/playlist/…&#10;Rumba — https://…">${escAttr(text)}</textarea></div>`;
         return card;
       }
-      /** "Dance" lines and "Song — https://…" lines under them → [{ name, tracks: [{ title, url }] }]. */
+      /** "Dance — https://… [https://…]" lines → [{ name, links }]. */
       function parseDances(text) {
         const dances = [];
         for (const raw of text.split('\n')) {
           const line = raw.trim();
           if (!line) continue;
-          const url = line.match(/https?:\/\/\S+/);
-          if (!url) { dances.push({ name: line, tracks: [] }); continue; }
-          if (!dances.length) return { error: `A song comes before any dance name: "${line}"` };
-          const title = line.replace(url[0], '').replace(/[\s—–:-]+$/, '').trim();
-          dances[dances.length - 1].tracks.push({ title: title || url[0].replace(/^https?:\/\/(www\.)?/, '').slice(0, 40), url: url[0] });
+          const links = line.match(/https?:\/\/\S+/g) || [];
+          const name = line.replace(/https?:\/\/\S+/g, '').replace(/[\s—–:-]+$/, '').trim();
+          if (!name) return { error: `A playlist link without a dance name: "${line}" — write it as "Dance — link".` };
+          dances.push({ name, links });
         }
         return { dances };
       }
