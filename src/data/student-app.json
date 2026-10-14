@@ -1,8 +1,8 @@
 {
   "prices": {
     "he": [],
-    "en": [],
-    "ru": []
+    "ru": [],
+    "en": []
   },
   "rules": {
     "he": [
@@ -18,19 +18,6 @@
       "ילדים: ההורים מביאים ואוספים את הילדים בזמן. מחכים לסוף השיעור באזור ההמתנה.",
       "תשלום: את המנוי משלמים עד ה-10 בכל חודש."
     ],
-    "en": [
-      "Clothing: comfortable sports or dance wear that shows the body line. No jeans or baggy hoodies.",
-      "Hair: neatly combed. Girls — hair tied up in a bun or ponytail so it doesn't fall on the face.",
-      "Shoes: dance shoes. Heel protectors are a must on heels. No street shoes in the hall.",
-      "Parquet: don't get the floor wet. Drink only from a closed bottle, at the side of the hall.",
-      "Changing rooms: keep them clean, tidy up after yourself and put rubbish in the bin. Don't leave belongings behind.",
-      "Be on time: arrive 5–10 minutes before the class. If you're late, come in quietly with the trainer's permission.",
-      "Absences: let the trainer know in advance — a day before if you can.",
-      "No eating or chewing gum in the hall.",
-      "Phones: on silent during the lesson. Filming only with the trainer's permission.",
-      "Children: parents drop off and pick up their children on time. Wait for the end of the class in the waiting area.",
-      "Payment: the monthly membership is paid by the 10th of each month."
-    ],
     "ru": [
       "Одежда: удобная спортивная или танцевальная, в которой видна линия тела. Без джинсов и широких худи.",
       "Волосы: аккуратно причёсаны. Девочки — волосы собраны в пучок или хвост, чтобы не падали на лицо.",
@@ -43,21 +30,34 @@
       "Телефоны: на беззвучном во время урока. Снимать — только с разрешения тренера.",
       "Дети: родители приводят и забирают детей вовремя. Ждать окончания урока — в зоне ожидания.",
       "Оплата: абонемент оплачивается до 10 числа каждого месяца."
+    ],
+    "en": [
+      "Clothing: comfortable sports or dance wear that shows the body line. No jeans or baggy hoodies.",
+      "Hair: neatly combed. Girls — hair tied up in a bun or ponytail so it doesn't fall on the face.",
+      "Shoes: dance shoes. Heel protectors are a must on heels. No street shoes in the hall.",
+      "Parquet: don't get the floor wet. Drink only from a closed bottle, at the side of the hall.",
+      "Changing rooms: keep them clean, tidy up after yourself and put rubbish in the bin. Don't leave belongings behind.",
+      "Be on time: arrive 5–10 minutes before the class. If you're late, come in quietly with the trainer's permission.",
+      "Absences: let the trainer know in advance — a day before if you can.",
+      "No eating or chewing gum in the hall.",
+      "Phones: on silent during the lesson. Filming only with the trainer's permission.",
+      "Children: parents drop off and pick up their children on time. Wait for the end of the class in the waiting area.",
+      "Payment: the monthly membership is paid by the 10th of each month."
     ]
   },
   "notice": {
-    "active": false,
+    "active": true,
     "mode": "banner",
     "until": "",
     "title": {
-      "he": "",
-      "en": "",
-      "ru": ""
+      "he": "בדיקה",
+      "ru": "тест",
+      "en": "test"
     },
     "body": {
-      "he": "",
-      "en": "",
-      "ru": ""
+      "he": "בדיקה",
+      "ru": "тест",
+      "en": "test"
     }
   },
   "payment": {
@@ -72,8 +72,8 @@
     "active": true,
     "text": {
       "he": "",
-      "en": "",
-      "ru": ""
+      "ru": "",
+      "en": ""
     }
   },
   "music": [
