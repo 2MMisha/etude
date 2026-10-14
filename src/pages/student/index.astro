@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { getCollection } from 'astro:content';
 import '../../styles/global.css';
 import { getTimetable } from '../../lib/loadTimetable';
-import { ALARMS, chipsFrom, feedsFrom, paymentBody, paymentSettings, studentDays } from '../../lib/student';
+import { ALARMS, appEvents, chipsFrom, feedsFrom, paymentBody, paymentSettings, studentDays } from '../../lib/student';
 import { trainersFrom } from '../../lib/trainers';
 import { icon } from '../../lib/icons';
 import { getPublishedNews } from '../../lib/news';
@@ -20,9 +20,16 @@ import { ALL_LANGS, localizePath } from '../../lib/languages';
 import { SITE } from '../../lib/site';
 import app from '../../data/student-app.json';
 
-// The studio code. A deterrent like /admin/'s password, not real protection:
-// the page (and /data/timetable.json) is public to anyone with the link.
-const CODE_SHA256 = '096138f0929857ff2b93b50504a255bbc575eaca94cb9aadd5d8bccc31258bd7';
+// The studio code (changed in /admin/). A deterrent like /admin/'s password, not
+// real protection: the page (and /data/timetable.json) is public to anyone with the link.
+const CODE_SHA256 = (app as { codeSha256?: string }).codeSha256 || '096138f0929857ff2b93b50504a255bbc575eaca94cb9aadd5d8bccc31258bd7';
+
+// "Invite a friend" message when /admin/ leaves a language empty; {link} = the website.
+const INVITE_DEFAULT = {
+  he: 'היי! אני רוקד/ת בסטודיו ETUDE בראשון לציון — בואו לשיעור ניסיון ונרקוד ביחד! {link}',
+  en: "Hi! I dance at the ETUDE studio in Rishon LeZion — come to a trial class and let's dance together! {link}",
+  ru: 'Привет! Я занимаюсь танцами в студии ETUDE в Ришон-ле-Ционе — приходи на пробное занятие, будем танцевать вместе! {link}',
+};
 
 // Requests (private lesson / hall rental) go straight to the studio's inbox.
 // FormSubmit's AJAX endpoint answers with JSON, so the app stays open; the
@@ -75,6 +82,13 @@ const data = {
   prices: app.prices,
   rules: app.rules,
   notice,
+  events: appEvents().map(({ text: _text, body, ...e }) => ({ ...e, html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(body[l])])) })),
+  playlists: app.playlists ?? [],
+  birthdays: app.birthdays ?? [],
+  invite: {
+    active: app.invite?.active !== false,
+    text: Object.fromEntries(ALL_LANGS.map((l) => [l, ((app.invite?.text as Record<string, string> | undefined)?.[l] || INVITE_DEFAULT[l]).replace('{link}', `${SITE.siteUrl}${localizePath(l, '/')}`)])),
+  },
   payment: { ...payment, body: Object.fromEntries(ALL_LANGS.map((l) => [l, paymentBody(l, payment.day)])) },
   request: {
     endpoint: REQUEST_ENDPOINT,
@@ -139,10 +153,25 @@ const data = {
       <section data-tab="home">
         <h1 id="hello"></h1>
         <div id="important"></div>
+        <div id="bday"></div>
         <div id="next"></div>
+        <div id="eventsHome"></div>
         <h2 id="newsTitle"></h2>
         <ul class="list" id="news"></ul>
         <a class="btn btn--ghost sa-more" href="#news" id="allNews"></a>
+        <div id="invite"></div>
+      </section>
+
+      <section data-tab="events" hidden>
+        <a class="sa-back" href="#home" id="eventsBack"></a>
+        <h1 id="eventsTitle"></h1>
+        <ul class="list" id="eventsAll"></ul>
+        <div class="card" id="eventsSub"></div>
+      </section>
+
+      <section data-tab="event" hidden>
+        <a class="sa-back" href="#events" id="eventBack"></a>
+        <article class="post" id="eventPost"></article>
       </section>
 
       <section data-tab="news" hidden>
@@ -177,6 +206,7 @@ const data = {
 
       <section data-tab="classes" hidden>
         <h1 id="classesTitle"></h1>
+        <div id="music"></div>
         <div id="classes"></div>
         <h2 id="pricesTitle"></h2>
         <div class="card" id="prices"></div>
@@ -233,6 +263,7 @@ const data = {
     <script>
       import { weekOf, type TimetableItem } from '../../lib/timetable';
       import { icon } from '../../lib/icons';
+      import { googleCalendarUrl } from '../../lib/calendar';
 
       type Lang = 'he' | 'en' | 'ru';
       const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -254,6 +285,9 @@ const data = {
           reqTitle: 'בקשה לשיעור פרטי או להשכרת אולם', reqOnly: 'זו בקשה בלבד ולא הזמנה — ניצור איתכם קשר כדי לאשר את המועד.', reqType: 'מה מעניין אתכם?', private: 'שיעור פרטי', rental: 'השכרת אולם',
           fullName: 'שם מלא', phone: 'טלפון', phoneBad: 'הזינו מספר טלפון תקין', nameBad: 'הזינו שם מלא', pickOne: 'בחרו אחת מהאפשרויות', trainer: 'עם איזה מאמן?', date: 'תאריך', dateBad: 'בחרו תאריך מהיום והלאה', from: 'משעה', to: 'עד שעה', toBad: 'שעת הסיום צריכה להיות אחרי שעת ההתחלה', hall: 'איזה אולם?', note: 'הערה (לא חובה)', time: 'שעות', type: 'סוג הבקשה', trainerS: 'מאמן', hallS: 'אולם', noteS: 'הערה',
           continue: 'המשך', sumTitle: 'בדקו את הבקשה', editReq: 'עריכה', send: 'שליחת הבקשה', sending: 'שולחים…', sendErr: 'השליחה נכשלה. בדקו את החיבור לאינטרנט או שלחו את הבקשה בוואטסאפ.', viaWa: 'שליחה בוואטסאפ',
+          events: 'אירועים', allEvents: 'כל האירועים', eventsSub: 'כל האירועים ביומן — חדשים יתווספו לבד', addCal: 'הוספה ליומן', allDay: 'כל היום',
+          music: 'מוזיקה לשיעורים', forAll: 'לכולם', bdayToday: 'היום יום הולדת!', bdayWish: 'מזל טוב ל{names}!', bdaySoon: 'ימי הולדת בקרוב',
+          invite: 'הזמינו חבר', inviteText: 'לרקוד ביחד זה כיף יותר! שלחו לחבר הזמנה לשיעור ניסיון.', share: 'שיתוף',
           sentTitle: 'הבקשה נשלחה!', sentText: 'תודה! זו עדיין בקשה בלבד — ניצור איתכם קשר בטלפון או בוואטסאפ כדי לאשר.', newReq: 'בקשה חדשה',
         },
         en: {
@@ -273,6 +307,9 @@ const data = {
           reqTitle: 'Private lesson or hall rental request', reqOnly: "This is only a request, not a booking — we'll get in touch to confirm the time.", reqType: 'What would you like?', private: 'Private lesson', rental: 'Hall rental',
           fullName: 'Full name', phone: 'Phone', phoneBad: 'Enter a valid phone number', nameBad: 'Enter your full name', pickOne: 'Choose one of the options', trainer: 'With which trainer?', date: 'Date', dateBad: 'Choose a date from today on', from: 'From', to: 'To', toBad: 'The end time must be after the start', hall: 'Which hall?', note: 'Comment (optional)', time: 'Time', type: 'Request', trainerS: 'Trainer', hallS: 'Hall', noteS: 'Comment',
           continue: 'Next', sumTitle: 'Check your request', editReq: 'Edit', send: 'Send request', sending: 'Sending…', sendErr: "Couldn't send. Check your connection or send the request on WhatsApp.", viaWa: 'Send on WhatsApp',
+          events: 'Events', allEvents: 'All events', eventsSub: 'All events in your calendar — new ones appear by themselves', addCal: 'Add to calendar', allDay: 'All day',
+          music: 'Music for classes', forAll: 'For everyone', bdayToday: "It's a birthday today!", bdayWish: 'Happy birthday, {names}!', bdaySoon: 'Birthdays coming up',
+          invite: 'Invite a friend', inviteText: 'Dancing is more fun together! Send a friend an invitation to a trial class.', share: 'Share',
           sentTitle: 'Request sent!', sentText: "Thank you! This is just a request for now — we'll contact you by phone or WhatsApp to confirm.", newReq: 'New request',
         },
         ru: {
@@ -292,6 +329,9 @@ const data = {
           reqTitle: 'Заявка на личный урок или аренду зала', reqOnly: 'Это только просьба, а не бронирование — мы свяжемся с вами, чтобы подтвердить время.', reqType: 'Что вас интересует?', private: 'Личный урок', rental: 'Аренда зала',
           fullName: 'Полное имя', phone: 'Телефон', phoneBad: 'Введите правильный номер телефона', nameBad: 'Введите имя и фамилию', pickOne: 'Выберите один из вариантов', trainer: 'С каким тренером?', date: 'Дата', dateBad: 'Выберите дату не раньше сегодняшней', from: 'С', to: 'До', toBad: 'Время окончания должно быть позже начала', hall: 'Какой зал?', note: 'Комментарий (необязательно)', time: 'Время', type: 'Заявка', trainerS: 'Тренер', hallS: 'Зал', noteS: 'Комментарий',
           continue: 'Далее', sumTitle: 'Проверьте заявку', editReq: 'Изменить', send: 'Отправить заявку', sending: 'Отправляем…', sendErr: 'Не получилось отправить. Проверьте интернет или отправьте заявку в WhatsApp.', viaWa: 'Отправить в WhatsApp',
+          events: 'События', allEvents: 'Все события', eventsSub: 'Все события в календаре — новые появятся сами', addCal: 'Добавить в календарь', allDay: 'Весь день',
+          music: 'Музыка к занятиям', forAll: 'Для всех', bdayToday: 'Сегодня день рождения!', bdayWish: 'Поздравляем: {names}!', bdaySoon: 'Скоро день рождения',
+          invite: 'Приведи друга', inviteText: 'Танцевать вместе веселее! Отправьте другу приглашение на пробное занятие.', share: 'Поделиться',
           sentTitle: 'Заявка отправлена!', sentText: 'Спасибо! Это пока только просьба — мы свяжемся с вами по телефону или в WhatsApp, чтобы подтвердить.', newReq: 'Новая заявка',
         },
       };
@@ -311,6 +351,10 @@ const data = {
         classes: Record<Lang, { intro: string; sections: { title: string; items: { title: string; body: string }[] }[]; url: string }>;
         prices: Record<Lang, string[]>;
         rules: Record<Lang, string[]>;
+        events: { id: string; date: string; start: string; end: string; place: string; title: Loc; html: Loc }[];
+        playlists: { group: string; title: string; url: string }[];
+        birthdays: { name: string; day: number; month: number }[];
+        invite: { active: boolean; text: Loc };
         notice: { id: string; mode: 'banner' | 'popup'; until: string; title: Loc; html: Loc } | null;
         payment: { active: boolean; day: number; before: number; after: number; body: Loc };
         request: { endpoint: string; trainers: { id: string; name: Loc }[]; halls: Record<Lang, string[]>; opens: string; closes: string };
@@ -431,6 +475,16 @@ const data = {
         $('alerts').innerHTML = html;
       }
 
+      // ----- Events, music -----
+      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+      const upcomingEvents = () => data.events.filter((e) => e.date >= today());
+      const evWhen = (e: Data['events'][number]) =>
+        `${cap(new Date(`${e.date}T12:00:00`).toLocaleDateString(t.locale, { weekday: 'short', day: 'numeric', month: 'long' }))} · ${e.start ? `<span dir="ltr">${e.start}${e.end ? `–${e.end}` : ''}</span>` : t.allDay}`;
+      const eventItem = (e: Data['events'][number]) =>
+        `<li><a class="sa-ev" href="#event/${encodeURIComponent(e.id)}">${icon('trophy')}<span><b dir="auto">${esc(e.title[lang])}</b><span class="hint">${evWhen(e)}</span></span></a></li>`;
+      /** Playlists of a followed group. */
+      const playlistsFor = (f: string) => data.playlists.filter((m) => m.group && (norm(m.group) === norm(f) || norm(m.group).includes(norm(f))));
+
       // ----- Rendering -----
       function renderHome() {
         $('hello').innerHTML = `${esc(t.hello)} ${icon('hand')}`;
@@ -446,8 +500,26 @@ const data = {
         };
         $('next').innerHTML = follows.length
           ? `<div class="sa-head"><h2>${t.myClasses}</h2><a href="#schedule" data-mine-view>${icon('edit')}${t.edit}</a></div>` +
-            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">${STAR}${esc(f)}</h3>${nextHtml((i) => matches(i, f))}</div>`).join('')
+            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">${STAR}${esc(f)}</h3>${nextHtml((i) => matches(i, f))}${playlistsFor(f).map((m) => `<a class="sa-track" href="${esc(m.url)}" target="_blank" rel="noopener">${icon('music')}<span dir="auto">${esc(m.title)}</span></a>`).join('')}</div>`).join('')
           : `<div class="card"><h2>${t.nextAll}</h2>${nextHtml(() => true)}<p class="hint">${t.pickMine}</p><a class="btn" href="#schedule">${icon('star')}${t.choose}</a></div>`;
+        // Birthdays: today's, and the next 7 days.
+        const now = new Date();
+        const inDays = (n: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + n);
+        const bdays = (d: Date) => data.birthdays.filter((b) => b.day === d.getDate() && b.month === d.getMonth() + 1).map((b) => b.name);
+        const todays = bdays(now);
+        const soon = [1, 2, 3, 4, 5, 6, 7].flatMap((n) => bdays(inDays(n)).map((name) => ({ name, d: inDays(n) })));
+        $('bday').innerHTML =
+          (todays.length ? `<div class="card sa-bday">${icon('cake')}<div><h2>${t.bdayToday}</h2><p dir="auto">${esc(t.bdayWish.replace('{names}', todays.join(', ')))}</p></div></div>` : '') +
+          (soon.length ? `<div class="card sa-soon"><h3 class="sa-soon__t">${icon('cake')}${t.bdaySoon}</h3><ul>${soon.map((b) => `<li><b dir="auto">${esc(b.name)}</b><span class="hint">${esc(dayName(isoOf(b.d)))}</span></li>`).join('')}</ul></div>` : '');
+        const evs = upcomingEvents();
+        $('eventsHome').innerHTML = evs.length
+          ? `<div class="sa-head"><h2>${t.events}</h2>${evs.length > 3 ? `<a href="#events">${t.allEvents}</a>` : ''}</div><ul class="list">${evs.slice(0, 3).map(eventItem).join('')}</ul>`
+          : '';
+        $('invite').innerHTML = data.invite.active
+          ? `<div class="card sa-invite">${icon('invite')}<div><h2>${t.invite}</h2><p>${t.inviteText}</p>
+              <div class="sa-row"><a class="btn" href="https://wa.me/?text=${encodeURIComponent(data.invite.text[lang])}" target="_blank" rel="noopener">${icon('chat')}${t.whatsapp}</a>
+              ${'share' in navigator ? `<button type="button" class="btn btn--ghost" data-invite>${icon('share')}${t.share}</button>` : ''}</div></div></div>`
+          : '';
         $('newsTitle').textContent = t.news;
         $('news').innerHTML = data.news.slice(0, 3).map(newsItem).join('');
         $('allNews').hidden = data.news.length <= 3;
@@ -467,6 +539,26 @@ const data = {
         $('post').innerHTML = n
           ? (n.image ? `<img src="${esc(n.image)}" alt="${esc(n.imageAlt?.[lang] || '')}" loading="lazy" />` : '') +
             `<p class="hint">${fmtDate(n.date)}</p><h1 dir="auto">${esc(n.title[lang] || n.title.he)}</h1><div class="post__body" dir="auto">${n.html[lang]}</div>`
+          : '';
+      }
+
+      let eventId = ''; // id of the event open in the app
+      function renderEvents() {
+        $('eventsBack').innerHTML = `${icon('back', 'ic--flip')}${t.home}`;
+        $('eventBack').innerHTML = `${icon('back', 'ic--flip')}${t.events}`;
+        $('eventsTitle').textContent = t.events;
+        $('eventsAll').innerHTML = upcomingEvents().map(eventItem).join('');
+        const feed = `${data.siteUrl}/student/cal/events-${lang}.ics`;
+        $('eventsSub').innerHTML = `<p class="hint">${icon('bell')} ${t.eventsSub}</p><div class="sa-row">${calButtons(feed)}</div>`;
+        const e = data.events.find((x) => x.id === eventId);
+        const c = data.contact;
+        $('eventPost').innerHTML = e
+          ? `<p class="sa-badge sa-badge--event">${icon('trophy')}${t.events}</p><h1 dir="auto">${esc(e.title[lang])}</h1>
+            <p class="sa-meta">${icon('calendar')}<span>${evWhen(e)}</span></p>
+            <p class="sa-meta">${icon('pin')}<span dir="auto">${esc(e.place || `ETUDE, ${c.street}, ${c.city[lang]}`)}</span></p>
+            ${e.html[lang] ? `<div class="post__body" dir="auto">${e.html[lang]}</div>` : ''}
+            <div class="sa-row"><a class="btn" href="${esc(googleCalendarUrl({ date: e.date, start: e.start || '00:00', end: e.end || '00:00', allDay: !e.start, title: e.title[lang], location: e.place || `ETUDE, ${c.street}` }))}" target="_blank" rel="noopener">${icon('calendar')}${t.addCal} (Google)</a></div>
+            <div class="card">${$('eventsSub').innerHTML}</div>`
           : '';
       }
 
@@ -517,6 +609,14 @@ const data = {
       }
 
       function renderClasses() {
+        // Playlists: the student's own groups first.
+        const mine = (m: Data['playlists'][number]) => !!m.group && follows.some((f) => norm(m.group) === norm(f) || norm(m.group).includes(norm(f)));
+        const lists = [...data.playlists].sort((a, b) => Number(mine(b)) - Number(mine(a)));
+        $('music').innerHTML = lists.length
+          ? `<h2 class="sa-h">${icon('music')}${t.music}</h2><ul class="list sa-music">${lists
+              .map((m) => `<li><a href="${esc(m.url)}" target="_blank" rel="noopener">${icon('music')}<span><b dir="auto">${esc(m.title)}</b><span class="hint" dir="auto">${mine(m) ? STAR : ''}${esc(m.group || t.forAll)}</span></span></a></li>`)
+              .join('')}</ul>`
+          : '';
         const c = data.classes[lang];
         $('classesTitle').textContent = t.classesT;
         $('classes').innerHTML =
@@ -731,6 +831,10 @@ const data = {
       $('pop').addEventListener('click', (e) => {
         if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-close]')) ($('pop') as HTMLDialogElement).close();
       });
+      // "Invite a friend" through the phone's share menu.
+      document.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('[data-invite]')) navigator.share?.({ text: data.invite.text[lang] }).catch(() => {});
+      });
       // "Already paid" hides this month's payment banner.
       document.addEventListener('click', (e) => {
         const b = (e.target as HTMLElement).closest<HTMLElement>('[data-paid]');
@@ -748,6 +852,7 @@ const data = {
         renderHome();
         renderNews();
         renderNotice();
+        renderEvents();
         renderSchedule();
         renderClasses();
         renderRequest();
@@ -759,15 +864,18 @@ const data = {
       }
 
       // ----- Tabs via #hash, so the back button works -----
-      const TABS = ['home', 'schedule', 'news', 'classes', 'request', 'sent', 'studio', 'notice'];
-      const NAV_OF: Record<string, string> = { news: 'home', post: 'home', notice: 'home', sent: 'request' };
+      const TABS = ['home', 'schedule', 'news', 'classes', 'request', 'sent', 'studio', 'notice', 'events'];
+      const NAV_OF: Record<string, string> = { news: 'home', post: 'home', notice: 'home', events: 'home', event: 'home', sent: 'request' };
       function showTab() {
         const [name, id] = location.hash.slice(1).split('/');
         post = name === 'news' && id ? decodeURIComponent(id) : '';
         if (post && !data.news.some((n) => n.id === post)) post = '';
-        let tab = post ? 'post' : TABS.includes(name) ? name : 'home';
+        eventId = name === 'event' && id ? decodeURIComponent(id) : '';
+        if (eventId && !data.events.some((e) => e.id === eventId)) eventId = '';
+        let tab = post ? 'post' : eventId ? 'event' : TABS.includes(name) ? name : 'home';
         if (tab === 'notice' && !data.notice) tab = 'home';
         if (post) renderNews();
+        if (eventId) renderEvents();
         document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
         const navTab = NAV_OF[tab] ?? tab;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
@@ -1037,6 +1145,30 @@ const data = {
       .sa-badge--pay { color: #8a5a00; }
       .sa-pay h2 { display: flex; align-items: center; gap: 8px; }
       .sa-pay .hint .ic { margin-inline-end: 4px; }
+
+      /* Birthdays, events, music, invite */
+      .sa-bday { display: flex; gap: 14px; align-items: center; background: linear-gradient(135deg, #fff4dc, #fde8f0); border-color: #f0c674; }
+      .sa-bday > .ic { inline-size: 48px; block-size: 48px; color: #c2185b; }
+      .sa-bday h2 { margin: 0 0 4px; }
+      .sa-bday p { font-weight: 700; font-size: 1.05rem; color: var(--color-navy-900); }
+      .sa-soon ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+      .sa-soon li { display: flex; justify-content: space-between; gap: 12px; }
+      .sa .sa-soon__t { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 0.95rem; color: var(--color-navy-900); }
+      .sa-soon .ic { color: #c2185b; }
+      .sa-ev, .sa-music a { display: flex !important; align-items: center; gap: 12px; }
+      .sa-ev > span, .sa-music a > span { display: grid; gap: 2px; min-inline-size: 0; }
+      .sa-ev > .ic, .sa-music a > .ic { inline-size: 30px; block-size: 30px; color: var(--color-blue-600); }
+      .sa-music .hint { display: inline-flex; align-items: center; gap: 4px; }
+      .sa-music .hint .ic { color: #e0a100; inline-size: 1.2em; block-size: 1.2em; }
+      .sa-h { display: flex; align-items: center; gap: 8px; }
+      .sa .sa-h:first-child { margin-block-start: 0; }
+      .sa-track { display: flex; align-items: center; gap: 8px; margin-block-start: 10px; font-weight: 600; color: var(--color-blue-600); text-decoration: none; }
+      .sa-meta { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--color-navy-900); }
+      .sa-meta .ic { color: var(--color-blue-600); }
+      .sa-badge--event { color: var(--color-blue-600); }
+      .sa-invite { display: flex; gap: 14px; align-items: flex-start; margin-block-start: 22px; background: var(--color-blue-100); border-color: transparent; }
+      .sa-invite > .ic { inline-size: 44px; block-size: 44px; color: var(--color-blue-600); }
+      .sa-invite h2 { margin: 0 0 4px; }
 
       /* Request form */
       .sa-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--color-blue-100); color: var(--color-navy-900); font-weight: 600; line-height: 1.4; }

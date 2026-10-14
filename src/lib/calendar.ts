@@ -16,6 +16,7 @@ export interface CalendarEvent {
   description?: string;
   location?: string;
   rrule?: string; // repeat rule, e.g. "FREQ=MONTHLY;BYMONTHDAY=10"
+  allDay?: boolean; // a whole-day event: start/end are ignored
   alarms?: number[]; // reminders, minutes before the start (0 = at the start); overrides buildIcs' alarmMin
 }
 
@@ -32,6 +33,7 @@ export function slugify(label: string): string {
 }
 
 const stamp = (date: string, time: string) => `${date.replace(/-/g, '')}T${time.replace(':', '')}00`;
+const dayAfter = (date: string) => new Date(Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10) + 1)).toISOString().slice(0, 10).replace(/-/g, '');
 
 function escapeIcs(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/([,;])/g, '\\$1');
@@ -108,8 +110,9 @@ export function buildIcs(events: CalendarEvent[], calendarName: string, alarmMin
       'BEGIN:VEVENT',
       `UID:${eventUid(e)}`,
       `DTSTAMP:${now}`,
-      `DTSTART;TZID=${STUDIO_TZ}:${stamp(e.date, e.start)}`,
-      `DTEND;TZID=${STUDIO_TZ}:${stamp(e.date, e.end)}`,
+      ...(e.allDay
+        ? [`DTSTART;VALUE=DATE:${e.date.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${dayAfter(e.date)}`]
+        : [`DTSTART;TZID=${STUDIO_TZ}:${stamp(e.date, e.start)}`, `DTEND;TZID=${STUDIO_TZ}:${stamp(e.date, e.end)}`]),
       `SUMMARY:${escapeIcs(e.title)}`
     );
     if (e.description) lines.push(`DESCRIPTION:${escapeIcs(e.description)}`);
@@ -128,7 +131,7 @@ export function googleCalendarUrl(e: CalendarEvent): string {
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: e.title,
-    dates: `${stamp(e.date, e.start)}/${stamp(e.date, e.end)}`,
+    dates: e.allDay ? `${e.date.replace(/-/g, '')}/${dayAfter(e.date)}` : `${stamp(e.date, e.start)}/${stamp(e.date, e.end)}`,
     ctz: STUDIO_TZ,
   });
   if (e.description) params.set('details', e.description);

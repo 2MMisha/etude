@@ -65,5 +65,16 @@
     "day": 10,
     "before": 3,
     "after": 3
+  },
+  "events": [],
+  "playlists": [],
+  "birthdays": [],
+  "invite": {
+    "active": true,
+    "text": {
+      "he": "",
+      "en": "",
+      "ru": ""
+    }
   }
 }

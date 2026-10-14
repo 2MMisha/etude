@@ -4,6 +4,7 @@
 import { RENTAL_COLUMN, type Timetable, type TimetableItem } from './timetable';
 import { slugify, type CalendarEvent } from './calendar';
 import { STUDIO_LOCATION, trainersFrom } from './trainers';
+import app from '../data/student-app.json';
 
 /** Reminder choices, in minutes before the class (0 = no reminder). */
 export const ALARMS = [0, 15, 60, 180, 1440];
@@ -122,3 +123,34 @@ const ordinal = (n: number) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ['
 /** The reminder's body with the due day filled in. */
 export const paymentBody = (lang: keyof typeof PAYMENT_TEXT, day: number) =>
   PAYMENT_TEXT[lang].body.replace('{day}', lang === 'en' ? ordinal(day) : String(day));
+
+type Loc = { he: string; en: string; ru: string };
+interface AppEvent { id: string; date: string; start?: string; end?: string; place?: string; title: Partial<Loc>; body?: Partial<Loc> }
+
+const pick = (l: Partial<Loc> | undefined, lang: keyof Loc) => l?.[lang] || l?.he || l?.ru || l?.en || '';
+/** The admin's light markup (richText.ts) as plain text, for calendar apps. */
+const plain = (s: string) => s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, '$1 ($2)').replace(/\*\*|__|\*/g, '');
+const later = (start: string, min: number) => {
+  const [h, m] = start.split(':').map(Number);
+  const t = Math.min(h * 60 + m + min, 23 * 60 + 59);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+
+/** Studio events from /admin/, from a week ago on (the app hides past ones by itself); `text` is plain, for calendars. */
+export function appEvents() {
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  return ((app as { events?: AppEvent[] }).events ?? [])
+    .filter((e) => e.date && e.date >= weekAgo)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || ''))
+    .map((e) => ({
+      id: e.id,
+      date: e.date,
+      start: e.start || '',
+      // No end time → two hours, the length calendars get anyway.
+      end: e.start ? (e.end && e.end > e.start ? e.end : later(e.start, 120)) : '',
+      place: e.place || '',
+      title: { he: pick(e.title, 'he'), en: pick(e.title, 'en'), ru: pick(e.title, 'ru') },
+      body: { he: pick(e.body, 'he'), en: pick(e.body, 'en'), ru: pick(e.body, 'ru') },
+      text: { he: plain(pick(e.body, 'he')), en: plain(pick(e.body, 'en')), ru: plain(pick(e.body, 'ru')) },
+    }));
+}
