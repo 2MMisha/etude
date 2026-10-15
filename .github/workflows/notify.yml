@@ -1,0 +1,37 @@
+name: Student app push notifications
+
+# scripts/notify.mjs: news, events, the "important" notice and the payment day.
+on:
+  # Edits from /admin/ (news, events, the notice).
+  push:
+    branches: [main]
+    paths: ['src/content/news/**', 'src/data/student-app.json']
+  # Every morning: news scheduled for today and the payment day (07:15 UTC = 9:15/10:15 in Israel).
+  schedule:
+    - cron: '15 7 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # ponytail: a fixed wait for deploy.yml to publish the change, so a tap opens
+      # the new post; wait on the deploy run itself if deploys ever take longer.
+      - if: github.event_name == 'push'
+        run: sleep 240
+
+      - run: node scripts/notify.mjs
+        env:
+          ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
+          BEFORE: ${{ github.event.before }}

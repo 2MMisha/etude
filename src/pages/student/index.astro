@@ -38,6 +38,10 @@ const DESTINATION = 'ETUDE Dance School, Rothschild 49, Rishon LeZion';
 
 const REQUEST_ENDPOINT = 'https://formsubmit.co/ajax/etude.dance@gmail.com';
 
+// Push notifications: the studio writes them in the OneSignal dashboard
+// (onesignal.com → Messages → Push). Empty = the "Turn on" card stays hidden.
+const ONESIGNAL_APP_ID = '064969bd-2602-4775-b49a-7b60231111d5';
+
 const tt = await getTimetable();
 const instructors = (await getCollection('instructors')).sort((a, b) => a.data.order - b.data.order);
 const { groups, names } = chipsFrom(tt);
@@ -71,6 +75,7 @@ const data = {
   trainers: trainersFrom(tt).map((t) => t.name),
   alarms: ALARMS,
   siteUrl: SITE.siteUrl,
+  pushAppId: ONESIGNAL_APP_ID,
   updatedAt: tt.updatedAt,
   news: news.map((n) => ({
     id: n.id,
@@ -136,6 +141,7 @@ const data = {
       onload="this.media='all'"
     />
     <title>ETUDE</title>
+    {ONESIGNAL_APP_ID && <script is:inline src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>}
   </head>
   <body class="sa">
     <header class="sa-top">
@@ -171,6 +177,7 @@ const data = {
       <section data-tab="home">
         <h1 id="hello"></h1>
         <div id="important"></div>
+        <div id="push"></div>
         <div id="bday"></div>
         <div id="next"></div>
         <div id="eventsHome"></div>
@@ -306,6 +313,7 @@ const data = {
           continue: 'המשך', sumTitle: 'בדקו את הבקשה', editReq: 'עריכה', send: 'שליחת הבקשה', sending: 'שולחים…', sendErr: 'השליחה נכשלה. בדקו את החיבור לאינטרנט או שלחו את הבקשה בוואטסאפ.', viaWa: 'שליחה בוואטסאפ',
           events: 'אירועים', allEvents: 'כל האירועים', eventsSub: 'כל האירועים ביומן — חדשים יתווספו לבד', addCal: 'הוספה ליומן', allDay: 'כל היום',
           music: 'מוזיקה לשיעורים', forAll: 'לכולם', bdayToday: 'היום יום הולדת!', bdayWish: 'מזל טוב ל{names}!', bdaySoon: 'ימי הולדת בקרוב',
+          pushTitle: 'התראות מהסטודיו', pushText: 'הודעות חשובות, חדשות, אירועים ותזכורת לתשלום — ישר לטלפון.', pushOn: 'הפעלת התראות',
           invite: 'הזמינו חבר', inviteText: 'לרקוד ביחד זה כיף יותר! שלחו לחבר הזמנה לשיעור ניסיון.', share: 'שיתוף',
           sentTitle: 'הבקשה נשלחה!', sentText: 'תודה! זו עדיין בקשה בלבד — ניצור איתכם קשר בטלפון או בוואטסאפ כדי לאשר.', newReq: 'בקשה חדשה',
         },
@@ -329,6 +337,7 @@ const data = {
           continue: 'Next', sumTitle: 'Check your request', editReq: 'Edit', send: 'Send request', sending: 'Sending…', sendErr: "Couldn't send. Check your connection or send the request on WhatsApp.", viaWa: 'Send on WhatsApp',
           events: 'Events', allEvents: 'All events', eventsSub: 'All events in your calendar — new ones appear by themselves', addCal: 'Add to calendar', allDay: 'All day',
           music: 'Music for classes', forAll: 'For everyone', bdayToday: "It's a birthday today!", bdayWish: 'Happy birthday, {names}!', bdaySoon: 'Birthdays coming up',
+          pushTitle: 'Studio notifications', pushText: 'Important notices, news, events and the payment reminder — straight to your phone.', pushOn: 'Turn on notifications',
           invite: 'Invite a friend', inviteText: 'Dancing is more fun together! Send a friend an invitation to a trial class.', share: 'Share',
           sentTitle: 'Request sent!', sentText: "Thank you! This is just a request for now — we'll contact you by phone or WhatsApp to confirm.", newReq: 'New request',
         },
@@ -352,6 +361,7 @@ const data = {
           continue: 'Далее', sumTitle: 'Проверьте заявку', editReq: 'Изменить', send: 'Отправить заявку', sending: 'Отправляем…', sendErr: 'Не получилось отправить. Проверьте интернет или отправьте заявку в WhatsApp.', viaWa: 'Отправить в WhatsApp',
           events: 'События', allEvents: 'Все события', eventsSub: 'Все события в календаре — новые появятся сами', addCal: 'Добавить в календарь', allDay: 'Весь день',
           music: 'Музыка к занятиям', forAll: 'Для всех', bdayToday: 'Сегодня день рождения!', bdayWish: 'Поздравляем: {names}!', bdaySoon: 'Скоро день рождения',
+          pushTitle: 'Уведомления от студии', pushText: 'Важные объявления, новости, мероприятия и напоминание об оплате — сразу на телефон.', pushOn: 'Включить уведомления',
           invite: 'Приведи друга', inviteText: 'Танцевать вместе веселее! Отправьте другу приглашение на пробное занятие.', share: 'Поделиться',
           sentTitle: 'Заявка отправлена!', sentText: 'Спасибо! Это пока только просьба — мы свяжемся с вами по телефону или в WhatsApp, чтобы подтвердить.', newReq: 'Новая заявка',
         },
@@ -367,6 +377,7 @@ const data = {
         trainers: string[];
         alarms: number[];
         siteUrl: string;
+        pushAppId: string;
         updatedAt: string;
         news: { id: string; date: string; image?: string; imageAlt?: Partial<Loc>; title: Loc; html: Loc }[];
         classes: Record<Lang, { intro: string; sections: { title: string; items: { title: string; body: string }[] }[]; url: string }>;
@@ -515,6 +526,11 @@ const data = {
         // A popup notice stays reachable from the home screen after it's closed.
         $('important').innerHTML = noticeLive() && data.notice!.mode === 'popup'
           ? `<a class="sa-alert sa-alert--notice" href="#notice">${icon('megaphone')}<span><small>${t.important}</small><b dir="auto">${esc(data.notice!.title[lang])}</b></span>${icon('next', 'ic--flip')}</a>`
+          : '';
+        // Until the student answers the phone's "Allow notifications?" question.
+        $('push').innerHTML = push && Notification.permission === 'default'
+          ? `<div class="card sa-invite">${icon('bell')}<div><h2>${t.pushTitle}</h2><p>${t.pushText}</p>
+              <div class="sa-row"><button type="button" class="btn" data-push>${icon('bell')}${t.pushOn}</button></div></div></div>`
           : '';
         const nextHtml = (keep: (i: TimetableItem) => boolean) => {
           const next = upcoming(keep)[0];
@@ -883,6 +899,23 @@ const data = {
       document.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('[data-invite]')) navigator.share?.({ text: data.invite.text[lang] }).catch(() => {});
       });
+      // ----- Push notifications (OneSignal) -----
+      // Its worker sits in its own scope, /student/push/, so it doesn't replace
+      // the app's offline worker (/student/sw.js). iPhone allows push only in
+      // the home-screen app — which is the only way this app opens anyway.
+      let push: any = null; // OneSignal, once loaded on a phone that supports push
+      if (data.pushAppId)
+        ((window as any).OneSignalDeferred ||= []).push(async (OneSignal: any) => {
+          await OneSignal.init({ appId: data.pushAppId, serviceWorkerPath: 'student/push/OneSignalSDKWorker.js', serviceWorkerParam: { scope: '/student/push/' } });
+          if (!OneSignal.Notifications.isPushSupported()) return;
+          push = OneSignal;
+          push.User.setLanguage?.(lang);
+          push.Notifications.addEventListener('permissionChange', renderHome);
+          renderHome();
+        });
+      document.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('[data-push]')) push?.Notifications.requestPermission();
+      });
       // "Already paid" hides this month's payment banner.
       document.addEventListener('click', (e) => {
         const b = (e.target as HTMLElement).closest<HTMLElement>('[data-paid]');
@@ -958,7 +991,7 @@ const data = {
         renderSchedule();
       });
       document.querySelectorAll<HTMLButtonElement>('.sa-langs button').forEach((b) =>
-        b.addEventListener('click', () => { lang = b.dataset.lang as Lang; t = L[lang]; store.set('etude-lang', lang); render(); })
+        b.addEventListener('click', () => { lang = b.dataset.lang as Lang; t = L[lang]; store.set('etude-lang', lang); push?.User.setLanguage?.(lang); render(); })
       );
 
       // ----- Code lock (the hash is remembered on this phone) -----
