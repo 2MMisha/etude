@@ -66,26 +66,14 @@
     "before": 3,
     "after": 7
   },
-  "events": [
+  "events": [],
+  "birthdays": [
     {
-      "id": "524dlvhy",
-      "date": "2026-10-16",
-      "start": "10:00",
-      "end": "10:39",
-      "place": "",
-      "title": {
-        "he": "h",
-        "ru": "o",
-        "en": "p"
-      },
-      "body": {
-        "he": "k",
-        "ru": "f",
-        "en": "d"
-      }
+      "name": "туст",
+      "day": 15,
+      "month": 10
     }
   ],
-  "birthdays": [],
   "invite": {
     "active": true,
     "text": {
