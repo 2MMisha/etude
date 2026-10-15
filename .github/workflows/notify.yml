@@ -19,8 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      # Only the commit before the push, to compare with (the full history takes minutes).
+      - if: github.event_name == 'push'
+        run: git fetch --depth=1 origin ${{ github.event.before }} || true
 
       - uses: actions/setup-node@v4
         with:

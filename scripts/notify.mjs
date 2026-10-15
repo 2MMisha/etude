@@ -35,9 +35,10 @@ function uuid(key) {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${(8 | (parseInt(h[16], 16) & 3)).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
+// ::notice:: / ::warning:: lines show on the run's page (and in the API) without opening the log.
 async function send(key, headings, contents, hash = '') {
   console.log(`${key}: ${contents.ru}`);
-  if (!KEY) return;
+  if (!KEY) return console.log(`::warning::No ONESIGNAL_REST_API_KEY secret — not sent: ${key}`);
   const res = await fetch('https://api.onesignal.com/notifications', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Key ${KEY}` },
@@ -51,14 +52,19 @@ async function send(key, headings, contents, hash = '') {
       url: APP_URL + hash,
     }),
   });
-  console.log(`  ${res.status} ${await res.text()}`);
+  // A 200 can still mean nobody got it, e.g. {"errors":["All included players are not subscribed"]}.
+  const text = await res.text();
+  let errors;
+  try { errors = JSON.parse(text).errors; } catch {}
+  const ok = res.ok && !errors;
+  console.log(`::${ok ? 'notice' : 'warning'}::${key}: ${res.status} ${text}`);
   if (!res.ok) process.exitCode = 1;
 }
 
 const app = JSON.parse(readFileSync('src/data/student-app.json', 'utf8'));
 let old = null;
 if (BEFORE) {
-  try { old = JSON.parse(execSync(`git show ${BEFORE}:src/data/student-app.json`, { encoding: 'utf8' })); } catch { old = {}; }
+  try { old = JSON.parse(execSync(`git show ${BEFORE}:src/data/student-app.json`, { encoding: 'utf8' })); } catch { old = null; } // BEFORE not fetched: skip the comparison rather than resend everything
 }
 
 // News dated today.
