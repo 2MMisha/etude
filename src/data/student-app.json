@@ -46,7 +46,7 @@
     ]
   },
   "notice": {
-    "active": true,
+    "active": false,
     "mode": "popup",
     "until": "",
     "title": {
