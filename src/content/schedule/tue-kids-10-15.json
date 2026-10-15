@@ -1,0 +1,11 @@
+{
+  "day": "tuesday",
+  "startTime": "17:00",
+  "endTime": "18:00",
+  "level": "beginner",
+  "className": {
+    "he": "קבוצת ילדים ונוער 10–15",
+    "en": "Kids & Teens 10–15",
+    "ru": "Дети и подростки 10–15 лет"
+  }
+}

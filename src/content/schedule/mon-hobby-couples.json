@@ -1,0 +1,11 @@
+{
+  "day": "monday",
+  "startTime": "20:30",
+  "endTime": "21:30",
+  "level": "beginner",
+  "className": {
+    "he": "קבוצת הובי זוגות (מעל 18)",
+    "en": "Couples Hobby (18+)",
+    "ru": "Хобби-группа для пар 18+"
+  }
+}

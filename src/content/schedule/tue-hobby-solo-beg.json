@@ -1,0 +1,11 @@
+{
+  "day": "tuesday",
+  "startTime": "19:00",
+  "endTime": "20:00",
+  "level": "beginner",
+  "className": {
+    "he": "קבוצת הובי סולו (מעל 18)",
+    "en": "Solo Hobby (18+)",
+    "ru": "Хобби-группа соло 18+"
+  }
+}
