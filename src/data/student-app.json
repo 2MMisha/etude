@@ -46,7 +46,7 @@
     ]
   },
   "notice": {
-    "active": false,
+    "active": true,
     "mode": "popup",
     "until": "",
     "title": {
@@ -67,13 +67,7 @@
     "after": 7
   },
   "events": [],
-  "birthdays": [
-    {
-      "name": "туст",
-      "day": 15,
-      "month": 10
-    }
-  ],
+  "birthdays": [],
   "invite": {
     "active": true,
     "text": {
