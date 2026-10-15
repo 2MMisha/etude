@@ -46,18 +46,18 @@
     ]
   },
   "notice": {
-    "active": false,
+    "active": true,
     "mode": "popup",
     "until": "",
     "title": {
-      "he": "בדיקה",
-      "ru": "тест",
-      "en": "test"
+      "he": "הנחיות עקב מצב חירום",
+      "ru": "Действия в чрезвычайной ситуации",
+      "en": "Guidelines Due to Emergency Situation"
     },
     "body": {
-      "he": "בדיקה",
-      "ru": "тест",
-      "en": "test"
+      "he": "בעקבות המצב הביטחוני והנחיות פיקוד העורף, הפעילות הפרונטלית שלנו נעצרת זמנית. בקרוב נעדכן לגבי המשך האימונים מרחוק.\nשמרו על עצמכם ושיהיה לכולנו יום שקט!",
+      "ru": "В связи с ситуацией в сфере безопасности и указаниями Командования тыла, проведение очных мероприятий временно приостановлено. В ближайшее время мы сообщим дополнительную информацию о продолжении занятий в дистанционном формате.\nБерегите себя; пусть день пройдет спокойно!",
+      "en": "Due to the security situation and the Home Front Command’s guidelines, our in-person activities are temporarily suspended. We will provide an update soon regarding the continuation of remote training.\nStay safe, and wishing us all a quiet day!"
     }
   },
   "payment": {
