@@ -21,6 +21,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      trainer-changes: ${{ steps.changes.outputs.messages }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +38,12 @@ jobs:
 
       - name: Build site
         run: npm run build
+
+      # What changed on each /trainers/ page against the live site (scripts/notify-trainers.mjs).
+      - name: Trainer schedule changes
+        id: changes
+        continue-on-error: true
+        run: node scripts/notify-trainers.mjs
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -55,3 +63,20 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Push the changes to the trainers' app once the new pages are live.
+  notify-trainers:
+    needs: [build, deploy]
+    if: needs.build.outputs.trainer-changes != '' && needs.build.outputs.trainer-changes != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/notify-trainers.mjs
+        env:
+          ONESIGNAL_TRAINERS_REST_API_KEY: ${{ secrets.ONESIGNAL_TRAINERS_REST_API_KEY }}
+          MESSAGES: ${{ needs.build.outputs.trainer-changes }}
