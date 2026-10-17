@@ -8,6 +8,7 @@ import { ADMIN_PASSWORD_SHA256, ADMIN_BRANCH } from '../../lib/adminConfig';
 import { TIMETABLE_SHEET_ID } from '../../lib/loadTimetable';
 import QRCode from 'qrcode';
 import '../../styles/global.css';
+import '../../styles/week-grid.css';
 
 const REPO_OWNER = SITE.githubOrg;
 const REPO_NAME = SITE.repoName;
@@ -87,14 +88,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       .tt-print { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; margin-block: 0 0.6rem; font-size: 0.82rem; color: var(--color-ink-soft); }
       .tt-print select { font: inherit; padding: 0.25em 0.4em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
       .tt-print .tt-rent-btn { background: #fff4e0; border-color: #f0c674; }
-      .tt-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; font-size: 0.72rem; line-height: 1.25; }
-      @media (max-width: 700px) { .tt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-      .tt-col { border: 1px solid var(--color-line); border-radius: 6px; padding: 4px; min-width: 0; display: grid; gap: 3px; align-content: start; }
-      .tt-col__head { font-weight: 700; font-size: 0.78rem; color: var(--color-navy-900); }
-      .tt-item { background: var(--color-blue-100); border-radius: 4px; padding: 2px 4px; overflow: hidden; text-overflow: ellipsis; }
-      .tt-item .muted { display: block; font-size: 0.66rem; color: var(--color-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .tt-rent { background: #fff4e0; border-inline-start: 3px solid #ffb547; }
-      .tt-rent::before { content: '🔑 '; }
+      .admin-shell:has(#timetableSection:not([hidden])) { max-width: 1280px; }
 
       .rich-wrap { display: flex; flex-direction: column; gap: 0.3rem; }
       .rich-bar { display: flex; gap: 0.3rem; flex-wrap: wrap; }
@@ -1655,18 +1649,23 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             ${halls.length ? '<button class="btn-mini tt-rent-btn" data-print="rentals">🔑 All rentals</button>' : ''}
             ${halls.map((name) => `<button class="btn-mini tt-rent-btn" data-print="col" data-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`).join('')}
           </div>
-          <div class="tt-grid">${dates
-            .map((date, n) => {
-              const items = byDate.get(date) || [];
-              return `
-                <div class="tt-col">
-                  <div class="tt-col__head">${SHORT_DAYS[n]} <span class="muted">${short(date)}</span></div>
-                  ${items.length
-                    ? items.map((i) => `<div class="tt-item${RENT.test(i.column) ? ' tt-rent' : ''}" title="${escapeHtml(`${i.start}–${i.end} ${i.title} · ${i.column}`)}"><b>${i.start}</b> ${escapeHtml(i.title)}<span class="muted">${escapeHtml(i.column)}</span></div>`).join('')
-                    : '<div class="muted">—</div>'}
-                </div>`;
+          <div id="ttGrid"></div>`;
+        const now = new Date();
+        const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        // window.weekGrid comes from the module script below (src/lib/weekGrid.ts).
+        $('ttGrid').innerHTML = window.weekGrid
+          ? window.weekGrid({
+              dates,
+              byDate,
+              perDay: matchMedia('(max-width: 699px)').matches,
+              now: { date: todayIso, min: now.getHours() * 60 + now.getMinutes() },
+              noClasses: 'No classes',
+              hallName: (h) => h.replace(/\s*hall$/i, '') || '—',
+              dayHead: (date) => `<b>${SHORT_DAYS[dates.indexOf(date)]}</b> <span class="muted">${short(date)}</span>`,
+              who: (i) => i.column,
+              colorClass: (i) => `c${Math.max(0, trainers.indexOf(i.column.split(' · ')[0].trim())) % 6}`,
             })
-            .join('')}</div>`;
+          : '';
         $('ttPrev').addEventListener('click', () => { ttWeek = ttWeeks[idx - 1]; renderTtWeek(); });
         $('ttNext').addEventListener('click', () => { ttWeek = ttWeeks[idx + 1]; renderTtWeek(); });
         $('ttPrintLang').addEventListener('change', (e) => {
@@ -1771,6 +1770,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           frame.contentWindow.print();
         });
       }
+
+      window.addEventListener('weekgrid-ready', () => ttWeek && renderTtWeek());
 
       async function loadTimetable() {
         $('ttCurrentStatus').textContent = 'Loading…';
@@ -1917,6 +1918,11 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         }
         loadTimetable();
       }
+    </script>
+    <script>
+      import { weekGrid } from '../../lib/weekGrid';
+      (window as any).weekGrid = weekGrid;
+      window.dispatchEvent(new Event('weekgrid-ready'));
     </script>
   </body>
 </html>

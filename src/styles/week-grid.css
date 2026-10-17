@@ -1,0 +1,72 @@
+/* Week time grid (src/lib/weekGrid.ts) — /trainers/ and the admin. */
+
+/* Trainer colours: dots in the trainer nav and the class cards. */
+.c0 { --c: #7aa2ff; } .c1 { --c: #f59ac0; } .c2 { --c: #5fd3a8; }
+.c3 { --c: #9ad468; } .c4 { --c: #b79cff; } .c5 { --c: #5cc8e6; }
+
+.wg {
+  display: grid; grid-template-columns: 3em repeat(var(--days), minmax(0, 1fr)); column-gap: 6px;
+  margin-block-end: 12px; font-size: 0.75rem; line-height: 1.2;
+}
+.wg--empty { grid-template-columns: 1fr; }
+
+.wg-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 8px 6px 6px;
+  background: #fff; border: 1px solid var(--color-line); border-block-end: 0; border-radius: 12px 12px 0 0;
+  color: var(--color-navy-900); min-inline-size: 0;
+}
+.wg--empty .wg-head { border-block-end: 1px solid var(--color-line); border-radius: 12px; justify-content: space-between; }
+.wg-head.is-today { background: var(--color-navy-900); color: #fff; border-color: var(--color-navy-900); }
+.wg-none { font-size: 0.8rem; color: var(--color-ink-soft); }
+.wg-lanes-head { display: flex; gap: 3px; inline-size: 100%; margin-block-start: 4px; }
+.wg-lanes-head span {
+  flex: 1; min-inline-size: 0; padding: 2px 3px; border-radius: 6px; text-align: center;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: var(--color-silver-100); color: var(--color-ink-soft);
+}
+.wg-head.is-today .wg-lanes-head span { background: rgba(255, 255, 255, 0.15); color: #fff; }
+
+.wg-axis { position: relative; }
+.wg-axis span {
+  position: absolute; inset-inline-end: 2px; transform: translateY(-50%);
+  font-size: 0.68rem; font-weight: 600; color: var(--color-ink-soft); font-variant-numeric: tabular-nums;
+}
+
+.wg-body {
+  position: relative; background: #fff; border: 1px solid var(--color-line); border-block-start: 0;
+  border-radius: 0 0 12px 12px; min-inline-size: 0;
+}
+.wg-body.is-today { border-color: var(--color-navy-900); box-shadow: 0 6px 20px rgba(47, 75, 155, 0.15); }
+.wg-hr { position: absolute; inset-inline: 0; border-block-start: 1px solid var(--color-silver-200); }
+.wg-gap {
+  position: absolute; inset-inline: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 5px, var(--color-silver-200) 5px 6px);
+}
+.wg-now { position: absolute; inset-inline: 0; z-index: 2; border-block-start: 2px solid #e5484d; pointer-events: none; }
+.wg-now::before {
+  content: ''; position: absolute; inset-inline-start: -4px; inset-block-start: -5px;
+  inline-size: 8px; block-size: 8px; border-radius: 50%; background: #e5484d;
+}
+
+.wg-lanes { position: absolute; inset: 0 3px; display: flex; gap: 3px; }
+.wg-lane { position: relative; flex: 1; min-inline-size: 0; }
+.wg-lane + .wg-lane::before {
+  content: ''; position: absolute; inset-block: 0; inset-inline-start: -2px; border-inline-start: 1px dashed var(--color-silver-300);
+}
+
+.wg-ev {
+  position: absolute; box-sizing: border-box; display: flex; flex-direction: column; gap: 1px; overflow: hidden;
+  margin: 1px 0 0; padding: 2px 4px; border: 0; border-inline-start: 3px solid var(--c); border-radius: 6px;
+  background: color-mix(in srgb, var(--c) 32%, #fff); color: var(--color-navy-900);
+  font: inherit; text-align: start; cursor: pointer;
+}
+.wg-ev:hover { background: color-mix(in srgb, var(--c) 48%, #fff); z-index: 1; }
+.wg-ev__time { font-size: 0.68rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0.75; align-self: flex-start; }
+.wg-ev__title { font-weight: 700; overflow-wrap: break-word; hyphens: auto; }
+.wg-ev__who { font-size: 0.68rem; font-weight: 600; opacity: 0.75; }
+.wg-ev.is-short { flex-direction: row; flex-wrap: wrap; column-gap: 4px; align-content: flex-start; }
+.wg-ev.is-rent {
+  --c: #ffb547; background: repeating-linear-gradient(135deg, #fff4e0 0 8px, #fffaf1 8px 16px);
+}
+.wg-ev.is-done { opacity: 0.45; }
