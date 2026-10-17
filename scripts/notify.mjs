@@ -11,9 +11,9 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 
-const APP_ID = '064969bd-2602-4775-b49a-7b60231111d5';
-const APP_URL = 'https://etude.ristar.co/student/';
-const KEY = process.env.ONESIGNAL_REST_API_KEY;
+const STUDENTS = { app: '064969bd-2602-4775-b49a-7b60231111d5', url: 'https://etude.ristar.co/student/', key: process.env.ONESIGNAL_REST_API_KEY, secret: 'ONESIGNAL_REST_API_KEY' };
+// The trainers' app (/trainers/) has its own OneSignal app — only admin messages addressed to it go there.
+const TRAINERS = { app: '4fba65f7-ea3b-4ab1-800a-6a2e2348d176', url: 'https://etude.ristar.co/trainers/', key: process.env.ONESIGNAL_TRAINERS_REST_API_KEY, secret: 'ONESIGNAL_TRAINERS_REST_API_KEY' };
 const BEFORE = /^[0-9a-f]{40}$/.test(process.env.BEFORE || '') && !/^0+$/.test(process.env.BEFORE) ? process.env.BEFORE : '';
 
 const il = (o) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', ...o }).format(new Date());
@@ -37,20 +37,20 @@ function uuid(key) {
 }
 
 // ::notice:: / ::warning:: lines show on the run's page (and in the API) without opening the log.
-async function send(key, headings, contents, hash = '') {
+async function send(key, headings, contents, hash = '', to = STUDENTS) {
   console.log(`${key}: ${contents.ru}`);
-  if (!KEY) return console.log(`::warning::No ONESIGNAL_REST_API_KEY secret — not sent: ${key}`);
+  if (!to.key) return console.log(`::warning::No ${to.secret} secret — not sent: ${key}`);
   const res = await fetch('https://api.onesignal.com/notifications', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Key ${KEY}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Key ${to.key}` },
     body: JSON.stringify({
-      app_id: APP_ID,
+      app_id: to.app,
       target_channel: 'push',
       included_segments: ['Total Subscriptions'],
       idempotency_key: uuid(key),
       headings,
       contents,
-      url: APP_URL + hash,
+      url: to.url + hash,
     }),
   });
   // A 200 can still mean nobody got it, e.g. {"errors":["All included players are not subscribed"]}.
@@ -101,7 +101,7 @@ if (old) {
   try { before = JSON.parse(execSync(`git show ${BEFORE}:src/data/push.json`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] })); } catch {}
   const title = loc(p.title);
   if (p.id && p.id !== before.id && pick(p.body, 'he'))
-    await send(`push-${p.id}`, title.he ? title : { he: 'ETUDE', ru: 'ETUDE', en: 'ETUDE' }, loc(p.body));
+    await send(`push-${p.id}`, title.he ? title : { he: 'ETUDE', ru: 'ETUDE', en: 'ETUDE' }, loc(p.body), '', p.to === 'trainers' ? TRAINERS : STUDENTS);
 }
 
 // Payment day (same default and range as paymentSettings in src/lib/student.ts).

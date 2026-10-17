@@ -37,4 +37,5 @@ jobs:
       - run: node scripts/notify.mjs
         env:
           ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
+          ONESIGNAL_TRAINERS_REST_API_KEY: ${{ secrets.ONESIGNAL_TRAINERS_REST_API_KEY }}
           BEFORE: ${{ github.event.before }}

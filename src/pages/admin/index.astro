@@ -655,6 +655,15 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
                 Tapping it opens the app. A language left empty gets the Hebrew text. It can't be taken back once sent.
               </p>
               <div class="form-grid">
+                <div class="row-3">
+                  <div>
+                    <label for="pushTo">Send to</label>
+                    <select id="pushTo">
+                      <option value="students">Students' app</option>
+                      <option value="trainers">Trainers' app</option>
+                    </select>
+                  </div>
+                </div>
                 <div>
                   <label>Title (empty = “ETUDE”)</label>
                   <div class="lang-grid">
@@ -1630,7 +1639,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       // Push notification: a commit of src/data/push.json; scripts/notify.mjs
       // (GitHub Actions, which holds the OneSignal key) sends it once.
       $('pushSendBtn').addEventListener('click', async () => {
-        const msg = { id: Date.now().toString(36), title: {}, body: {} };
+        const msg = { id: Date.now().toString(36), to: $('pushTo').value, title: {}, body: {} };
         for (const [suffix, lang] of Object.entries(SA_LANGS)) {
           msg.title[lang] = $('pushTitle' + suffix).value.trim();
           msg.body[lang] = $('pushBody' + suffix).value.trim();
@@ -1638,7 +1647,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         const status = (text, cls) => { $('pushStatus').textContent = text; $('pushStatus').className = 'status-msg ' + cls; };
         if (!msg.body.he && !msg.body.ru && !msg.body.en) return status('Write the text (at least in one language).', 'bad');
         if (!getToken()) return status('Save a GitHub token first (top of the page).', 'bad');
-        if (!confirm(`Send to every student's phone now?\n\n${msg.body.he || msg.body.ru || msg.body.en}`)) return;
+        if (!confirm(`Send to every ${msg.to === 'trainers' ? 'trainer' : 'student'}'s phone now?\n\n${msg.body.he || msg.body.ru || msg.body.en}`)) return;
         status('Sending…', 'pending');
         try {
           const file = await ghGetFile(PUSH_PATH);
