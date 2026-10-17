@@ -6,8 +6,8 @@
   script gets its own brush face, stitched together by unicode-range:
     Latin    — Another Shabby (self-hosted, letters only: the file is a demo
                build whose digits and symbols are watermark glyphs, so they
-               are subset out and fall through to Marck Script)
-    Cyrillic — Marck Script (Google Fonts)
+               are subset out and fall through to Caveat)
+    Cyrillic — Caveat 700 (Google Fonts)
     Hebrew   — Gveret Levin (Google Fonts)
   Body text is Montserrat (Latin + Cyrillic) with Heebo for Hebrew.
 */
@@ -41,7 +41,7 @@
 
   --color-accent: var(--color-blue-600);
 
-  --font-display: 'Another Shabby', 'Marck Script', 'Gveret Levin', 'Montserrat', 'Heebo', cursive;
+  --font-display: 'Another Shabby', 'Caveat', 'Gveret Levin', 'Montserrat', 'Heebo', cursive;
   --font-body: 'Montserrat', 'Heebo', 'Arial Hebrew', Arial, sans-serif;
 
   --radius-sm: 6px;
@@ -107,6 +107,12 @@ h1, h2, h3, h4 {
 h1 { font-size: clamp(2.4rem, 1.7rem + 2.8vw, 4rem); }
 h2 { font-size: clamp(1.9rem, 1.55rem + 1.4vw, 2.75rem); }
 h3 { font-size: clamp(1.4rem, 1.3rem + 0.5vw, 1.75rem); }
+
+/* Caveat is the Cyrillic brush: it needs weight and size to hold up. */
+:lang(ru) h1, :lang(ru) h2, :lang(ru) h3, :lang(ru) h4 { font-weight: 700; }
+:lang(ru) h1 { font-size: clamp(2.8rem, 2rem + 3.2vw, 4.6rem); }
+:lang(ru) h2 { font-size: clamp(2.2rem, 1.8rem + 1.6vw, 3.2rem); }
+:lang(ru) h3 { font-size: clamp(1.6rem, 1.45rem + 0.6vw, 2rem); }
 
 /* Gveret Levin runs small next to the Latin/Cyrillic brushes. */
 :lang(he) h1, :lang(he) h2, :lang(he) h3, :lang(he) h4 {
