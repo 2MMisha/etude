@@ -1738,9 +1738,9 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       // ---------- A4 printout (built here, printed from a hidden frame) ----------
       let ttPrintLang = (() => { try { return localStorage.getItem('etudePrintLang') || 'he'; } catch { return 'he'; } })();
       const PRINT_L = {
-        he: { studio: 'לוח הזמנים של הסטודיו', trainer: 'לוח הזמנים של {name}', hall: '{name} — לוח זמנים', rentals: 'השכרות אולמות', week: 'שבוע', none: 'אין שיעורים', updated: 'הודפס', locale: 'he-IL', dir: 'rtl' },
-        ru: { studio: 'Расписание студии', trainer: 'Расписание: {name}', hall: '{name} — расписание', rentals: 'Аренда залов', week: 'Неделя', none: 'Нет занятий', updated: 'Напечатано', locale: 'ru-RU', dir: 'ltr' },
-        en: { studio: 'Studio schedule', trainer: "{name}'s schedule", hall: '{name} — schedule', rentals: 'Hall rentals', week: 'Week', none: 'No classes', updated: 'Printed', locale: 'en-GB', dir: 'ltr' },
+        he: { studio: 'לוח הזמנים של הסטודיו', trainer: 'לוח הזמנים של {name}', hall: '{name} — לוח זמנים', rentals: 'השכרות אולמות', week: 'שבוע', none: 'אין שיעורים', updated: 'הודפס', big: 'גדול', small: 'קטן', locale: 'he-IL', dir: 'rtl' },
+        ru: { studio: 'Расписание студии', trainer: 'Расписание: {name}', hall: '{name} — расписание', rentals: 'Аренда залов', week: 'Неделя', none: 'Нет занятий', updated: 'Напечатано', big: 'Большой', small: 'Малый', locale: 'ru-RU', dir: 'ltr' },
+        en: { studio: 'Studio schedule', trainer: "{name}'s schedule", hall: '{name} — schedule', rentals: 'Hall rentals', week: 'Week', none: 'No classes', updated: 'Printed', big: 'Big', small: 'Small', locale: 'en-GB', dir: 'ltr' },
       };
 
       function printWeek(dates, byDate, kind, name) {
@@ -1752,33 +1752,24 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         const title =
           kind === 'all' ? L.studio : kind === 'rentals' ? L.rentals : (RENT.test(name) ? L.hall : L.trainer).replace('{name}', name);
         const dm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
-        const cols = dates
-          .map((date) => {
-            const d = new Date(`${date}T12:00:00`);
-            const items = (byDate.get(date) || []).filter(keep);
-            return `
-              <section class="day">
-                <h2><span>${d.toLocaleDateString(L.locale, { weekday: 'long' })}</span><small>${dm(date)}</small></h2>
-                ${items.length
-                  ? items
-                      .map(
-                        (i) => `
-                          <div class="ev${RENT.test(i.column) ? ' rent' : ''}">
-                            <b dir="ltr">${i.start}–${i.end}</b>
-                            <span class="t" dir="auto">${escapeHtml(i.title)}</span>
-                            ${showColumn || i.column.includes(' · ') ? `<span class="c" dir="auto">${RENT.test(i.column) ? '🔑 ' : ''}${escapeHtml(i.column)}</span>` : ''}
-                          </div>`
-                      )
-                      .join('')
-                  : `<p class="none">${L.none}</p>`}
-              </section>`;
-          })
-          .join('');
+        // Same colours as on screen: trainers of the whole week, sorted.
+        const trainers = [...new Set(dates.flatMap((d) => (byDate.get(d) || []).flatMap(columnsOf)))].filter((c) => c && !RENT.test(c)).sort();
+        const grid = window.weekGrid({
+          dates,
+          byDate: new Map(dates.map((d) => [d, (byDate.get(d) || []).filter(keep)])),
+          noClasses: L.none,
+          hallName: (h) => (/big/i.test(h) ? L.big : /small/i.test(h) ? L.small : h),
+          dayHead: (date) => `<b class="dn">${new Date(`${date}T12:00:00`).toLocaleDateString(L.locale, { weekday: 'long' })}</b> <span class="dd">${dm(date)}</span>`,
+          who: (i) => (showColumn || i.column.includes(' · ') ? i.column : ''),
+          colorClass: (i) => `c${Math.max(0, trainers.indexOf(columnsOf(i)[0])) % 6}`,
+        });
         const html = `<!doctype html>
           <html lang="${ttPrintLang}" dir="${L.dir}"><head><meta charset="utf-8">
           <title>${escapeHtml(title)} — ${dm(dates[0])}–${dm(dates[6])}</title>
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Heebo:wght@500;600;700&display=swap">
           <style>
+            :root { --color-navy-900: #17224a; --color-line: #c9cfdc; --color-ink: #1b2132; --color-ink-soft: #4a5367;
+              --color-silver-100: #f0f2f7; --color-silver-200: #e5e8ef; --color-silver-300: #d3d8e4; }
             @page { size: A4 landscape; margin: 9mm; }
             * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             body { margin: 0; font: 9pt/1.25 ${ttPrintLang === 'he' ? "'Heebo', 'Montserrat'" : "'Montserrat', 'Heebo'"}, sans-serif; color: #1b2132; }
@@ -1786,25 +1777,18 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             h1 { margin: 0; font-size: 16pt; color: #17224a; }
             header img { height: 10mm; }
             .week { margin: 2mm 0; font-size: 12pt; font-weight: 700; color: #17224a; }
-            .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2mm; }
-            .day { border: 0.3mm solid #c9cfdc; border-radius: 2mm; padding: 1.5mm; min-height: 30mm; }
-            .day h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 1mm; margin: 0 0 1.5mm; font-size: 9.5pt; color: #17224a; }
-            .day h2 small { font-size: 7.5pt; font-weight: 500; color: #4a5367; }
-            .day h2 span { text-transform: capitalize; }
-            .ev { display: grid; gap: 0.3mm; padding: 1mm 1.5mm; margin-bottom: 1mm; border-radius: 1.2mm; background: #e6ebf7; border-inline-start: 0.8mm solid #2f4b9b; break-inside: avoid; }
-            .ev b { font-size: 7.5pt; color: #2f4b9b; justify-self: start; }
-            .ev .t { font-size: 8.5pt; font-weight: 700; overflow-wrap: break-word; }
-            .ev .c { font-size: 7pt; font-weight: 600; color: #4a5367; }
-            .ev.rent { background: repeating-linear-gradient(135deg, #fff4e0 0 2mm, #fffaf1 2mm 4mm); border-inline-start-color: #ffb547; }
-            .ev.rent b, .ev.rent .c { color: #9a5b00; }
-            html[dir='rtl'] .ev .t, html[dir='rtl'] .ev .c { text-align: right; }
-            html[dir='ltr'] .ev .t, html[dir='ltr'] .ev .c { text-align: left; }
-            .none { margin: 0; font-size: 7.5pt; color: #4a5367; }
+            .dn { text-transform: capitalize; }
+            .dd { font-size: 0.85em; color: #4a5367; }
             footer { display: flex; justify-content: space-between; margin-top: 2mm; font-size: 7.5pt; color: #4a5367; }
+            ${window.weekGridCss || ''}
+            .wg-ev { cursor: default; padding: 1px 3px; }
+            .wg { font-size: 7.5pt; grid-template-columns: 2.6em repeat(var(--days), minmax(0, 1fr)); column-gap: 4px; }
+            .wg-lanes-head span { font-size: 6.5pt; letter-spacing: 0; text-transform: none; }
+            .wg-lanes { inset: 0 2px; gap: 2px; }
           </style></head><body>
           <header><h1>${escapeHtml(title)}</h1><img src="${location.origin}/images/brand/logo-full.svg" alt="ETUDE"></header>
           <p class="week">${L.week} <bdi dir="ltr">${dm(dates[0])} – ${dm(dates[6])}</bdi></p>
-          <div class="grid">${cols}</div>
+          ${grid || `<p>${L.none}</p>`}
           <footer><span>etude.ristar.co</span><span>${L.updated}: ${new Date().toLocaleDateString(L.locale)}</span></footer>
           </body></html>`;
 
@@ -1812,7 +1796,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         const frame = document.createElement('iframe');
         frame.id = 'ttPrintFrame';
         frame.setAttribute('aria-hidden', 'true');
-        frame.style.cssText = 'position:fixed;inset-inline-end:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+        // A4 landscape inside the margins (277 × 192 mm at 96 dpi), so the page can be measured and fitted.
+        frame.style.cssText = 'position:fixed;left:-2000px;top:0;width:1047px;height:726px;border:0;visibility:hidden';
         document.body.appendChild(frame);
         const doc = frame.contentDocument;
         doc.open();
@@ -1824,6 +1809,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           doc.fonts ? doc.fonts.ready : Promise.resolve(),
         ]);
         Promise.race([ready, new Promise((r) => setTimeout(r, 2500))]).then(() => {
+          // A long day shrinks the whole sheet to fit one page.
+          doc.body.style.zoom = String(Math.min(1, 720 / doc.body.scrollHeight));
           frame.contentWindow.focus();
           frame.contentWindow.print();
         });
@@ -1979,7 +1966,9 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
     </script>
     <script>
       import { weekGrid } from '../../lib/weekGrid';
+      import weekGridCss from '../../styles/week-grid.css?raw';
       (window as any).weekGrid = weekGrid;
+      (window as any).weekGridCss = weekGridCss; // for the A4 printout
       window.dispatchEvent(new Event('weekgrid-ready'));
     </script>
   </body>
