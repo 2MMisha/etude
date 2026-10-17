@@ -3,6 +3,9 @@
 // timetable. Rendered in the browser so the language follows the device
 // (he/ru/en, switchable) — the data is embedded at build time and the site
 // rebuilds hourly. Not linked from the public site; noindex.
+// Installable like the student app (manifest-<slug>.webmanifest, sw.js): opens
+// on the page it was added from, offline copy, push notifications of schedule
+// changes (scripts/notify-trainers.mjs) and a "what changed" popup.
 import '../styles/global.css';
 import '../styles/week-grid.css';
 import { getTimetable } from '../lib/loadTimetable';
@@ -18,6 +21,10 @@ const trainers = trainersFrom(tt);
 const halls = hallsFrom(tt);
 const current = [...trainers, ...halls].find((t) => t.slug === slug);
 const feedPath = `/trainers/${slug}.ics`;
+
+// Push notifications: the trainers' own OneSignal app (not the students').
+// Empty = the "Turn on notifications" button stays hidden and nothing is sent.
+const ONESIGNAL_APP_ID = '';
 const data = {
   slug,
   name: current?.name ?? '',
@@ -27,6 +34,7 @@ const data = {
   location: STUDIO_LOCATION,
   feedUrl: `${SITE.siteUrl}${feedPath}`,
   updatedAt: tt.updatedAt,
+  pushAppId: ONESIGNAL_APP_ID,
 };
 const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG ? 'ETUDE — Rentals' : 'ETUDE — Schedule';
 ---
@@ -38,6 +46,9 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#17224a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ETUDE" />
+    <link rel="manifest" href={`/trainers/manifest-${slug}.webmanifest`} />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
     <link
@@ -48,6 +59,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
     />
     <title>{pageTitle}</title>
     <meta name="description" content={current ? `Weekly class schedule for ${current.name} at ETUDE Dance School.` : 'Weekly class schedule of ETUDE Dance School.'} />
+    {ONESIGNAL_APP_ID && <script is:inline src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>}
   </head>
   <body class="ts">
     <header class="ts-top">
@@ -82,6 +94,10 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
             <a class="ts-btn" id="calDownload" download></a>
           </div>
         </details>
+        <div class="ts-app">
+          <button type="button" class="ts-btn" id="pushOn" hidden></button>
+          <button type="button" class="ts-btn" id="howInstall" hidden></button>
+        </div>
       </div>
 
       <div id="week"></div>
@@ -99,6 +115,27 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           </div>
         </form>
       </dialog>
+
+      <!-- What changed since this phone last opened the page. -->
+      <dialog class="ts-dlg" id="chDlg">
+        <form method="dialog">
+          <h3 class="ts-dlg__title" id="chTitle"></h3>
+          <ul class="ts-changes" id="chList" dir="ltr"></ul>
+          <div class="ts-dlg__actions"><button class="ts-btn ts-btn--primary" id="chClose"></button></div>
+        </form>
+      </dialog>
+
+      <!-- "Add to home screen": shown once on a phone, reopenable from the toolbar. -->
+      <dialog class="ts-dlg" id="install">
+        <h3 class="ts-dlg__title" id="inTitle"></h3>
+        <p id="inText"></p>
+        <ol class="ts-steps" id="inIos" hidden></ol>
+        <ol class="ts-steps" id="inAndroid" hidden></ol>
+        <div class="ts-dlg__actions">
+          <button type="button" class="ts-btn ts-btn--primary" id="inButton" hidden></button>
+          <button type="button" class="ts-btn" id="inLater"></button>
+        </div>
+      </dialog>
     </main>
 
     <footer class="ts-wrap ts-foot">
@@ -112,8 +149,10 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       import { buildIcs, googleCalendarUrl, type CalendarEvent } from '../lib/calendar';
       import { RENTAL_COLUMN, weekOf, type TimetableItem } from '../lib/timetable';
       import { weekGrid } from '../lib/weekGrid';
+      import { scheduleChanges } from '../lib/scheduleDiff';
 
       type Lang = 'he' | 'en' | 'ru';
+      const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const L = {
         he: {
           trainer: 'לוח הזמנים של {name}', studio: 'לוח הזמנים של הסטודיו', all: 'כל הסטודיו',
@@ -124,6 +163,8 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           subscribe: 'Apple / Outlook (מינוי)', google: 'Google Calendar (מינוי)', download: 'הורדת קובץ ICS',
           addGoogle: 'הוספה ל-Google Calendar', addIcs: 'הוספה ליומן (ICS)', rent: 'השכרה', updated: 'עודכן', close: 'סגירה',
           big: 'אולם גדול', small: 'אולם קטן', bigS: 'גדול', smallS: 'קטן',
+          changes: 'שינויים בלוח הזמנים', pushOn: 'הפעלת התראות',
+          inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
           locale: 'he-IL', dir: 'rtl',
         },
         en: {
@@ -135,6 +176,8 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           subscribe: 'Apple / Outlook (subscribe)', google: 'Google Calendar (subscribe)', download: 'Download .ics file',
           addGoogle: 'Add to Google Calendar', addIcs: 'Add to calendar (.ics)', rent: 'Rental', updated: 'Updated', close: 'Close',
           big: 'Big hall', small: 'Small hall', bigS: 'Big', smallS: 'Small',
+          changes: 'Schedule changes', pushOn: 'Turn on notifications',
+          inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
           locale: 'en-GB', dir: 'ltr',
         },
         ru: {
@@ -146,6 +189,8 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           subscribe: 'Apple / Outlook (подписка)', google: 'Google Календарь (подписка)', download: 'Скачать файл .ics',
           addGoogle: 'Добавить в Google Календарь', addIcs: 'Добавить в календарь (.ics)', rent: 'Аренда', updated: 'Обновлено', close: 'Закрыть',
           big: 'Большой зал', small: 'Малый зал', bigS: 'Большой', smallS: 'Малый',
+          changes: 'Изменения в расписании', pushOn: 'Включить уведомления',
+          inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
           locale: 'ru-RU', dir: 'ltr',
         },
       } as const;
@@ -160,6 +205,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         location: string;
         feedUrl: string;
         updatedAt: string;
+        pushAppId: string;
       }
       const data: Data = JSON.parse(document.getElementById('ts-data')!.textContent || '{}');
       const $ = (id: string) => document.getElementById(id)!;
@@ -218,6 +264,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         document.documentElement.lang = lang;
         document.documentElement.dir = t.dir;
         document.querySelectorAll<HTMLButtonElement>('.ts-langs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+        renderApp();
 
         const title = isAll
           ? t.studio
@@ -330,6 +377,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           try {
             localStorage.setItem('etude-lang', lang);
           } catch {}
+          push?.User.setLanguage?.(lang);
           render();
         })
       );
@@ -375,9 +423,99 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         if (menu.open && !menu.contains(e.target as Node)) menu.open = false;
       });
 
+      // ----- The installed app (as in the student app): push, "what changed", home screen -----
+      // OneSignal's worker sits in its own scope, /trainers/push/, so it doesn't
+      // replace the offline worker (/trainers/sw.js). iPhone allows push only in
+      // the home-screen app. Each phone gets the changes of the page it turned
+      // notifications on from (tag "page", see scripts/notify-trainers.mjs).
+      let push: any = null;
+      if (data.pushAppId)
+        ((window as any).OneSignalDeferred ||= []).push(async (OneSignal: any) => {
+          await OneSignal.init({ appId: data.pushAppId, serviceWorkerPath: 'trainers/push/OneSignalSDKWorker.js', serviceWorkerParam: { scope: '/trainers/push/' } });
+          if (!OneSignal.Notifications.isPushSupported()) return;
+          push = OneSignal;
+          push.User.setLanguage?.(lang);
+          // Allowed earlier (e.g. on Android the site already may) but no page yet → this one.
+          if (push.Notifications.permission && !push.User.getTags?.().page) push.User.addTag('page', data.slug);
+          push.Notifications.addEventListener('permissionChange', renderApp);
+          renderApp();
+        });
+      $('pushOn').addEventListener('click', () => {
+        push?.User.addTag('page', data.slug);
+        push?.Notifications.requestPermission();
+      });
+
+      // Chrome/Android offers a real install prompt; iPhone only has Safari's
+      // Share → Add to Home Screen, so it gets the steps instead.
+      const installed = ['standalone', 'fullscreen', 'minimal-ui'].some((m) => matchMedia(`(display-mode: ${m})`).matches) || (navigator as any).standalone === true;
+      const isAndroid = /Android/.test(navigator.userAgent);
+      // iPadOS reports itself as a Mac with a touch screen.
+      const isIos = !isAndroid && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+      let installEvent: any = null;
+      addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderApp(); });
+      addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; renderApp(); });
+      function renderApp() {
+        $('pushOn').textContent = `🔔 ${t.pushOn}`;
+        $('pushOn').hidden = !push || Notification.permission !== 'default';
+        $('howInstall').textContent = `📲 ${t.howInstall}`;
+        $('howInstall').hidden = installed;
+        $('inTitle').textContent = t.inTitle;
+        $('inText').textContent = t.inText;
+        $('inButton').textContent = t.inButton;
+        $('inButton').hidden = !installEvent;
+        $('inLater').textContent = t.inLater;
+        // Steps are fixed strings from L (with <b> markup), not user content.
+        $('inIos').innerHTML = t.ios.map((x) => `<li>${x}</li>`).join('');
+        $('inAndroid').innerHTML = t.android.map((x) => `<li>${x}</li>`).join('');
+        // Phones see their own steps; a computer sees both.
+        $('inIos').hidden = !!installEvent || isAndroid;
+        $('inAndroid').hidden = !!installEvent || isIos;
+        $('chTitle').textContent = t.changes;
+        $('chClose').textContent = t.close;
+      }
+      function openInstall() {
+        renderApp();
+        try { localStorage.setItem('etude-ts-install-seen', '1'); } catch {}
+        const d = $('install') as HTMLDialogElement;
+        if (!d.open && !($('chDlg') as HTMLDialogElement).open) d.showModal();
+      }
+      $('howInstall').addEventListener('click', openInstall);
+      $('inLater').addEventListener('click', () => ($('install') as HTMLDialogElement).close());
+      $('inButton').addEventListener('click', async () => {
+        if (!installEvent) return;
+        installEvent.prompt();
+        await installEvent.userChoice;
+        installEvent = null;
+        ($('install') as HTMLDialogElement).close();
+      });
+      // Tap on the dimmed backdrop closes them too.
+      ['install', 'chDlg'].forEach((id) => $(id).addEventListener('click', (e) => { if (e.target === e.currentTarget) ($(id) as HTMLDialogElement).close(); }));
+
+      // "What changed": this page as this phone last saw it vs now. A copy older
+      // than the saved one (offline) changes nothing; the first visit only saves.
+      function showChanges() {
+        const seenKey = `etude-ts-seen-${data.slug}`;
+        try {
+          const seen = JSON.parse(localStorage.getItem(seenKey) || 'null');
+          if (seen && !(data.updatedAt > seen.updatedAt)) return false;
+          localStorage.setItem(seenKey, JSON.stringify({ updatedAt: data.updatedAt, days: data.days.filter((d) => d.date >= todayIso) }));
+          const lines = seen ? scheduleChanges(seen.days, data.days, todayIso, isAll || isRentals) : [];
+          if (!lines.length) return false;
+          $('chList').innerHTML = lines.map((l) => `<li dir="auto">${esc(l)}</li>`).join('');
+          ($('chDlg') as HTMLDialogElement).showModal();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
       render();
+      let seenInstall = '1';
+      try { seenInstall = localStorage.getItem('etude-ts-install-seen') ?? ''; } catch {}
+      if (!showChanges() && !installed && (isIos || isAndroid) && !seenInstall) setTimeout(openInstall, 1500);
       // Keep "today"/past styling right if the page stays open.
       setInterval(render, 5 * 60 * 1000);
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('/trainers/sw.js', { scope: '/trainers/' }).catch(() => {});
     </script>
 
     <style is:global>
@@ -389,6 +527,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       }
       :lang(en) body.ts, :lang(ru) body.ts { font-family: 'Montserrat', 'Heebo', system-ui, sans-serif; }
       .ts p { margin: 0; color: inherit; }
+      .ts [hidden] { display: none !important; }
       .ts-wrap { max-width: 1440px; margin-inline: auto; padding-inline: 16px; box-sizing: border-box; }
       @media (min-width: 768px) { .ts-wrap { padding-inline: 28px; } }
 
@@ -474,6 +613,15 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       .ts .ts-dlg__title { margin: 6px 0 4px; font-family: inherit; font-weight: 800; font-size: 1.3rem; line-height: 1.2; color: var(--color-navy-900); }
       .ts-dlg__where { font-weight: 600; color: var(--color-ink-soft); }
       .ts-dlg__actions { display: grid; gap: 8px; margin-block-start: 16px; }
+      .ts-app { display: flex; flex-wrap: wrap; gap: 8px; }
+      .ts-app:not(:has(button:not([hidden]))) { display: none; }
+      @media (max-width: 639px) { .ts-app { inline-size: 100%; } .ts-app .ts-btn { flex: 1; } }
+      .ts-dlg p { margin-block: 8px; line-height: 1.45; }
+      .ts-steps { margin: 0; padding-inline-start: 1.4em; display: grid; gap: 8px; line-height: 1.45; }
+      .ts-steps b { color: var(--color-navy-900); }
+      .ts-steps .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
+      .ts-changes { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; max-block-size: 50vh; overflow-y: auto; }
+      .ts-changes li { padding: 8px 10px; border-radius: 10px; background: var(--color-blue-100); font-weight: 600; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
       .ts-empty { margin-block-start: 16px; text-align: center; color: var(--color-ink-soft); }
       .ts-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 8px 28px; font-size: 0.85rem; color: var(--color-ink-soft); }
       .ts-foot a { color: var(--color-blue-600); }

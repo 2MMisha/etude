@@ -18,7 +18,7 @@ export const GET: APIRoute = ({ params, props }) => {
     JSON.stringify({
       id: start,
       name: params.slug === ALL_SLUG ? 'ETUDE' : `ETUDE — ${props.name}`,
-      short_name: props.name,
+      short_name: 'ETUDE',
       description: 'ETUDE Dance School — schedule for trainers',
       start_url: start,
       scope: '/trainers/',
