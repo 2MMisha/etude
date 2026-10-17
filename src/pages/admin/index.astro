@@ -483,6 +483,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
               <button type="button" data-sub="invite">Invite a friend</button>
               <button type="button" data-sub="prices">Prices &amp; rules</button>
               <button type="button" data-sub="access">Access code</button>
+              <button type="button" data-sub="push">🔔 Send notification</button>
             </div>
           </div>
 
@@ -646,6 +647,38 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             </div>
           </div>
 
+          <div data-subpanel="push" hidden>
+            <div class="panel">
+              <h2 style="font-size:1.05rem">Send a push notification</h2>
+              <p class="hint">
+                Goes right away to every phone that installed the app and allowed notifications (arrives in about 1–2 minutes).
+                Tapping it opens the app. A language left empty gets the Hebrew text. It can't be taken back once sent.
+              </p>
+              <div class="form-grid">
+                <div>
+                  <label>Title (empty = “ETUDE”)</label>
+                  <div class="lang-grid">
+                    <input id="pushTitleHe" placeholder="עברית" dir="rtl" maxlength="60" />
+                    <input id="pushTitleRu" placeholder="Русский" maxlength="60" />
+                    <input id="pushTitleEn" placeholder="English" maxlength="60" />
+                  </div>
+                </div>
+                <div>
+                  <label>Text</label>
+                  <div class="lang-grid">
+                    <textarea id="pushBodyHe" placeholder="עברית" dir="rtl" maxlength="200"></textarea>
+                    <textarea id="pushBodyRu" placeholder="Русский" maxlength="200"></textarea>
+                    <textarea id="pushBodyEn" placeholder="English" maxlength="200"></textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-mini primary" id="pushSendBtn">Send to everyone</button>
+                <span class="status-msg" id="pushStatus"></span>
+              </div>
+            </div>
+          </div>
+
           <div class="save-bar">
             <button class="btn-mini primary" id="saveStudentBtn">Save app settings</button>
             <span class="status-msg" id="studentSaveStatus"></span>
@@ -686,6 +719,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       const INSTRUCTORS_DIR = 'src/content/instructors';
       const SETTINGS_PATH = 'src/data/site-settings.json';
       const STUDENT_PATH = 'src/data/student-app.json';
+      const PUSH_PATH = 'src/data/push.json';
       const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
       const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -1398,6 +1432,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         b.addEventListener('click', () => {
           document.querySelectorAll('#saSubtabs button').forEach((x) => x.classList.toggle('active', x === b));
           document.querySelectorAll('[data-subpanel]').forEach((p) => (p.hidden = p.dataset.subpanel !== b.dataset.sub));
+          document.querySelector('#studentSection .save-bar').hidden = b.dataset.sub === 'push'; // push has its own button
         })
       );
 
@@ -1591,6 +1626,29 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         }
       }
       $('saveStudentBtn').addEventListener('click', saveStudent);
+
+      // Push notification: a commit of src/data/push.json; scripts/notify.mjs
+      // (GitHub Actions, which holds the OneSignal key) sends it once.
+      $('pushSendBtn').addEventListener('click', async () => {
+        const msg = { id: Date.now().toString(36), title: {}, body: {} };
+        for (const [suffix, lang] of Object.entries(SA_LANGS)) {
+          msg.title[lang] = $('pushTitle' + suffix).value.trim();
+          msg.body[lang] = $('pushBody' + suffix).value.trim();
+        }
+        const status = (text, cls) => { $('pushStatus').textContent = text; $('pushStatus').className = 'status-msg ' + cls; };
+        if (!msg.body.he && !msg.body.ru && !msg.body.en) return status('Write the text (at least in one language).', 'bad');
+        if (!getToken()) return status('Save a GitHub token first (top of the page).', 'bad');
+        if (!confirm(`Send to every student's phone now?\n\n${msg.body.he || msg.body.ru || msg.body.en}`)) return;
+        status('Sending…', 'pending');
+        try {
+          const file = await ghGetFile(PUSH_PATH);
+          await ghPutFile(PUSH_PATH, msg, file?.sha, 'chore(push): send a notification via admin panel');
+          status('Sent — phones get it in about 1–2 minutes.', 'ok');
+          document.querySelectorAll('[id^=pushTitle], [id^=pushBody]').forEach((el) => (el.value = ''));
+        } catch (err) {
+          status('Failed: ' + err.message, 'bad');
+        }
+      });
 
 
       // ---------- Timetable (Google Sheet) ----------

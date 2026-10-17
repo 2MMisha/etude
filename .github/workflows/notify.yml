@@ -1,11 +1,11 @@
 name: Student app push notifications
 
-# scripts/notify.mjs: news, events, the "important" notice and the payment day.
+# scripts/notify.mjs: news, events, the "important" notice, the payment day and messages from /admin/.
 on:
-  # Edits from /admin/ (news, events, the notice).
+  # Edits from /admin/ (news, events, the notice, a message).
   push:
     branches: [main]
-    paths: ['src/content/news/**', 'src/data/student-app.json']
+    paths: ['src/content/news/**', 'src/data/student-app.json', 'src/data/push.json']
   # Every morning: news scheduled for today and the payment day (07:15 UTC = 9:15/10:15 in Israel).
   schedule:
     - cron: '15 7 * * *'
@@ -30,7 +30,8 @@ jobs:
 
       # ponytail: a fixed wait for deploy.yml to publish the change, so a tap opens
       # the new post; wait on the deploy run itself if deploys ever take longer.
-      - if: github.event_name == 'push'
+      # A plain message from /admin/ has nothing to wait for.
+      - if: github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(push)')
         run: sleep 240
 
       - run: node scripts/notify.mjs

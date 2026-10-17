@@ -1,9 +1,10 @@
 // Push notifications to the student app through OneSignal, run by
-// .github/workflows/notify.yml. Only four kinds:
+// .github/workflows/notify.yml. Only five kinds:
 //   - a news post dated today (from 9:00, so a post scheduled ahead goes out that morning);
 //   - a new event and a new or retitled "important" notice — found by comparing
 //     src/data/student-app.json with the commit before the push (BEFORE);
-//   - the payment day (from 9:00).
+//   - the payment day (from 9:00);
+//   - a message typed in /admin/ (src/data/push.json).
 // Each notification has a fixed idempotency key, so OneSignal sends it once
 // however many runs see it. No ONESIGNAL_REST_API_KEY → only prints what it would send.
 import { execSync } from 'node:child_process';
@@ -91,6 +92,16 @@ if (old) {
   const live = n?.active && pick(n.title, 'he') && !(n.until && n.until < today);
   if (live && !(old.notice?.active && JSON.stringify(old.notice.title ?? {}) === title))
     await send(`notice-${createHash('sha1').update(title).digest('hex')}`, LABEL.notice, loc(n.title), '#notice');
+}
+
+// A message sent from /admin/ (src/data/push.json): once, on the push that changed it.
+if (old) {
+  let p = {}, before = {};
+  try { p = JSON.parse(readFileSync('src/data/push.json', 'utf8')); } catch {}
+  try { before = JSON.parse(execSync(`git show ${BEFORE}:src/data/push.json`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] })); } catch {}
+  const title = loc(p.title);
+  if (p.id && p.id !== before.id && pick(p.body, 'he'))
+    await send(`push-${p.id}`, title.he ? title : { he: 'ETUDE', ru: 'ETUDE', en: 'ETUDE' }, loc(p.body));
 }
 
 // Payment day (same default and range as paymentSettings in src/lib/student.ts).
