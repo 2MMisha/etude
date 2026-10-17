@@ -15,10 +15,11 @@ export interface WeekGridOptions {
   isDone?: (iso: string, item: TimetableItem) => boolean;
   now?: { date: string; min: number };
   perDay?: boolean; // narrow screens: every day its own grid, stacked
+  fitHeight?: number; // px for the grid body: the hour height is chosen to fill it (the studio TV)
   noClasses: string;
 }
 
-const HOUR = 64; // px per hour
+const HOUR_PX = 64; // px per hour
 const GAP = 16; // px for a folded stretch of empty hours
 const PAD = 10; // px above the first hour, so its label isn't clipped
 
@@ -74,6 +75,8 @@ function grid(o: WeekGridOptions, dates: string[]): string {
   ].sort((a, b) => a - b);
   const lanes = [...new Set(all.map((i) => i.hall ?? ''))].sort();
 
+  const gapCount = hours.filter((h, k) => k && h !== hours[k - 1] + 1).length;
+  const HOUR = o.fitHeight ? Math.max(24, (o.fitHeight - 2 * PAD - gapCount * GAP) / hours.length) : HOUR_PX;
   const top = new Map<number, number>();
   const gaps: number[] = [];
   const ends: number[] = [];
@@ -108,7 +111,8 @@ function grid(o: WeekGridOptions, dates: string[]): string {
       lanes.length > 1
         ? `<span class="wg-lanes-head">${lanes.map((l) => `<span>${esc(o.hallName(l))}</span>`).join('')}</span>`
         : '';
-    return `<div class="wg-head${today}">${o.dayHead(d)}${empty}${laneHead}</div>`;
+    const none = itemsOf(d).length ? '' : ' wg-head--empty';
+    return `<div class="wg-head${today}${none}">${o.dayHead(d)}${empty}${laneHead}</div>`;
   };
 
   const body = (d: string) => {
@@ -151,6 +155,21 @@ function grid(o: WeekGridOptions, dates: string[]): string {
     <div></div>${dates.map(head).join('')}
     <div class="wg-axis" style="height:${height}px">${axis}</div>${dates.map(body).join('')}
   </div>`;
+}
+
+/** Shrinks the text of every class card whose content doesn't fit its box (narrow lanes, short classes). */
+export function fitCards(root: ParentNode, min = 7) {
+  for (const el of root.querySelectorAll<HTMLElement>('.wg-ev')) {
+    el.style.fontSize = '';
+    el.classList.remove('is-tight');
+    const time = el.querySelector<HTMLElement>('.wg-ev__time')!;
+    let size = parseFloat(el.ownerDocument.defaultView!.getComputedStyle(el).fontSize);
+    const overflows = () =>
+      el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1 || time.scrollWidth > time.clientWidth + 1;
+    while (overflows() && size > min) el.style.fontSize = `${(size -= 0.5)}px`;
+    // Still too much at the smallest size: break long words and drop the trainer line (the colour says who).
+    if (overflows()) el.classList.add('is-tight');
+  }
 }
 
 export function weekGrid(o: WeekGridOptions): string {

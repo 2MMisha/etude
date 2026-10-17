@@ -23,6 +23,7 @@
 import { readdirSync } from 'node:fs';
 import QRCode from 'qrcode';
 import '../styles/global.css';
+import '../styles/week-grid.css';
 import { getPublishedNews } from '../lib/news';
 import { excerpt } from '../lib/richText';
 import { SITE } from '../lib/site';
@@ -104,6 +105,7 @@ const promo = {
     <script type="application/json" id="promoData" set:html={JSON.stringify(promo).replace(/</g, '\\u003c')} />
     <script>
       import { dayFor, timeToMinutes, weekOf, RENTAL_COLUMN, type Timetable, type TimetableItem } from '../lib/timetable';
+      import { fitCards, weekGrid } from '../lib/weekGrid';
       import { SITE } from '../lib/site';
 
       type Lang = 'he' | 'en' | 'ru';
@@ -275,6 +277,11 @@ const promo = {
         'Small Hall': { he: 'אולם קטן', en: 'Small Hall', ru: 'Малый зал' },
       };
       const hallName = (hall: string) => HALLS[hall]?.[lang] ?? hall;
+      // Lane heads of the week grid are narrow.
+      const HALLS_SHORT: Record<string, Record<Lang, string>> = {
+        'Big Hall': { he: 'גדול', en: 'Big', ru: 'Большой' },
+        'Small Hall': { he: 'קטן', en: 'Small', ru: 'Малый' },
+      };
 
       // "Roman · אולם גדול"; a whole-hall block or a rental is named after its hall.
       function whoOf(item: TimetableItem) {
@@ -430,40 +437,37 @@ const promo = {
         const todayIso = dates[date.getDay()];
         const minutes = date.getHours() * 60 + date.getMinutes();
         let fromTemplate = false;
-        // Days already over collapse to a narrow column with just a tick and count.
-        $('weekView').style.gridTemplateColumns = dates.map((iso) => (iso < todayIso ? 'minmax(0, 0.45fr)' : 'minmax(0, 1fr)')).join(' ');
-        setHTML($('weekView'), dates
-          .map((iso) => {
-            const d = new Date(`${iso}T12:00:00`);
-            const { items: all, fromTemplate: ft } = itemsOf(d);
-            fromTemplate ||= ft && all.length > 0;
-            const past = iso < todayIso;
-            const items = iso === todayIso ? withoutPast(all, minutes) : all;
-            const body = past
-              ? `<p class="wday__done">${all.length ? `✓ ${all.length}` : '—'}</p>`
-              : items.length
-                ? `<div class="fit"><ul class="wday__list">${items
-                    .map(
-                      (i) => `
-                        <li class="wev${isRent(i) ? ' is-rent' : ` c${colorOf(i.column)}`}${iso === todayIso && timeToMinutes(i.end) <= minutes ? ' wev--past' : ''}" data-end="${i.end}">
-                          <span class="wev__time" dir="ltr">${i.start}</span>
-                          <span class="wev__title" dir="auto">${esc(i.title)}</span>
-                          <span class="wev__who" dir="auto">${isRent(i) ? icon('key') : ''}${esc(whoOf(i))}</span>
-                        </li>`
-                    )
-                    .join('')}</ul></div>`
-                : '<p class="wday__none">—</p>';
-            return `
-              <section class="wday${iso === todayIso ? ' wday--today' : ''}${past ? ' wday--past' : ''}">
-                <h2 class="wday__head">
-                  <span>${d.toLocaleDateString(t.locale, { weekday: past ? 'short' : 'long' })}</span>
-                  <small>${iso === todayIso ? `${t.today2} · ` : ''}${dm(iso)}</small>
-                </h2>
-                ${body}
-              </section>`;
+        const all = new Map(
+          dates.map((iso) => {
+            const { items, fromTemplate: ft } = itemsOf(new Date(`${iso}T12:00:00`));
+            fromTemplate ||= ft && items.length > 0;
+            return [iso, items];
           })
-          .join(''));
-        fitGroup([...$('weekView').querySelectorAll<HTMLElement>('.fit')]);
+        );
+        // Days already over collapse to a narrow column with just a tick and count.
+        const byDate = new Map(dates.map((iso) => [iso, iso < todayIso ? [] : all.get(iso)!]));
+        // The same time grid as the trainers' pages (src/lib/weekGrid.ts): a lane per
+        // hall, so parallel classes sit side by side; the hours stretch to fill the screen.
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        setHTML($('weekView'), weekGrid({
+          dates,
+          byDate,
+          fitHeight: $('weekView').clientHeight - 5.6 * rem, // minus the day heads (.wg-head)
+          now: { date: todayIso, min: minutes },
+          noClasses: '—',
+          hallName: (h) => HALLS_SHORT[h]?.[lang] ?? hallName(h),
+          dayHead: (iso) =>
+            iso < todayIso
+              ? `<b>${new Date(`${iso}T12:00:00`).toLocaleDateString(t.locale, { weekday: 'short' })}</b><small>${all.get(iso)!.length ? `✓ ${all.get(iso)!.length}` : '—'}</small>`
+              : `<b>${new Date(`${iso}T12:00:00`).toLocaleDateString(t.locale, { weekday: 'long' })}</b>
+                <small>${iso === todayIso ? `${t.today2} · ` : ''}${dm(iso)}</small>`,
+          who: (i) => (isRent(i) ? t.rental : i.column),
+          colorClass: (i) => `c${colorOf(i.column)}`,
+          isDone: (iso, i) => iso < todayIso || (iso === todayIso && timeToMinutes(i.end) <= minutes),
+        }));
+        const grid = $('weekView').querySelector<HTMLElement>('.wg');
+        if (grid) grid.style.gridTemplateColumns = ['3.8rem', ...dates.map((iso) => `minmax(0, ${iso < todayIso ? 0.4 : 1}fr)`)].join(' ');
+        fitCards($('weekView'), 0.55 * rem);
         const notes = [];
         if (fromTemplate) notes.push(t.template);
         if (offline) notes.push(t.offline);
@@ -697,31 +701,31 @@ const promo = {
       .screen { position: relative; z-index: 1; transition: opacity 0.45s ease; }
       .screen.is-fading { opacity: 0; }
 
-      /* Week view (2 minutes out of every 10). */
-      .weekview { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1rem; min-height: 0; }
-      .wday {
-        display: flex; flex-direction: column; gap: 0.7rem; min-height: 0; overflow: hidden;
-        padding: 1.1rem 0.9rem; border-radius: 1.3rem;
-        background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);
+      /* Week view (2 minutes out of every 10): the shared time grid (week-grid.css), dark. */
+      .weekview { min-height: 0; overflow: hidden; }
+      .display .wg { font-size: 1.05rem; column-gap: 0.8rem; margin: 0; grid-template-columns: 3.8rem repeat(var(--days), minmax(0, 1fr)); }
+      .display .wg-head {
+        block-size: 5.6rem; box-sizing: border-box; align-content: flex-start; padding: 0.8rem 0.7rem 0.6rem;
+        font-size: 1.35rem; color: #fff; background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); border-radius: 1.1rem 1.1rem 0 0;
       }
-      .wday--today { background: rgba(255, 255, 255, 0.14); border: 2px solid rgba(255, 255, 255, 0.75); }
-      .wday--past { opacity: 0.45; }
-      .display .wday__head { display: flex; flex-direction: column; gap: 0.15rem; font-family: inherit; font-size: 1.45rem; font-weight: 800; line-height: 1.15; }
-      .wday__head small { font-size: 1rem; font-weight: 600; color: var(--color-silver-300); }
-      .wday--today .wday__head small { color: #fff; }
-      .fit { flex: 1; min-height: 0; overflow: hidden; }
-      .wday__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
-      /* Compact entry: time + title on one line, trainer underneath in small type. */
-      .wev {
-        --c: #7aa2ff;
-        /* Stacked: time, then the title across the full column width, then the
-           trainer — so narrow columns don't squeeze the title into a sliver. */
-        display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 0.15rem;
-        padding: 0.5rem 0.65rem; border-radius: 0.75rem; background: rgba(255, 255, 255, 0.08);
-        border-inline-start: 0.3rem solid var(--c);
+      .display .wg-head small { font-size: 0.75em; font-weight: 600; color: var(--color-silver-300); }
+      .display .wg-head.is-today { background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.75); border-block-end: 0; }
+      .display .wg-head.is-today small { color: #fff; }
+      .display .wg-lanes-head span { font-size: 0.6em; background: rgba(255, 255, 255, 0.1); color: var(--color-silver-300); }
+      .display .wg-head--empty .wg-lanes-head { visibility: hidden; }
+      .display .wg-head.is-today .wg-lanes-head span { background: rgba(255, 255, 255, 0.18); color: #fff; }
+      .display .wg-body { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); border-radius: 0 0 1.1rem 1.1rem; }
+      .display .wg-body.is-today { background: rgba(255, 255, 255, 0.12); border: 2px solid rgba(255, 255, 255, 0.75); border-block-start: 0; box-shadow: none; }
+      .display .wg-hr { border-color: rgba(255, 255, 255, 0.1); }
+      .display .wg-gap { background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(255, 255, 255, 0.12) 6px 7px); }
+      .display .wg-lane + .wg-lane::before { border-color: rgba(255, 255, 255, 0.15); }
+      .display .wg-axis span { font-size: 0.95rem; color: var(--color-silver-300); }
+      .display .wg-ev { padding: 0.3rem 0.5rem; border-inline-start-width: 0.3rem; border-radius: 0.6rem; background: color-mix(in srgb, var(--c) 30%, #17224a); color: #fff; }
+      .display .wg-ev.is-rent {
+        background: repeating-linear-gradient(135deg, rgba(255, 181, 71, 0.25) 0 0.6rem, rgba(255, 181, 71, 0.1) 0.6rem 1.2rem); color: #ffd38f;
       }
-      .wev__who { font-size: 0.9rem; font-weight: 600; color: var(--color-silver-300); }
-      .wev--past { opacity: 0.4; }
+      .display .wg-ev__time, .display .wg-ev__who { opacity: 0.85; }
+      .display .wg-ev.is-done { opacity: 0.35; }
       /* Auto-scroll (see fitGroup): one pass per minute, synced to the clock.
          Uses the separate translate property so it combines with the scale. */
       .autoscroll { animation: autoscroll 60s linear infinite; }
@@ -734,23 +738,10 @@ const promo = {
         -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
         mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 2.5rem), transparent 100%);
       }
-      .wday--past { padding-inline: 0.5rem; align-items: center; text-align: center; }
-      .display .wday--past .wday__head { font-size: 1.1rem; align-items: center; }
-      .wday__done { font-size: 1.4rem; font-weight: 700; color: var(--color-silver-300); }
-      .wev__time { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; justify-self: start; }
-      .wev__title { font-weight: 700; font-size: 1.15rem; line-height: 1.2; overflow-wrap: break-word; hyphens: auto; }
-      .wev.is-rent {
-        background: repeating-linear-gradient(135deg, rgba(255, 181, 71, 0.16) 0 0.6rem, rgba(255, 181, 71, 0.05) 0.6rem 1.2rem);
-        border: 1px dashed rgba(255, 181, 71, 0.7);
-        border-inline-start: 0.3rem solid #ffb547;
-      }
-      .wev.is-rent .wev__who { color: #ffd38f; }
-      .wev.is-rent .wev__title { color: #ffd38f; }
       /* Titles keep their own text direction (dir=auto) but line up with the
          rest of the screen: right in Hebrew, left in English/Russian. */
-      html[dir='rtl'] :is(.wev__title, .wev__who, .card__title, .row__title) { text-align: right; }
-      html[dir='ltr'] :is(.wev__title, .wev__who, .card__title, .row__title) { text-align: left; }
-      .wday__none { font-size: 1.6rem; color: var(--color-silver-300); }
+      html[dir='rtl'] :is(.card__title, .row__title) { text-align: right; }
+      html[dir='ltr'] :is(.card__title, .row__title) { text-align: left; }
       .display p, .display h2, .display h3 { margin: 0; color: inherit; }
       /* .body / .weekview set display:grid, which would override the hidden attribute. */
       .display [hidden] { display: none !important; }
@@ -878,7 +869,6 @@ const promo = {
       }
       .icon { inline-size: 1em; block-size: 1em; flex: none; vertical-align: -0.125em; }
       .welcome__info .icon { color: #ffd38f; margin-block-start: 0.15em; }
-      .wev__who .icon { margin-inline-end: 0.3em; }
       .row.is-rent, .card.is-rent {
         background:
           repeating-linear-gradient(135deg, rgba(255, 181, 71, 0.13) 0 0.7rem, rgba(255, 181, 71, 0.04) 0.7rem 1.4rem);

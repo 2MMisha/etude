@@ -61,10 +61,14 @@
   background: color-mix(in srgb, var(--c) 32%, #fff); color: var(--color-navy-900);
   font: inherit; text-align: start; cursor: pointer;
 }
+/* Never squeeze a line away — overflow instead, so fitCards() sees it and shrinks the text. */
+.wg-ev > * { flex-shrink: 0; }
 .wg-ev:hover { background: color-mix(in srgb, var(--c) 48%, #fff); z-index: 1; }
-.wg-ev__time { font-size: 0.68rem; font-weight: 700; white-space: nowrap; max-inline-size: 100%; overflow: hidden; font-variant-numeric: tabular-nums; opacity: 0.75; align-self: flex-start; }
-.wg-ev__title { font-weight: 700; overflow-wrap: break-word; hyphens: auto; }
-.wg-ev__who { font-size: 0.68rem; font-weight: 600; opacity: 0.75; }
+.wg-ev__time { font-size: 0.9em; font-weight: 700; white-space: nowrap; max-inline-size: 100%; overflow: hidden; font-variant-numeric: tabular-nums; opacity: 0.75; align-self: flex-start; }
+.wg-ev__title { font-weight: 700; }
+.wg-ev__who { font-size: 0.9em; font-weight: 600; opacity: 0.75; }
+.wg-ev.is-tight .wg-ev__title { overflow-wrap: anywhere; }
+.wg-ev.is-tight .wg-ev__who { display: none; }
 .wg-ev.is-short { flex-direction: row; flex-wrap: wrap; column-gap: 4px; align-content: flex-start; }
 .wg-ev.is-rent {
   --c: #ffb547; background: repeating-linear-gradient(135deg, #fff4e0 0 8px, #fffaf1 8px 16px);

@@ -697,7 +697,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             <div class="form-actions" style="margin-block-start:0">
               <a class="btn-mini primary" href={SHEET_URL} target="_blank" rel="noopener">Open the Google Sheet ↗</a>
               <a class="btn-mini" href="/display/" target="_blank" rel="noopener">Open display ↗</a>
-              <a class="btn-mini" href="/trainers/" target="_blank" rel="noopener">Trainer schedules ↗</a>
+              <a class="btn-mini" href="/trainers/?preview" target="_blank" rel="noopener">Trainer schedules ↗</a>
               <button class="btn-mini" id="ttRefreshBtn">Update now</button>
               <span class="status-msg" id="ttRefreshStatus"></span>
             </div>
@@ -1724,6 +1724,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
               colorClass: (i) => `c${Math.max(0, trainers.indexOf(i.column.split(' · ')[0].trim())) % 6}`,
             })
           : '';
+        window.fitWeekCards?.($('ttGrid'));
         $('ttPrev').addEventListener('click', () => { ttWeek = ttWeeks[idx - 1]; renderTtWeek(); });
         $('ttNext').addEventListener('click', () => { ttWeek = ttWeeks[idx + 1]; renderTtWeek(); });
         $('ttPrintLang').addEventListener('change', (e) => {
@@ -1782,7 +1783,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             footer { display: flex; justify-content: space-between; margin-top: 2mm; font-size: 7.5pt; color: #4a5367; }
             ${window.weekGridCss || ''}
             .wg-ev { cursor: default; padding: 1px 3px; }
-            .wg { font-size: 7.5pt; grid-template-columns: 2.6em repeat(var(--days), minmax(0, 1fr)); column-gap: 4px; }
+            .wg { font-size: 7.5pt; grid-template-columns: 3.4em repeat(var(--days), minmax(0, 1fr)); column-gap: 4px; }
             .wg-lanes-head span { font-size: 6.5pt; letter-spacing: 0; text-transform: none; }
             .wg-lanes { inset: 0 2px; gap: 2px; }
           </style></head><body>
@@ -1810,6 +1811,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         ]);
         Promise.race([ready, new Promise((r) => setTimeout(r, 2500))]).then(() => {
           // A long day shrinks the whole sheet to fit one page.
+          window.fitWeekCards(doc, 6);
           doc.body.style.zoom = String(Math.min(1, 720 / doc.body.scrollHeight));
           frame.contentWindow.focus();
           frame.contentWindow.print();
@@ -1965,9 +1967,13 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       }
     </script>
     <script>
-      import { weekGrid } from '../../lib/weekGrid';
+      import { fitCards, weekGrid } from '../../lib/weekGrid';
       import weekGridCss from '../../styles/week-grid.css?raw';
       (window as any).weekGrid = weekGrid;
+      (window as any).fitWeekCards = fitCards;
+      // The grid may be drawn while its tab is hidden: refit when it shows or changes width.
+      const ttDays = document.getElementById('ttDays')!;
+      new ResizeObserver(() => fitCards(ttDays)).observe(ttDays);
       (window as any).weekGridCss = weekGridCss; // for the A4 printout
       window.dispatchEvent(new Event('weekgrid-ready'));
     </script>

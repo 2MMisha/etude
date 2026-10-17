@@ -77,6 +77,17 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       </div>
     </header>
 
+    <!-- Opened in a browser tab: like the student app, it works only from the home screen. -->
+    <section class="ts-gate" id="gate" hidden>
+      <img src="/images/apple-touch-icon.png" alt="" width="88" height="88" />
+      <h2 id="gTitle"></h2>
+      <p id="gText"></p>
+      <button type="button" class="ts-btn ts-btn--primary" id="gButton" hidden></button>
+      <ol class="ts-steps" id="gIos" hidden></ol>
+      <ol class="ts-steps" id="gAndroid" hidden></ol>
+      <p id="gDone" hidden></p>
+    </section>
+
     <main class="ts-wrap ts-main">
       <div class="ts-toolbar">
         <div class="ts-weeknav">
@@ -148,7 +159,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
     <script>
       import { buildIcs, googleCalendarUrl, type CalendarEvent } from '../lib/calendar';
       import { RENTAL_COLUMN, weekOf, type TimetableItem } from '../lib/timetable';
-      import { weekGrid } from '../lib/weekGrid';
+      import { fitCards, weekGrid } from '../lib/weekGrid';
       import { scheduleChanges } from '../lib/scheduleDiff';
 
       type Lang = 'he' | 'en' | 'ru';
@@ -164,6 +175,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           addGoogle: 'הוספה ל-Google Calendar', addIcs: 'הוספה ליומן (ICS)', rent: 'השכרה', updated: 'עודכן', close: 'סגירה',
           big: 'אולם גדול', small: 'אולם קטן', bigS: 'גדול', smallS: 'קטן',
           changes: 'שינויים בלוח הזמנים', pushOn: 'הפעלת התראות',
+          gTitle: 'התקינו את אפליקציית ETUDE', gText: 'לוח הזמנים נפתח רק ממסך הבית של הטלפון. הוסיפו אותו — זה לוקח כמה שניות — ופתחו את הסמל של ETUDE.', gDone: '✅ מעולה! עכשיו פתחו את ETUDE מהסמל במסך הבית.',
           inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
           locale: 'he-IL', dir: 'rtl',
         },
@@ -177,6 +189,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           addGoogle: 'Add to Google Calendar', addIcs: 'Add to calendar (.ics)', rent: 'Rental', updated: 'Updated', close: 'Close',
           big: 'Big hall', small: 'Small hall', bigS: 'Big', smallS: 'Small',
           changes: 'Schedule changes', pushOn: 'Turn on notifications',
+          gTitle: 'Install the ETUDE app', gText: 'The schedule opens only from your phone’s home screen. Add it — it takes a few seconds — then open the ETUDE icon.', gDone: '✅ Done! Now open ETUDE from the icon on your home screen.',
           inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
           locale: 'en-GB', dir: 'ltr',
         },
@@ -190,6 +203,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           addGoogle: 'Добавить в Google Календарь', addIcs: 'Добавить в календарь (.ics)', rent: 'Аренда', updated: 'Обновлено', close: 'Закрыть',
           big: 'Большой зал', small: 'Малый зал', bigS: 'Большой', smallS: 'Малый',
           changes: 'Изменения в расписании', pushOn: 'Включить уведомления',
+          gTitle: 'Установите приложение ETUDE', gText: 'Расписание открывается только с экрана телефона. Добавьте его — это займёт несколько секунд — и откройте значок ETUDE.', gDone: '✅ Готово! Теперь откройте ETUDE со значка на экране телефона.',
           inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
           locale: 'ru-RU', dir: 'ltr',
         },
@@ -350,6 +364,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
             return date < todayIso || (date === todayIso && eh * 60 + em <= nowMin);
           },
         });
+        fitCards($('week'));
         $('empty').hidden = total > 0;
         $('empty').textContent = t.noWeek;
 
@@ -451,9 +466,19 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       const isAndroid = /Android/.test(navigator.userAgent);
       // iPadOS reports itself as a Mac with a touch screen.
       const isIos = !isAndroid && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+      // Staff can look in a browser with ?preview (linked from /admin/); it sticks for this tab.
+      let preview = new URLSearchParams(location.search).has('preview');
+      try {
+        if (preview) sessionStorage.setItem('etude-ts-preview', '1');
+        else preview = sessionStorage.getItem('etude-ts-preview') === '1';
+      } catch {}
+      const gated = !installed && !preview;
+      document.body.classList.toggle('is-gated', gated);
+      $('gate').hidden = !gated;
       let installEvent: any = null;
+      let appAdded = false;
       addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderApp(); });
-      addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; renderApp(); });
+      addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; appAdded = true; renderApp(); });
       function renderApp() {
         $('pushOn').textContent = `🔔 ${t.pushOn}`;
         $('pushOn').hidden = !push || Notification.permission !== 'default';
@@ -470,6 +495,17 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         // Phones see their own steps; a computer sees both.
         $('inIos').hidden = !!installEvent || isAndroid;
         $('inAndroid').hidden = !!installEvent || isIos;
+        // The browser-tab gate: the same steps, or Chrome's own install button.
+        $('gTitle').textContent = t.gTitle;
+        $('gText').textContent = t.gText;
+        $('gButton').textContent = `📲 ${t.inButton}`;
+        $('gButton').hidden = !installEvent || appAdded;
+        $('gIos').innerHTML = $('inIos').innerHTML;
+        $('gAndroid').innerHTML = $('inAndroid').innerHTML;
+        $('gIos').hidden = $('inIos').hidden || appAdded;
+        $('gAndroid').hidden = $('inAndroid').hidden || appAdded;
+        $('gDone').textContent = t.gDone;
+        $('gDone').hidden = !appAdded;
         $('chTitle').textContent = t.changes;
         $('chClose').textContent = t.close;
       }
@@ -487,6 +523,11 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         await installEvent.userChoice;
         installEvent = null;
         ($('install') as HTMLDialogElement).close();
+      });
+      $('gButton').addEventListener('click', async () => {
+        if (!installEvent) return;
+        installEvent.prompt();
+        await installEvent.userChoice;
       });
       // Tap on the dimmed backdrop closes them too.
       ['install', 'chDlg'].forEach((id) => $(id).addEventListener('click', (e) => { if (e.target === e.currentTarget) ($(id) as HTMLDialogElement).close(); }));
@@ -510,9 +551,12 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       }
 
       render();
+      // Refit the card text once the web fonts are in and whenever the columns change width.
+      document.fonts?.ready.then(() => fitCards($('week')));
+      new ResizeObserver(() => fitCards($('week'))).observe($('week'));
       let seenInstall = '1';
       try { seenInstall = localStorage.getItem('etude-ts-install-seen') ?? ''; } catch {}
-      if (!showChanges() && !installed && (isIos || isAndroid) && !seenInstall) setTimeout(openInstall, 1500);
+      if (!gated && !showChanges() && !installed && (isIos || isAndroid) && !seenInstall) setTimeout(openInstall, 1500);
       // Keep "today"/past styling right if the page stays open.
       setInterval(render, 5 * 60 * 1000);
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('/trainers/sw.js', { scope: '/trainers/' }).catch(() => {});
@@ -617,6 +661,15 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       .ts-app:not(:has(button:not([hidden]))) { display: none; }
       @media (max-width: 639px) { .ts-app { inline-size: 100%; } .ts-app .ts-btn { flex: 1; } }
       .ts-dlg p { margin-block: 8px; line-height: 1.45; }
+      /* Browser tab, not the installed app: only the install steps (see "gated"). */
+      body.is-gated .ts-main, body.is-gated .ts-foot, body.is-gated .ts-top > .ts-wrap:not(.ts-top__row) { display: none; }
+      body.is-gated .ts-top { padding-block-end: 14px; }
+      .ts-gate { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 8vh 24px 32px; max-inline-size: 34em; margin-inline: auto; }
+      .ts-gate[hidden] { display: none; }
+      .ts-gate img { border-radius: 22px; box-shadow: 0 10px 28px rgba(23, 34, 74, 0.25); }
+      .ts .ts-gate h2 { margin: 6px 0 0; font-family: inherit; font-weight: 800; font-size: 1.5rem; color: var(--color-navy-900); }
+      .ts-gate .ts-steps { text-align: start; padding-block: 16px; padding-inline: 2.4em 16px; background: #fff; border: 1px solid var(--color-line); border-radius: 16px; inline-size: 100%; box-sizing: border-box; }
+      .ts-steps[hidden], .ts-gate p[hidden] { display: none; }
       .ts-steps { margin: 0; padding-inline-start: 1.4em; display: grid; gap: 8px; line-height: 1.45; }
       .ts-steps b { color: var(--color-navy-900); }
       .ts-steps .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }

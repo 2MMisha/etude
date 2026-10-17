@@ -9,6 +9,7 @@
 import { createHash } from 'node:crypto';
 import { getCollection } from 'astro:content';
 import '../../styles/global.css';
+import '../../styles/week-grid.css';
 import { getTimetable } from '../../lib/loadTimetable';
 import { ALARMS, appEvents, chipsFrom, feedsFrom, paymentBody, paymentSettings, studentDays } from '../../lib/student';
 import { trainersFrom } from '../../lib/trainers';
@@ -287,6 +288,7 @@ const data = {
 
     <script>
       import { weekOf, type TimetableItem } from '../../lib/timetable';
+      import { fitCards, weekGrid } from '../../lib/weekGrid';
       import { icon } from '../../lib/icons';
       import { googleCalendarUrl } from '../../lib/calendar';
 
@@ -298,7 +300,7 @@ const data = {
           hello: 'שלום!', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו בלוח הזמנים את הקבוצות או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
           noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה או שם',
           all: 'הכול', mine: 'לעקוב', isMine: 'במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
-          today: 'היום', tomorrow: 'מחר', calendar: 'תזכורות ביומן', calHint: 'הירשמו ליומן — הטלפון יזכיר לפני כל שיעור, והשינויים בלוח יתעדכנו לבד. ב-Google Calendar התזכורת נקבעת בהגדרות היומן.',
+          today: 'היום', tomorrow: 'מחר', bigS: 'אולם גדול', smallS: 'אולם קטן', calendar: 'תזכורות ביומן', calHint: 'הירשמו ליומן — הטלפון יזכיר לפני כל שיעור, והשינויים בלוח יתעדכנו לבד. ב-Google Calendar התזכורת נקבעת בהגדרות היומן.',
           alarm: 'תזכורת', alarms: { 0: 'בלי תזכורת', 15: '15 דקות לפני', 60: 'שעה לפני', 180: '3 שעות לפני', 1440: 'יום לפני' } as Record<number, string>,
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'השיעורים שלנו', more: 'עוד באתר', prices: 'מחירים',
           noPrices: 'לפרטי מחירים כתבו לנו בוואטסאפ', rules: 'כללי הסטודיו', contact: 'יצירת קשר', whatsapp: 'וואטסאפ', call: 'שיחה',
@@ -322,7 +324,7 @@ const data = {
           hello: 'Hi!', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Follow your groups or names in the schedule — as many as you like — and your next classes show up here.',
           noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group or name',
           all: 'All', mine: 'Follow', isMine: 'Following', unmine: 'Remove', noMatch: 'No classes found',
-          today: 'Today', tomorrow: 'Tomorrow', calendar: 'Calendar reminders', calHint: 'Subscribe once: your phone reminds you before every class and schedule changes arrive by themselves. In Google Calendar, set the reminder in the calendar settings.',
+          today: 'Today', tomorrow: 'Tomorrow', bigS: 'Big hall', smallS: 'Small hall', calendar: 'Calendar reminders', calHint: 'Subscribe once: your phone reminds you before every class and schedule changes arrive by themselves. In Google Calendar, set the reminder in the calendar settings.',
           alarm: 'Reminder', alarms: { 0: 'No reminder', 15: '15 minutes before', 60: '1 hour before', 180: '3 hours before', 1440: '1 day before' } as Record<number, string>,
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Our classes', more: 'More on the website', prices: 'Prices',
           noPrices: 'For prices, message us on WhatsApp', rules: 'Studio rules', contact: 'Contact', whatsapp: 'WhatsApp', call: 'Call',
@@ -346,7 +348,7 @@ const data = {
           hello: 'Привет!', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте в расписании свои группы или имена — можно несколько — и здесь появятся ваши следующие занятия.',
           noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа или имя',
           all: 'Все', mine: 'Следить', isMine: 'Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
-          today: 'Сегодня', tomorrow: 'Завтра', calendar: 'Напоминания в календаре', calHint: 'Подпишитесь один раз — телефон напомнит перед каждым занятием, а изменения расписания придут сами. В Google Календаре напоминание выбирается в настройках календаря.',
+          today: 'Сегодня', tomorrow: 'Завтра', bigS: 'Большой зал', smallS: 'Малый зал', calendar: 'Напоминания в календаре', calHint: 'Подпишитесь один раз — телефон напомнит перед каждым занятием, а изменения расписания придут сами. В Google Календаре напоминание выбирается в настройках календаря.',
           alarm: 'Напоминание', alarms: { 0: 'Без напоминания', 15: 'За 15 минут', 60: 'За 1 час', 180: 'За 3 часа', 1440: 'За день' } as Record<number, string>,
           apple: 'iPhone / Outlook', google: 'Google', classesT: 'Наши занятия', more: 'Подробнее на сайте', prices: 'Цены',
           noPrices: 'Цены уточняйте у нас в WhatsApp', rules: 'Правила студии', contact: 'Контакты', whatsapp: 'WhatsApp', call: 'Позвонить',
@@ -643,9 +645,21 @@ const data = {
           .join('');
 
         const days = upcoming(mineView ? matchesAny : (i) => matches(i, query));
+        // Each day as a time grid with a lane per hall (src/lib/weekGrid.ts), like the trainers' pages.
         $('days').innerHTML = days.length
-          ? days.map((d) => `<h3 class="day">${esc(dayName(d.date))}</h3><ul class="evs">${d.items.map(itemHtml).join('')}</ul>`).join('')
+          ? weekGrid({
+              dates: days.map((d) => d.date),
+              byDate: new Map(days.map((d) => [d.date, d.items])),
+              perDay: true,
+              now: { date: today(), min: nowMin() },
+              noClasses: t.noMatch,
+              hallName: (h) => (/big/i.test(h) ? t.bigS : /small/i.test(h) ? t.smallS : h),
+              dayHead: (date) => `<b class="sa-dname">${esc(dayName(date))}</b>`,
+              who: (i) => i.column,
+              colorClass: (i) => `c${Math.max(0, data.trainers.indexOf(i.column.split(' · ')[0])) % 6}`,
+            })
           : `<p class="hint">${t.noMatch}</p>`;
+        fitCards($('days'));
       }
 
       function renderClasses() {
@@ -965,6 +979,8 @@ const data = {
       addEventListener('hashchange', showTab);
 
       // ----- Events -----
+      // The schedule may be drawn while its tab is hidden: refit the card text when it shows.
+      new ResizeObserver(() => fitCards($('days'))).observe($('days'));
       $('q').addEventListener('input', (e) => { query = (e.target as HTMLInputElement).value; mineView = false; renderSchedule(); });
       // "Mine" (chip, or "Edit" on the home screen) shows every followed class together.
       document.addEventListener('click', (e) => {
@@ -1179,6 +1195,8 @@ const data = {
 
       .sa .day { font-size: 0.95rem; font-weight: 700; margin: 16px 0 8px; color: var(--color-navy-900); text-transform: capitalize; }
       .sa .card .day { margin-block-start: 0; }
+      .sa .wg-ev { cursor: default; }
+      .sa-dname { font-size: 0.95rem; text-transform: capitalize; }
       .evs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
       .ev { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--color-blue-100); border-inline-start: 4px solid var(--color-blue-600); }
       .ev__time { font: 700 0.85rem 'Montserrat', sans-serif; color: var(--color-blue-600); font-variant-numeric: tabular-nums; justify-self: start; }
