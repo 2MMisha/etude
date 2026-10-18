@@ -133,7 +133,33 @@
     "after": 7
   },
   "events": [],
-  "birthdays": [],
+  "birthdays": [
+    {
+      "name": "Misha",
+      "day": 19,
+      "month": 2
+    },
+    {
+      "name": "Evgeniia",
+      "day": 18,
+      "month": 9
+    },
+    {
+      "name": "Roman",
+      "day": 7,
+      "month": 3
+    },
+    {
+      "name": "Grisha",
+      "day": 18,
+      "month": 11
+    },
+    {
+      "name": "Sofia K.",
+      "day": 20,
+      "month": 2
+    }
+  ],
   "invite": {
     "active": true,
     "text": {
