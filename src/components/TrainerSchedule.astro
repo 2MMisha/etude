@@ -82,6 +82,8 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       <img src="/images/apple-touch-icon.png" alt="" width="88" height="88" />
       <h2 id="gTitle"></h2>
       <p id="gText"></p>
+      <p id="gSamsung" hidden></p>
+      <a class="ts-btn ts-btn--primary" id="gChrome" hidden></a>
       <button type="button" class="ts-btn ts-btn--primary" id="gButton" hidden></button>
       <ol class="ts-steps" id="gIos" hidden></ol>
       <ol class="ts-steps" id="gAndroid" hidden></ol>
@@ -140,9 +142,11 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       <dialog class="ts-dlg" id="install">
         <h3 class="ts-dlg__title" id="inTitle"></h3>
         <p id="inText"></p>
+        <p id="inSamsung" hidden></p>
         <ol class="ts-steps" id="inIos" hidden></ol>
         <ol class="ts-steps" id="inAndroid" hidden></ol>
         <div class="ts-dlg__actions">
+          <a class="ts-btn ts-btn--primary" id="inChrome" hidden></a>
           <button type="button" class="ts-btn ts-btn--primary" id="inButton" hidden></button>
           <button type="button" class="ts-btn" id="inLater"></button>
         </div>
@@ -176,7 +180,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           big: 'אולם גדול', small: 'אולם קטן', bigS: 'גדול', smallS: 'קטן',
           changes: 'שינויים בלוח הזמנים', pushOn: 'הפעלת התראות',
           gTitle: 'התקינו את אפליקציית ETUDE', gText: 'לוח הזמנים נפתח רק ממסך הבית של הטלפון. הוסיפו אותו — זה לוקח כמה שניות — ופתחו את הסמל של ETUDE.', gDone: '✅ מעולה! עכשיו פתחו את ETUDE מהסמל במסך הבית.',
-          inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
+          samsung: 'ב-Samsung Internet האפליקציה נחסמת על ידי Google Play Protect. התקינו אותה דרך Chrome:', chrome: 'פתיחה ב-Chrome', inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
           locale: 'he-IL', dir: 'rtl',
         },
         en: {
@@ -190,7 +194,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           big: 'Big hall', small: 'Small hall', bigS: 'Big', smallS: 'Small',
           changes: 'Schedule changes', pushOn: 'Turn on notifications',
           gTitle: 'Install the ETUDE app', gText: 'The schedule opens only from your phone’s home screen. Add it — it takes a few seconds — then open the ETUDE icon.', gDone: '✅ Done! Now open ETUDE from the icon on your home screen.',
-          inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
+          samsung: 'Samsung Internet installs the app in a way Google Play Protect blocks. Install it from Chrome instead:', chrome: 'Open in Chrome', inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
           locale: 'en-GB', dir: 'ltr',
         },
         ru: {
@@ -204,7 +208,7 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
           big: 'Большой зал', small: 'Малый зал', bigS: 'Большой', smallS: 'Малый',
           changes: 'Изменения в расписании', pushOn: 'Включить уведомления',
           gTitle: 'Установите приложение ETUDE', gText: 'Расписание открывается только с экрана телефона. Добавьте его — это займёт несколько секунд — и откройте значок ETUDE.', gDone: '✅ Готово! Теперь откройте ETUDE со значка на экране телефона.',
-          inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
+          samsung: 'Samsung Internet устанавливает приложение так, что Google Play Защита его блокирует. Установите его через Chrome:', chrome: 'Открыть в Chrome', inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
           locale: 'ru-RU', dir: 'ltr',
         },
       } as const;
@@ -475,9 +479,13 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
       const gated = !installed && !preview;
       document.body.classList.toggle('is-gated', gated);
       $('gate').hidden = !gated;
+      // Samsung Internet packages the app itself, with an old Android target, and
+      // Google Play Protect blocks it — so there we send people to Chrome instead.
+      const isSamsung = /SamsungBrowser/.test(navigator.userAgent);
+      const chromeUrl = `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end`;
       let installEvent: any = null;
       let appAdded = false;
-      addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderApp(); });
+      addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); if (isSamsung) return; installEvent = e; renderApp(); });
       addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; appAdded = true; renderApp(); });
       function renderApp() {
         $('pushOn').textContent = `🔔 ${t.pushOn}`;
@@ -506,6 +514,11 @@ const pageTitle = current ? `${current.name} — ETUDE` : slug === RENTALS_SLUG 
         $('gAndroid').hidden = $('inAndroid').hidden || appAdded;
         $('gDone').textContent = t.gDone;
         $('gDone').hidden = !appAdded;
+        // Samsung Internet: a note and a button that reopens this page in Chrome.
+        $('inSamsung').textContent = $('gSamsung').textContent = t.samsung;
+        for (const id of ['inChrome', 'gChrome']) { $(id).textContent = t.chrome; ($(id) as HTMLAnchorElement).href = chromeUrl; }
+        $('inSamsung').hidden = $('inChrome').hidden = !isSamsung;
+        $('gSamsung').hidden = $('gChrome').hidden = !isSamsung || appAdded;
         $('chTitle').textContent = t.changes;
         $('chClose').textContent = t.close;
       }

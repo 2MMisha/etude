@@ -159,6 +159,8 @@ const data = {
       <img src="/images/apple-touch-icon.png" alt="" width="88" height="88" />
       <h1 id="gTitle"></h1>
       <p id="gText"></p>
+      <p class="sa-note" id="gSamsung" hidden></p>
+      <a class="btn btn--big" id="gChrome" hidden></a>
       <button type="button" class="btn btn--big" id="gButton" hidden></button>
       <ol id="gIos" hidden></ol>
       <ol id="gAndroid" hidden></ol>
@@ -274,6 +276,8 @@ const data = {
     <dialog class="sa-install" id="install">
       <h2 id="inTitle"></h2>
       <p id="inText"></p>
+      <p class="sa-note" id="inSamsung" hidden></p>
+      <a class="btn" id="inChrome" hidden></a>
       <button type="button" class="btn" id="inButton" hidden></button>
       <ol id="inIos" hidden></ol>
       <ol id="inAndroid" hidden></ol>
@@ -306,7 +310,7 @@ const data = {
           noPrices: 'לפרטי מחירים כתבו לנו בוואטסאפ', rules: 'כללי הסטודיו', contact: 'יצירת קשר', whatsapp: 'וואטסאפ', call: 'שיחה',
           myClasses: 'השיעורים שלי', mineChip: 'שלי', edit: 'עריכה', allNews: 'כל החדשות', back: 'חדשות', unfollow: 'הסרה מהמעקב',
           gTitle: 'התקינו את אפליקציית ETUDE', gText: 'האפליקציה נפתחת רק ממסך הבית של הטלפון. הוסיפו אותה — זה לוקח כמה שניות — ופתחו את הסמל של ETUDE.', gDone: 'מעולה! עכשיו פתחו את ETUDE מהסמל במסך הבית.',
-          inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
+          samsung: 'ב-Samsung Internet האפליקציה נחסמת על ידי Google Play Protect. התקינו אותה דרך Chrome:', chrome: 'פתיחה ב-Chrome', inTitle: 'התקינו את האפליקציה', inText: 'הוסיפו את ETUDE למסך הבית — היא תיפתח כמו אפליקציה רגילה, במסך מלא וגם בלי אינטרנט.', inButton: 'התקנה', inLater: 'אחר כך', howInstall: 'איך להוסיף למסך הבית', ios: ['פתחו את הדף בדפדפן Safari.', `הקישו על כפתור השיתוף ${SHARE} (ריבוע עם חץ למעלה) בתחתית המסך.`, 'גללו ובחרו <b>„הוספה למסך הבית”</b>.', 'הקישו <b>„הוסף”</b> — הסמל של ETUDE יופיע במסך הבית.'], android: ['פתחו את הדף בדפדפן Chrome.', 'הקישו על התפריט <b>⋮</b> בפינה העליונה.', 'בחרו <b>„התקנת אפליקציה”</b> או <b>„הוספה למסך הבית”</b>.', 'אשרו — הסמל של ETUDE יופיע במסך הבית.'],
           route: 'ניווט', updated: 'עודכן', locale: 'he-IL', dir: 'rtl',
           important: 'חשוב', readMore: 'לפרטים', close: 'סגירה', home2: 'לדף הראשי',
           payTitle: 'תשלום מנוי', payLeft: 'נותרו', payAgo: 'עברו', payToday: 'היום', payDue: 'נא לשלם עד ה-{day} בחודש', payDueToday: 'היום היום האחרון לתשלום המנוי', payLate: 'מועד התשלום עבר — אם עוד לא שילמתם, נא לשלם', paid: 'כבר שילמתי', payCal: 'תזכורת חודשית ביומן', days: (n: number) => (n === 1 ? 'יום' : 'ימים'),
@@ -330,7 +334,7 @@ const data = {
           noPrices: 'For prices, message us on WhatsApp', rules: 'Studio rules', contact: 'Contact', whatsapp: 'WhatsApp', call: 'Call',
           myClasses: 'My classes', mineChip: 'Mine', edit: 'Edit', allNews: 'All news', back: 'News', unfollow: 'Stop following',
           gTitle: 'Install the ETUDE app', gText: 'The app opens only from your phone’s home screen. Add it — it takes a few seconds — then open the ETUDE icon.', gDone: 'Done! Now open ETUDE from the icon on your home screen.',
-          inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
+          samsung: 'Samsung Internet installs the app in a way Google Play Protect blocks. Install it from Chrome instead:', chrome: 'Open in Chrome', inTitle: 'Install the app', inText: 'Add ETUDE to your home screen — it opens like a regular app, full screen and even offline.', inButton: 'Install', inLater: 'Later', howInstall: 'How to add to the home screen', ios: ['Open this page in Safari.', `Tap the Share button ${SHARE} (a square with an arrow up) at the bottom of the screen.`, 'Scroll down and choose <b>“Add to Home Screen”</b>.', 'Tap <b>“Add”</b> — the ETUDE icon appears on your home screen.'], android: ['Open this page in Chrome.', 'Tap the menu <b>⋮</b> in the top corner.', 'Choose <b>“Install app”</b> or <b>“Add to Home screen”</b>.', 'Confirm — the ETUDE icon appears on your home screen.'],
           route: 'Directions', updated: 'Updated', locale: 'en-GB', dir: 'ltr',
           important: 'Important', readMore: 'Read more', close: 'Close', home2: 'Back home',
           payTitle: 'Membership payment', payLeft: 'due in', payAgo: 'overdue', payToday: 'Today', payDue: 'Please pay by the {day}', payDueToday: 'Today is the last day to pay the membership', payLate: "The due date has passed — if you haven't paid yet, please do", paid: 'Already paid', payCal: 'Monthly reminder in your calendar', days: (n: number) => (n === 1 ? 'day' : 'days'),
@@ -354,7 +358,7 @@ const data = {
           noPrices: 'Цены уточняйте у нас в WhatsApp', rules: 'Правила студии', contact: 'Контакты', whatsapp: 'WhatsApp', call: 'Позвонить',
           myClasses: 'Мои занятия', mineChip: 'Моё', edit: 'Изменить', allNews: 'Все новости', back: 'Новости', unfollow: 'Не следить',
           gTitle: 'Установите приложение ETUDE', gText: 'Приложение открывается только с экрана телефона. Добавьте его — это займёт несколько секунд — и откройте значок ETUDE.', gDone: 'Готово! Теперь откройте ETUDE со значка на экране телефона.',
-          inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
+          samsung: 'Samsung Internet устанавливает приложение так, что Google Play Защита его блокирует. Установите его через Chrome:', chrome: 'Открыть в Chrome', inTitle: 'Установите приложение', inText: 'Добавьте ETUDE на экран «Домой» — оно будет открываться как обычное приложение, на весь экран и даже без интернета.', inButton: 'Установить', inLater: 'Позже', howInstall: 'Как добавить на экран телефона', ios: ['Откройте эту страницу в Safari.', `Нажмите кнопку «Поделиться» ${SHARE} (квадрат со стрелкой вверх) внизу экрана.`, 'Прокрутите вниз и выберите <b>«На экран „Домой“»</b>.', 'Нажмите <b>«Добавить»</b> — значок ETUDE появится на экране.'], android: ['Откройте эту страницу в Chrome.', 'Нажмите меню <b>⋮</b> в верхнем углу.', 'Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.', 'Подтвердите — значок ETUDE появится на экране.'],
           route: 'Маршрут', updated: 'Обновлено', locale: 'ru-RU', dir: 'ltr',
           important: 'Важно', readMore: 'Подробнее', close: 'Закрыть', home2: 'На главную',
           payTitle: 'Оплата абонемента', payLeft: 'осталось', payAgo: 'прошло', payToday: 'Сегодня', payDue: 'Оплатите до {day} числа', payDueToday: 'Сегодня последний день оплаты абонемента', payLate: 'Срок оплаты прошёл — если ещё не оплатили, оплатите, пожалуйста', paid: 'Уже оплатил(а)', payCal: 'Ежемесячное напоминание в календаре', days: (_n: number) => 'дн.',
@@ -1033,8 +1037,12 @@ const data = {
       const isAndroid = /Android/.test(navigator.userAgent);
       // iPadOS reports itself as a Mac with a touch screen.
       const isIos = !isAndroid && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+      // Samsung Internet packages the app itself, with an old Android target, and
+      // Google Play Protect blocks it — so there we send people to Chrome instead.
+      const isSamsung = /SamsungBrowser/.test(navigator.userAgent);
+      const chromeUrl = `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end`;
       let installEvent: any = null;
-      addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderInstall(); });
+      addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); if (isSamsung) return; installEvent = e; renderInstall(); });
       addEventListener('appinstalled', () => { ($('install') as HTMLDialogElement).close(); installEvent = null; appAdded = true; renderInstall(); });
       let appAdded = false;
       function renderInstall() {
@@ -1060,6 +1068,11 @@ const data = {
         $('gAndroid').hidden = $('inAndroid').hidden || appAdded;
         $('gDone').innerHTML = `${icon('check')}<span>${t.gDone}</span>`;
         $('gDone').hidden = !appAdded;
+        // Samsung Internet: a note and a button that reopens this page in Chrome.
+        $('inSamsung').textContent = $('gSamsung').textContent = t.samsung;
+        for (const id of ['inChrome', 'gChrome']) { $(id).textContent = t.chrome; ($(id) as HTMLAnchorElement).href = chromeUrl; }
+        $('inSamsung').hidden = $('inChrome').hidden = !isSamsung;
+        $('gSamsung').hidden = $('gChrome').hidden = !isSamsung || appAdded;
         $('howInstall').innerHTML = `${icon('install')}${t.howInstall}`;
         $('howInstall').hidden = installed;
       }
