@@ -1,9 +1,10 @@
 // Push notifications to the student app through OneSignal, run by
-// .github/workflows/notify.yml. Only five kinds:
+// .github/workflows/notify.yml. Only six kinds:
 //   - a news post dated today (from 9:00, so a post scheduled ahead goes out that morning);
 //   - a new event and a new or retitled "important" notice — found by comparing
 //     src/data/student-app.json with the commit before the push (BEFORE);
 //   - the payment day (from 9:00);
+//   - today's birthdays (from 9:00), one notification for all of them;
 //   - a message typed in /admin/ (src/data/push.json).
 // Each notification has a fixed idempotency key, so OneSignal sends it once
 // however many runs see it. No ONESIGNAL_REST_API_KEY → only prints what it would send.
@@ -27,6 +28,8 @@ const LABEL = {
   event: { he: 'אירוע ב-ETUDE', ru: 'Мероприятие ETUDE', en: 'ETUDE event' },
   notice: { he: 'חשוב', ru: 'Важно', en: 'Important' },
   pay: { he: 'תשלום מנוי ETUDE', ru: 'Оплата абонемента ETUDE', en: 'ETUDE membership payment' },
+  // The same wording as the birthday card in the app (bdayToday / bdayWish).
+  bday: { he: 'היום יום הולדת!', ru: 'Сегодня день рождения!', en: "It's a birthday today!" },
 };
 const PAY_TODAY = { he: 'היום היום האחרון לתשלום המנוי', ru: 'Сегодня последний день оплаты абонемента', en: 'Today is the last day to pay the membership' };
 
@@ -109,3 +112,10 @@ const pay = app.payment ?? {};
 const payDay = Math.min(28, Math.max(1, Math.round(Number(pay.day ?? 10)) || 10));
 if (morning && pay.active !== false && Number(today.slice(8)) === payDay)
   await send(`pay-${today.slice(0, 7)}`, LABEL.pay, PAY_TODAY, '#studio');
+
+// Today's birthdays (the list from /admin/, the same as the card in the app).
+const names = (app.birthdays ?? []).filter((b) => b.day === Number(today.slice(8)) && b.month === Number(today.slice(5, 7))).map((b) => b.name);
+if (morning && names.length) {
+  const list = names.join(', ');
+  await send(`bday-${today}`, LABEL.bday, { he: `מזל טוב ל${list}! 🎉`, ru: `Поздравляем: ${list}! 🎉`, en: `Happy birthday, ${list}! 🎉` }, '#home');
+}

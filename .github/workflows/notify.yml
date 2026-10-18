@@ -1,12 +1,12 @@
 name: Student app push notifications
 
-# scripts/notify.mjs: news, events, the "important" notice, the payment day and messages from /admin/.
+# scripts/notify.mjs: news, events, the "important" notice, the payment day, birthdays and messages from /admin/.
 on:
   # Edits from /admin/ (news, events, the notice, a message).
   push:
     branches: [main]
     paths: ['src/content/news/**', 'src/data/student-app.json', 'src/data/push.json']
-  # Every morning: news scheduled for today and the payment day (07:15 UTC = 9:15/10:15 in Israel).
+  # Every morning: news scheduled for today, the payment day and birthdays (07:15 UTC = 9:15/10:15 in Israel).
   schedule:
     - cron: '15 7 * * *'
   workflow_dispatch: {}
