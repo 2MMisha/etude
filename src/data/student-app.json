@@ -132,7 +132,42 @@
     "before": 3,
     "after": 7
   },
-  "events": [],
+  "events": [
+    {
+      "id": "mdl03f2x",
+      "date": "2026-11-21",
+      "start": "",
+      "end": "",
+      "place": "Kiryat Motzkin",
+      "title": {
+        "he": "אליפות הפאנל",
+        "ru": "Чемпионат СТСИ (ХаПанель)",
+        "en": "IDC Championship"
+      },
+      "body": {
+        "he": "אליפות, כל הפרטים בהמשך",
+        "ru": "Чемпионат, все подробности позже",
+        "en": "Championship, all info is TBA"
+      }
+    },
+    {
+      "id": "7gieqrgz",
+      "date": "2026-11-28",
+      "start": "",
+      "end": "",
+      "place": "Rishon LeZion",
+      "title": {
+        "he": "תחרות \"Maccabi Dance Cup\"",
+        "ru": "Конкурс \"Maccabi Dance Cup\"",
+        "en": "Competition \"Maccabi Dance Cup\""
+      },
+      "body": {
+        "he": "תחרות IDSF, הפרטים בהמשך",
+        "ru": "Конкурс IDSF, все подробности позже",
+        "en": "IDSF Competition, all info is TBA"
+      }
+    }
+  ],
   "birthdays": [
     {
       "name": "Misha",
