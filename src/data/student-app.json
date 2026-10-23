@@ -170,22 +170,22 @@
   ],
   "birthdays": [
     {
-      "name": "Misha",
+      "name": "Misha M.",
       "day": 19,
       "month": 2
     },
     {
-      "name": "Evgeniia",
+      "name": "Evgeniia G.",
       "day": 18,
       "month": 9
     },
     {
-      "name": "Roman",
+      "name": "Roman M.",
       "day": 7,
       "month": 3
     },
     {
-      "name": "Grisha",
+      "name": "Grisha M.",
       "day": 18,
       "month": 11
     },
@@ -193,6 +193,21 @@
       "name": "Sofia K.",
       "day": 20,
       "month": 2
+    },
+    {
+      "name": "Alisa B.",
+      "day": 23,
+      "month": 5
+    },
+    {
+      "name": "Alona G.",
+      "day": 1,
+      "month": 11
+    },
+    {
+      "name": "Artur A.",
+      "day": 14,
+      "month": 6
     }
   ],
   "invite": {
