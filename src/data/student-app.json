@@ -113,12 +113,12 @@
   },
   "notice": {
     "active": true,
-    "mode": "banner",
+    "mode": "popup",
     "until": "2026-10-28",
     "title": {
       "he": "יום בחירות - אין שינוים בלו׳׳ז",
-      "ru": "Напоминание - проверьте расписание",
-      "en": "Reminder - check the schedule"
+      "ru": "Выборы - нет изменений в расписании",
+      "en": "Election day - no schedule changes"
     },
     "body": {
       "he": "**שימו לב!** \nבשבתון עקב יום הבחירות כל הקבוצות ושיעורים מתקיימים כרגיל💙",
