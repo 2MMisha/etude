@@ -113,17 +113,17 @@
   },
   "notice": {
     "active": true,
-    "mode": "popup",
-    "until": "2026-10-24",
+    "mode": "banner",
+    "until": "2026-10-28",
     "title": {
-      "he": "תזכורת - בדקו שעות השיעורים",
+      "he": "יום בחירות - אין שינוים בלו׳׳ז",
       "ru": "Напоминание - проверьте расписание",
       "en": "Reminder - check the schedule"
     },
     "body": {
-      "he": "שבוע טוב\n**שימו לב!** ישנם שינויים בלוח הזמנים, בבקשה בדקו זאת בהקדם💙",
-      "ru": "**Внимание!** Напоминаем про изменения в расписании, перепроверьте его в ближайшее время💙",
-      "en": "**Attention!** We remind you about changes in the schedule, recheck them please💙"
+      "he": "**שימו לב!** \nבשבתון עקב יום הבחירות כל הקבוצות ושיעורים מתקיימים כרגיל💙",
+      "ru": "**Внимание!**\nВ выходной по случаю выборов все группы и занятия проходят по расписанию💙",
+      "en": "**Attention!**\nOn the election day all the groups and lessons are happening as planned💙"
     }
   },
   "payment": {
