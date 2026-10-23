@@ -295,3 +295,9 @@ img { max-width: 100%; display: block; }
 .skip-link:focus {
   top: var(--space-sm);
 }
+
+/* Media in post bodies (src/lib/richText.ts: ![caption](url), !embed(url)) */
+.rt-media { margin: 0 0 12px; }
+.rt-media img, .rt-media video { display: block; max-width: 100%; height: auto; border-radius: var(--radius-sm, 8px); }
+.rt-media iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--radius-sm, 8px); }
+.rt-media figcaption { margin-top: 6px; font-size: 0.9em; opacity: 0.75; }

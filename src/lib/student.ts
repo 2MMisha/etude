@@ -129,7 +129,7 @@ interface AppEvent { id: string; date: string; start?: string; end?: string; pla
 
 const pick = (l: Partial<Loc> | undefined, lang: keyof Loc) => l?.[lang] || l?.he || l?.ru || l?.en || '';
 /** The admin's light markup (richText.ts) as plain text, for calendar apps. */
-const plain = (s: string) => s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, '$1 ($2)').replace(/\*\*|__|\*/g, '');
+const plain = (s: string) => s.replace(/!embed\(([^)\s]+)\)/g, '$1').replace(/!\[([^\]\n]*)\]\(([^)\s]+)\)/g, (_, c, u) => (c ? `${c} (${u})` : u)).replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, '$1 ($2)').replace(/\*\*|__|\*/g, '');
 const later = (start: string, min: number) => {
   const [h, m] = start.split(':').map(Number);
   const t = Math.min(h * 60 + m + min, 23 * 60 + 59);

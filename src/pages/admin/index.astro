@@ -231,7 +231,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
                   Select text and use the buttons, or type it yourself:
                   <code>**bold**</code> · <code>*italic*</code> · <code>__underline__</code> ·
                   <code>[link text](https://…)</code> · a line starting with <code>- </code> is a list item ·
-                  an empty line starts a new paragraph.
+                  an empty line starts a new paragraph · on its own line, <code>![caption](https://…)</code> shows a photo,
+                  video file or YouTube/Vimeo video and <code>!embed(https://…)</code> embeds any page (iframe).
                 </p>
                 <div class="lang-grid">
                   <textarea id="newsBodyHe" placeholder="עברית" dir="rtl" data-rich></textarea>
@@ -553,7 +554,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
               <p class="hint">
                 Competitions, recitals, master classes, parties. Upcoming events show on the app's home screen and on their own
                 page with "Add to calendar"; students can also subscribe to all events at once. Past events hide by themselves.
-                Leave the start time empty for an all-day event. The text supports **bold**, *italic*, links and "- " lists.
+                Leave the start time empty for an all-day event. The text supports **bold**, *italic*, links, "- " lists and media (photo, video, iframe) — use the toolbar buttons.
               </p>
               <div id="saEvents" class="rows"></div>
               <button type="button" class="btn-mini" id="saAddEvent">+ Add event</button>
@@ -1468,6 +1469,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             <textarea data-f="body.he" dir="rtl" rows="3" placeholder="עברית">${escAttr(b.he)}</textarea>
             <textarea data-f="body.ru" rows="3" placeholder="Русский">${escAttr(b.ru)}</textarea>
             <textarea data-f="body.en" rows="3" placeholder="English">${escAttr(b.en)}</textarea></div></div>`;
+        card.querySelectorAll('textarea').forEach(richify);
         return card;
       }
       /** A dance style: its name and its dances/songs as text (see parseDances). */
@@ -1938,7 +1940,27 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         area.focus();
       }
 
-      document.querySelectorAll('textarea[data-rich]').forEach((area) => {
+      // Photo / video / YouTube link → ![caption](url); pasted <iframe> code or any other page → !embed(url).
+      function addMedia(area) {
+        const input = (prompt('Photo or video link (https://…), a YouTube/Vimeo link, or <iframe> embed code:', 'https://') || '').trim();
+        if (!input || input === 'https://') return;
+        const url = (input.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i)?.[1] || input).replace(/&amp;/g, '&');
+        if (!/^(https:\/\/|\/)\S+$/i.test(url)) {
+          alert('The link must start with https:// (or / for a site file)');
+          return;
+        }
+        const known = /\.(jpe?g|png|webp|gif|avif|svg|mp4|webm|mov|m4v)(\?|#|$)/i.test(url) || /youtu\.?be|vimeo\.com/i.test(url);
+        const embed = /<iframe/i.test(input) || (!known && !confirm('Show this link as a photo?\nOK = photo, Cancel = embed the page (iframe)'));
+        const caption = embed ? '' : (prompt('Caption (optional):', '') || '').trim();
+        const { selectionStart: start, selectionEnd: end, value } = area;
+        // Media goes on its own line.
+        const pre = start && value[start - 1] !== '\n' ? '\n' : '';
+        const post = value[end] && value[end] !== '\n' ? '\n' : '';
+        area.setRangeText(pre + (embed ? `!embed(${url})` : `![${caption}](${url})`) + post, start, end, 'end');
+        area.focus();
+      }
+
+      function richify(area) {
         const wrap = document.createElement('div');
         wrap.className = 'rich-wrap';
         const bar = document.createElement('div');
@@ -1949,6 +1971,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           ['<u>U</u>', 'Underline', () => wrapSelection(area, '__')],
           ['🔗', 'Link', () => addLink(area)],
           ['• List', 'Bulleted list', () => toggleList(area)],
+          ['🖼 Media', 'Photo, video or embed (iframe)', () => addMedia(area)],
         ];
         for (const [html, title, action] of buttons) {
           const b = document.createElement('button');
@@ -1960,7 +1983,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         }
         area.replaceWith(wrap);
         wrap.append(bar, area);
-      });
+      }
+      document.querySelectorAll('textarea[data-rich]').forEach(richify);
 
       // ---------- Init ----------
       function initAdmin() {
