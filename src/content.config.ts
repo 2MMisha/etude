@@ -16,6 +16,7 @@ const news = defineCollection({
     imageCredit: z.object({ he: z.string(), en: z.string(), ru: z.string() }).partial().optional(),
     title: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
     body: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
+    hideOnDisplay: z.boolean().optional(), // keep this post off the studio TV (/display/)
   }),
 });
 

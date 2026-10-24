@@ -9,7 +9,7 @@
 // today's classes (1 min) → the week (1 min) → that language's next ad video
 // from public/display/ads/ (muted, played to the end; "-he-"/"-ru-"/"-en-" in
 // the file name, untagged = every language) → the next of the latest 3 news
-// posts (15 s, QR to the post) → Instagram or Google-review QR (15 s). See
+// posts not marked "hide on display" (15 s, QR to the post) → Instagram or Google-review QR (15 s). See
 // buildPlaylist(). While a hall rental is on and no class is running anywhere,
 // the screen instead welcomes the guests (he/en/ru, a minute each) with the
 // rental's times and countdown on the side, and the promo slides are skipped.
@@ -38,6 +38,7 @@ const videos = readdirSync('public/display/ads')
   .map((f) => `/display/ads/${encodeURIComponent(f)}`);
 const news = await Promise.all(
   (await getPublishedNews())
+    .filter((post) => !post.data.hideOnDisplay)
     .sort((a, b) => b.data.date.localeCompare(a.data.date))
     .slice(0, 3)
     .map(async (post) => ({

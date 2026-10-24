@@ -240,6 +240,9 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
                   <textarea id="newsBodyRu" placeholder="Русский" data-rich></textarea>
                 </div>
               </div>
+              <div>
+                <label><input type="checkbox" id="newsHideOnDisplay" class="inline-check" /> Don't show on the studio TV (/display/)</label>
+              </div>
             </div>
             <div class="form-actions">
               <button class="btn-mini primary" id="saveNewsBtn">Save post</button>
@@ -990,6 +993,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           $('newsBodyHe').value = post.data.body?.he || '';
           $('newsBodyEn').value = post.data.body?.en || '';
           $('newsBodyRu').value = post.data.body?.ru || '';
+          $('newsHideOnDisplay').checked = !!post.data.hideOnDisplay;
           editingNewsId = post.id;
           editingNewsSha = post.sha;
         } else {
@@ -1008,6 +1012,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           $('newsBodyHe').value = '';
           $('newsBodyEn').value = '';
           $('newsBodyRu').value = '';
+          $('newsHideOnDisplay').checked = false;
           editingNewsId = null;
           editingNewsSha = null;
         }
@@ -1034,6 +1039,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           imageCredit: { he: $('newsImageCreditHe').value.trim(), en: $('newsImageCreditEn').value.trim(), ru: $('newsImageCreditRu').value.trim() },
           title: { he: $('newsTitleHe').value, en: $('newsTitleEn').value, ru: $('newsTitleRu').value },
           body: { he: $('newsBodyHe').value, en: $('newsBodyEn').value, ru: $('newsBodyRu').value },
+          ...($('newsHideOnDisplay').checked && { hideOnDisplay: true }),
         };
         for (const [lang, val] of Object.entries(post.title)) {
           if (!val.trim()) { $('newsIdError').textContent = `Title (${lang}) is required.`; return; }
