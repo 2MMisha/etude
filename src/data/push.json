@@ -1,14 +1,14 @@
 {
-  "id": "mvkwmmrl",
-  "to": "trainers",
+  "id": "mvm108s8",
+  "to": "students",
   "title": {
-    "he": "",
-    "ru": "Наумовна хватит работать",
-    "en": ""
+    "he": "מי שכח נעלי לטין לגברים?",
+    "ru": "Кто забыл латинские туфли мужские?",
+    "en": "Who forgot men's Latin dance shoes?"
   },
   "body": {
-    "he": "",
-    "ru": "Пошли домой",
-    "en": ""
+    "he": "בבקשה תקחו אותם, אחרת יזרקו אותם ביום ראשון.",
+    "ru": "Пожалуйста, заберите, иначе в воскресенье их выбросят",
+    "en": "Please pick them up, otherwise they will be thrown away on Sunday."
   }
 }
