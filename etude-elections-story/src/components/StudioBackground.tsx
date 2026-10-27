@@ -24,7 +24,7 @@ const BOKEH: [number, number, number, number, number][] = [
  * navy gradient, barely-visible mirror panels and barre, parquet in perspective,
  * soft blue glow and warm drifting bokeh. Pure decoration, no text.
  */
-export const StudioBackground: React.FC<{fadeInFrames?: number; timeOffset?: number}> = ({fadeInFrames = 24, timeOffset = 0}) => {
+export const StudioBackground: React.FC<{fadeInFrames?: number; timeOffset?: number; barreFadeOut?: boolean}> = ({fadeInFrames = 24, timeOffset = 0, barreFadeOut = false}) => {
   const localFrame = useCurrentFrame();
   // Bokeh drift uses series time, so consecutive stories cut together seamlessly.
   const frame = localFrame + timeOffset;
@@ -97,7 +97,7 @@ export const StudioBackground: React.FC<{fadeInFrames?: number; timeOffset?: num
             );
           })}
           {/* Ballet barre */}
-          <g opacity={0.16}>
+          <g opacity={0.16 * (barreFadeOut ? interpolate(localFrame, [0, 30], [1, 0], {extrapolateRight: 'clamp'}) : 1)}>
             <rect x={0} y={952} width={W} height={10} rx={5} fill={COLORS.mist} />
             {[150, 540, 930].map((x) => (
               <rect key={x} x={x - 5} y={958} width={10} height={44} rx={3} fill={COLORS.mist} />

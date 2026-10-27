@@ -37,10 +37,12 @@ export const StoryShell: React.FC<
     textTop?: number;
     backgroundFadeIn?: number;
     watermark?: boolean;
+    /** fade the ballet barre out (keeps the info block of a CTA story clean) */
+    barreFadeOut?: boolean;
   }
-> = ({showText, showSafeZone, storyIndex, scene, text, overlay, audio, textTop = 430, backgroundFadeIn = 0, watermark = true}) => (
+> = ({showText, showSafeZone, storyIndex, scene, text, overlay, audio, textTop = 430, backgroundFadeIn = 0, watermark = true, barreFadeOut = false}) => (
   <AbsoluteFill>
-    <StudioBackground fadeInFrames={backgroundFadeIn} timeOffset={storyIndex * STORY_DURATION} />
+    <StudioBackground fadeInFrames={backgroundFadeIn} timeOffset={storyIndex * STORY_DURATION} barreFadeOut={barreFadeOut} />
     {scene && <AbsoluteFill>{scene}</AbsoluteFill>}
     {showText && text && (
       <AbsoluteFill

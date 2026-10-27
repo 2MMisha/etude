@@ -5,9 +5,11 @@
   "description": "ETUDE Dance School — Knesset election day story series (Remotion)",
   "scripts": {
     "studio": "remotion studio",
+    "audio": "python3 audio-src/generate_audio.py",
+    "render:all": "bash scripts/render-all.sh",
     "render": "remotion render Story01 out/story-01.mp4 --codec=h264",
     "render:notext": "remotion render Story01-NoText out/story-01-notext.mp4 --codec=h264",
-    "stills": "remotion still Story01 out/stills/story-01-f030.png --frame=30 && remotion still Story01 out/stills/story-01-f100.png --frame=100 && remotion still Story01 out/stills/story-01-f180.png --frame=180",
+    "render:full": "remotion render SeriesFull out/story-series-full.mp4 --codec=h264",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -34,8 +34,8 @@ export const Story04: React.FC<StoryProps> = ({showText, showSafeZone, withMusic
   const g0 = orbitPose(ORBIT.phi0 + 360 + 180, 0);
   const l0 = orbitPose(ORBIT.phi0 + 360, 0);
   const mix = (a: number, b: number) => a + (b - a) * p;
-  const gent: ShoePose = {x: mix(g0.x, 440), y: mix(g0.y, REST_Y) - hop, scale: mix(g0.scale, 0.9), facing: -1, tilt: 0, lift: hop};
-  const lady: ShoePose = {x: mix(l0.x, 640), y: mix(l0.y, REST_Y + 4) - hop, scale: mix(l0.scale, 0.9), facing: 1, tilt: 0, lift: hop};
+  const gent: ShoePose = {x: mix(g0.x, 418), y: mix(g0.y, REST_Y) - hop, scale: mix(g0.scale, 0.9), facing: -1, tilt: 0, lift: hop};
+  const lady: ShoePose = {x: mix(l0.x, 664), y: mix(l0.y, REST_Y + 4) - hop, scale: mix(l0.scale, 0.9), facing: 1, tilt: 0, lift: hop};
 
   const logoIn = interpolate(frame, [T.logo, T.logo + 22], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)});
   const spot = interpolate(frame, [0, 30], [0.6, 1], {extrapolateRight: 'clamp'});
@@ -118,6 +118,7 @@ export const Story04: React.FC<StoryProps> = ({showText, showSafeZone, withMusic
       audio={audio}
       textTop={top}
       watermark={false}
+      barreFadeOut
     />
   );
 };

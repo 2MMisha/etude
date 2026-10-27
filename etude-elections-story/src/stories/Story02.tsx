@@ -3,7 +3,6 @@ import {Easing, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remo
 import {COLORS, VIDEO} from '../brand/tokens';
 import {BALLOT_BOX, BallotBox} from '../components/BallotBox';
 import {GentShoe, LadyShoe} from '../components/BallroomShoes';
-import {Sparkles} from '../components/Sparkles';
 import {SeriesMusic, Sfx} from '../components/StoryAudio';
 import {BrushStroke, HebrewHeadline, RussianLine} from '../components/StoryText';
 import {SERIES_COPY} from '../series/copy';
@@ -18,12 +17,12 @@ const T = {
   glow: [40, 66], // slot starts to glow, box trembles in anticipation
   beam: [62, 80], // light beam opens
   rise: 64, // shoes rise out of the slot
-  burst: 96,
+  burst: 92, // chimes as the shoes settle
 } as const;
 
 const W = VIDEO.width;
 /** Where the shoes float (ground line of the pair) — also the starting point of story 03. */
-export const SHOES_FLOAT = {x: 540, y: 960, gentDx: -112, ladyDx: 112} as const;
+export const SHOES_FLOAT = {x: 540, y: 975, gentDx: -128, ladyDx: 124} as const;
 
 /** Gentle float shared with story 03 so the cut is invisible. `t` = series-relative frame. */
 export const floatOffset = (t: number) => ({
@@ -98,7 +97,6 @@ export const Story02: React.FC<StoryProps> = ({showText, showSafeZone, withMusic
           </g>
         </g>
       )}
-      <Sparkles frame={frame - T.burst} x={SHOES_FLOAT.x} y={SHOES_FLOAT.y - 90} duration={40} />
     </svg>
   );
 

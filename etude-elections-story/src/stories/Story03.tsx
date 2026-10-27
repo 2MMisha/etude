@@ -34,7 +34,7 @@ export const orbitPose = (theta: number, lift: number): ShoePose => {
     x: ORBIT.cx + ORBIT.rx * Math.cos(deg(theta)),
     y: ORBIT.cy + ORBIT.ry * s - lift,
     scale: 0.92 + 0.1 * s,
-    facing: Math.max(-1, Math.min(1, s * 3)), // front half moves left → toe left
+    facing: Math.max(-1, Math.min(1, s * 6)), // front half moves left → toe left; quick turn at the sides
     tilt: 0,
     lift,
   };
