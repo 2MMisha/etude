@@ -24,16 +24,18 @@ const BOKEH: [number, number, number, number, number][] = [
  * navy gradient, barely-visible mirror panels and barre, parquet in perspective,
  * soft blue glow and warm drifting bokeh. Pure decoration, no text.
  */
-export const StudioBackground: React.FC<{fadeInFrames?: number}> = ({fadeInFrames = 24}) => {
-  const frame = useCurrentFrame();
-  const opacity = fadeInFrames > 0 ? interpolate(frame, [0, fadeInFrames], [0, 1], {extrapolateRight: 'clamp'}) : 1;
+export const StudioBackground: React.FC<{fadeInFrames?: number; timeOffset?: number}> = ({fadeInFrames = 24, timeOffset = 0}) => {
+  const localFrame = useCurrentFrame();
+  // Bokeh drift uses series time, so consecutive stories cut together seamlessly.
+  const frame = localFrame + timeOffset;
+  const opacity = fadeInFrames > 0 ? interpolate(localFrame, [0, fadeInFrames], [0, 1], {extrapolateRight: 'clamp'}) : 1;
 
   // Parquet: plank seams converge to the vanishing point, cross seams get denser towards the horizon.
   const seams = [];
   for (let i = -14; i <= 14; i++) {
     const xBottom = W / 2 + i * 120;
     seams.push(
-      <line key={`s${i}`} x1={xBottom} y1={H} x2={VANISH.x + (xBottom - VANISH.x) * 0.0} y2={VANISH.y} />,
+      <line key={`s${i}`} x1={xBottom} y1={H} x2={VANISH.x} y2={VANISH.y} />,
     );
   }
   const rows = [];

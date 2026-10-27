@@ -7,10 +7,11 @@ import {ENVELOPE, Envelope} from '../components/Envelope';
 import {Sparkles} from '../components/Sparkles';
 import {BrushStroke, HebrewHeadline, RussianLine} from '../components/StoryText';
 import {SERIES_COPY} from '../series/copy';
-import {StoryProps, StoryShell} from '../series/StoryShell';
+import {SeriesMusic, Sfx} from '../components/StoryAudio';
+import {STORY_DURATION, StoryProps, StoryShell} from '../series/StoryShell';
 
 /** Story 01 — "היום כולם בוחרים… / Сегодня все выбирают…": a hand drops an empty envelope into an ETUDE ballot box. */
-export const STORY01_DURATION = 210; // 7 s @ 30 fps
+export const STORY01_DURATION = STORY_DURATION;
 
 // Timeline (frames @ 30 fps)
 const T = {
@@ -30,7 +31,7 @@ const ENV_LOCAL = {x: -ENVELOPE.width / 2 - 10, y: 148}; // envelope top-left re
 const HOVER_Y = BALLOT_BOX.slotY - ENV_LOCAL.y - ENVELOPE.height - 14; // envelope just above the slot
 const PUSH_Y = HOVER_Y + 76;
 
-export const Story01: React.FC<StoryProps> = ({showText, showSafeZone}) => {
+export const Story01: React.FC<StoryProps> = ({showText, showSafeZone, withMusic}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
@@ -122,5 +123,30 @@ export const Story01: React.FC<StoryProps> = ({showText, showSafeZone}) => {
     </div>
   );
 
-  return <StoryShell showText={showText} showSafeZone={showSafeZone} scene={scene} text={text} overlay={overlay} textTop={440} />;
+  const audio = (
+    <>
+      {withMusic && <SeriesMusic storyIndex={0} durationInFrames={STORY01_DURATION} fadeIn={20} />}
+      <Sfx name="whoosh-in" at={T.handIn} volume={0.5} />
+      <Sfx name="paper-slide" at={T.release - 3} volume={0.7} />
+      <Sfx name="box-thump" at={T.impact - 1} volume={0.9} />
+      <Sfx name="sparkle" at={T.impact} volume={0.55} />
+      <Sfx name="whoosh-out" at={T.handOut[0]} volume={0.4} />
+      {showText && <Sfx name="text-pop-1" at={T.text1} volume={0.45} />}
+      {showText && <Sfx name="text-pop-2" at={T.text2} volume={0.4} />}
+    </>
+  );
+
+  return (
+    <StoryShell
+      storyIndex={0}
+      backgroundFadeIn={24}
+      showText={showText}
+      showSafeZone={showSafeZone}
+      scene={scene}
+      text={text}
+      overlay={overlay}
+      audio={audio}
+      textTop={440}
+    />
+  );
 };

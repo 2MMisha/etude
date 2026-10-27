@@ -6,31 +6,41 @@ import {BrandWatermark} from '../components/BrandWatermark';
 import {SafeZoneGuides} from '../components/SafeZoneGuides';
 import {StudioBackground} from '../components/StudioBackground';
 
+export const STORY_DURATION = 210; // 7 s @ 30 fps — every story in the series
+
 export type StoryProps = {
   /** false → the "no text" export: headlines are hidden, logos stay */
   showText: boolean;
   /** draws the story UI bands (top 250 px / bottom 300 px) for checking in Studio */
   showSafeZone: boolean;
+  /** play this story's slice of the series waltz (off inside the combined video, which plays the whole piece) */
+  withMusic: boolean;
 };
+
+export const DEFAULT_STORY_PROPS: StoryProps = {showText: true, showSafeZone: false, withMusic: true};
 
 /**
  * Common frame for every story in the series: background, watermark and layer slots.
  *   scene    – full-frame illustration (usually one 1080×1920 <svg>)
  *   text     – headline block, placed inside the text-safe area, hidden for the no-text export
  *   overlay  – things that must pass in front of the text (e.g. the hand)
+ *   audio    – music + sound effects (<SeriesMusic>, <Sfx>)
  */
 export const StoryShell: React.FC<
-  StoryProps & {
+  Omit<StoryProps, 'withMusic'> & {
+    storyIndex: number;
     scene?: React.ReactNode;
     text?: React.ReactNode;
     overlay?: React.ReactNode;
+    audio?: React.ReactNode;
     /** top of the text block, px from the top of the frame (clamped to the safe zone) */
     textTop?: number;
     backgroundFadeIn?: number;
+    watermark?: boolean;
   }
-> = ({showText, showSafeZone, scene, text, overlay, textTop = 430, backgroundFadeIn = 24}) => (
+> = ({showText, showSafeZone, storyIndex, scene, text, overlay, audio, textTop = 430, backgroundFadeIn = 0, watermark = true}) => (
   <AbsoluteFill>
-    <StudioBackground fadeInFrames={backgroundFadeIn} />
+    <StudioBackground fadeInFrames={backgroundFadeIn} timeOffset={storyIndex * STORY_DURATION} />
     {scene && <AbsoluteFill>{scene}</AbsoluteFill>}
     {showText && text && (
       <AbsoluteFill
@@ -45,7 +55,8 @@ export const StoryShell: React.FC<
       </AbsoluteFill>
     )}
     {overlay && <AbsoluteFill>{overlay}</AbsoluteFill>}
-    <BrandWatermark />
+    {watermark && <BrandWatermark />}
     {showSafeZone && <SafeZoneGuides />}
+    {audio}
   </AbsoluteFill>
 );

@@ -64,8 +64,17 @@ export const BrushStroke: React.FC<{start: number; duration?: number; rtl?: bool
 
 const textShadow = '0 6px 24px rgba(5, 10, 30, 0.55)';
 
-/** Hebrew headline: Gveret Levin, RTL, with the breathing ellipsis at the logical end (= visual left). */
-export const HebrewHeadline: React.FC<{text: string; start: number; fontSize?: number; ellipsis?: boolean}> = ({text, start, fontSize = 118, ellipsis = true}) => {
+/**
+ * 'end'   – breathing ellipsis after the text (the sentence continues in the next story)
+ * 'start' – static ellipsis before the text (this story continues the previous one)
+ */
+export type EllipsisMode = 'end' | 'start' | 'none';
+
+/** Leading "…", split into dots like the breathing one so both stories look the same. */
+const LeadingEllipsis: React.FC = () => <span style={{display: 'inline-block', whiteSpace: 'nowrap'}}>...</span>;
+
+/** Hebrew headline: Gveret Levin, RTL. The ellipsis is placed by logical order, so 'end' renders on the visual left and 'start' on the visual right. */
+export const HebrewHeadline: React.FC<{text: string; start: number; fontSize?: number; ellipsis?: EllipsisMode}> = ({text, start, fontSize = 118, ellipsis = 'end'}) => {
   const frame = useCurrentFrame();
   return (
     <div
@@ -82,14 +91,15 @@ export const HebrewHeadline: React.FC<{text: string; start: number; fontSize?: n
         textShadow,
       }}
     >
+      {ellipsis === 'start' && <LeadingEllipsis />}
       {text}
-      {ellipsis && <BreathingEllipsis start={start + 20} />}
+      {ellipsis === 'end' && <BreathingEllipsis start={start + 20} />}
     </div>
   );
 };
 
 /** Russian line: Caveat 700, LTR. */
-export const RussianLine: React.FC<{text: string; start: number; fontSize?: number; ellipsis?: boolean}> = ({text, start, fontSize = 92, ellipsis = true}) => {
+export const RussianLine: React.FC<{text: string; start: number; fontSize?: number; ellipsis?: EllipsisMode}> = ({text, start, fontSize = 92, ellipsis = 'end'}) => {
   const frame = useCurrentFrame();
   return (
     <div
@@ -107,8 +117,42 @@ export const RussianLine: React.FC<{text: string; start: number; fontSize?: numb
         textShadow,
       }}
     >
+      {ellipsis === 'start' && <LeadingEllipsis />}
       {text}
-      {ellipsis && <BreathingEllipsis start={start + 20} />}
+      {ellipsis === 'end' && <BreathingEllipsis start={start + 20} />}
+    </div>
+  );
+};
+
+/** Small info line in the plain faces (Heebo for Hebrew, Montserrat for Russian/Latin) — numbers, addresses, offers. */
+export const InfoLine: React.FC<{text: string; start: number; lang: 'he' | 'ru'; fontSize?: number; weight?: number; opacity?: number}> = ({
+  text,
+  start,
+  lang,
+  fontSize = 40,
+  weight = 500,
+  opacity = 0.92,
+}) => {
+  const frame = useCurrentFrame();
+  const e = entrance(frame, start, 16);
+  return (
+    <div
+      dir={lang === 'he' ? 'rtl' : 'ltr'}
+      lang={lang}
+      style={{
+        ...e,
+        opacity: e.opacity * opacity,
+        fontFamily: lang === 'he' ? FONTS.hebrew : FONTS.latin,
+        fontWeight: weight,
+        fontSize: lang === 'he' ? fontSize * 1.05 : fontSize, // brandbook: Hebrew ~5% larger
+        lineHeight: lang === 'he' ? 1.4 : 1.3,
+        color: COLORS.mist,
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+        textShadow,
+      }}
+    >
+      {text}
     </div>
   );
 };
