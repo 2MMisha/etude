@@ -15,7 +15,7 @@ import { ALARMS, appEvents, chipsFrom, feedsFrom, paymentBody, paymentSettings, 
 import { trainersFrom } from '../../lib/trainers';
 import { icon } from '../../lib/icons';
 import { getPublishedNews } from '../../lib/news';
-import { renderRichText } from '../../lib/richText';
+import { renderRichText, excerpt } from '../../lib/richText';
 import { t as tr } from '../../lib/translations';
 import { ALL_LANGS, localizePath } from '../../lib/languages';
 import { SITE } from '../../lib/site';
@@ -85,7 +85,10 @@ const data = {
     imageAlt: n.data.imageAlt,
     title: n.data.title,
     html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(n.data.body[l] || n.data.body.he)])),
+    lead: Object.fromEntries(ALL_LANGS.map((l) => [l, excerpt(n.data.body[l] || n.data.body.he, 320)])),
   })),
+  // Wording of the share dialog (src/lib/shareCard.ts), the same as on the site.
+  shareText: Object.fromEntries(ALL_LANGS.map((l) => [l, tr(l).share])),
   classes,
   prices: app.prices,
   rules: app.rules,
@@ -295,6 +298,7 @@ const data = {
       import { fitCards, weekGrid } from '../../lib/weekGrid';
       import { icon } from '../../lib/icons';
       import { googleCalendarUrl } from '../../lib/calendar';
+      import { openShare, type ShareText } from '../../lib/shareCard';
 
       type Lang = 'he' | 'en' | 'ru';
       const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -385,7 +389,8 @@ const data = {
         siteUrl: string;
         pushAppId: string;
         updatedAt: string;
-        news: { id: string; date: string; image?: string; imageAlt?: Partial<Loc>; title: Loc; html: Loc }[];
+        news: { id: string; date: string; image?: string; imageAlt?: Partial<Loc>; title: Loc; html: Loc; lead: Loc }[];
+        shareText: Record<Lang, ShareText>;
         classes: Record<Lang, { intro: string; sections: { title: string; items: { title: string; body: string }[] }[]; url: string }>;
         prices: Record<Lang, string[]>;
         rules: Record<Lang, string[]>;
@@ -584,7 +589,8 @@ const data = {
         // The body is already safe HTML (renderRichText escapes everything it doesn't format).
         $('post').innerHTML = n
           ? (n.image ? `<img src="${esc(n.image)}" alt="${esc(n.imageAlt?.[lang] || '')}" loading="lazy" />` : '') +
-            `<p class="hint">${fmtDate(n.date)}</p><h1 dir="auto">${esc(n.title[lang] || n.title.he)}</h1><div class="post__body" dir="auto">${n.html[lang]}</div>`
+            `<p class="hint">${fmtDate(n.date)}</p><h1 dir="auto">${esc(n.title[lang] || n.title.he)}</h1><div class="post__body" dir="auto">${n.html[lang]}</div>` +
+            `<div class="sa-row"><button type="button" class="btn" data-share-post>${icon('share')}${data.shareText[lang].share}</button></div>`
           : '';
       }
 
@@ -912,6 +918,23 @@ const data = {
       }
       $('pop').addEventListener('click', (e) => {
         if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-close]')) ($('pop') as HTMLDialogElement).close();
+      });
+      // A news post as an Instagram/Facebook story or post image, or a link.
+      document.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('[data-share-post]')) return;
+        const n = data.news.find((x) => x.id === post);
+        if (!n) return;
+        openShare(
+          {
+            lang,
+            url: `${data.siteUrl}/${lang}/news/${encodeURIComponent(n.id)}/`,
+            title: n.title[lang] || n.title.he,
+            lead: n.lead[lang],
+            date: new Date(`${n.date}T12:00:00`).toLocaleDateString(t.locale, { dateStyle: 'long' }),
+            image: n.image,
+          },
+          data.shareText[lang]
+        );
       });
       // "Invite a friend" through the phone's share menu.
       document.addEventListener('click', (e) => {

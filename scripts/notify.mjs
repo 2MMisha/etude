@@ -1,6 +1,6 @@
 // Push notifications to the student app through OneSignal, run by
 // .github/workflows/notify.yml. Only six kinds:
-//   - a news post dated today (from 9:00, so a post scheduled ahead goes out that morning);
+//   - a news post, once its date has come (from 9:00, so a post scheduled ahead goes out that morning);
 //   - a new event and a new or retitled "important" notice — found by comparing
 //     src/data/student-app.json with the commit before the push (BEFORE);
 //   - the payment day (from 9:00);
@@ -71,12 +71,21 @@ if (BEFORE) {
   try { old = JSON.parse(execSync(`git show ${BEFORE}:src/data/student-app.json`, { encoding: 'utf8' })); } catch { old = null; } // BEFORE not fetched: skip the comparison rather than resend everything
 }
 
-// News dated today.
+// News: a post dated in the last week, or one added by this push whatever its
+// date, once its date has come. Not only "dated today": a post published a day
+// after its date, or a scheduled run that GitHub starts late, still goes out.
+// The idempotency key keeps it to one notification per post.
+const weekAgo = new Date(Date.parse(`${today}T12:00:00Z`) - 7 * 864e5).toISOString().slice(0, 10);
+let hadNews = null; // post files in the commit before the push
+if (BEFORE) {
+  try { hadNews = new Set(execSync(`git ls-tree --name-only ${BEFORE} src/content/news/`, { encoding: 'utf8' }).split('\n').map((p) => p.split('/').pop())); } catch {}
+}
 if (morning)
   for (const f of readdirSync('src/content/news').filter((f) => f.endsWith('.json'))) {
     const post = JSON.parse(readFileSync(`src/content/news/${f}`, 'utf8'));
     const id = f.replace(/\.json$/, '');
-    if (post.date === today) await send(`news-${id}`, LABEL.news, loc(post.title), `#news/${encodeURIComponent(id)}`);
+    const added = hadNews && !hadNews.has(f);
+    if (post.date <= today && (post.date >= weekAgo || added)) await send(`news-${id}`, LABEL.news, loc(post.title), `#news/${encodeURIComponent(id)}`);
   }
 
 if (old) {
