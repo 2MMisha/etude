@@ -29,6 +29,12 @@ const PATHS = {
   invite: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M18.5 8v6M15.5 11h6"/>',
   share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>',
   trophy: '<path d="M8 3.5h8v5.5a4 4 0 0 1-8 0z"/><path d="M8 5.5H4.5v1.5A3.5 3.5 0 0 0 8 10.5M16 5.5h3.5v1.5a3.5 3.5 0 0 1-3.5 3.5"/><path d="M12 13v4M8.5 20.5h7l-1-3.5h-5z"/>',
+  printer: '<path d="M6 9V2.5h12V9"/><path d="M6 18H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9h15a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5H18"/><rect x="6" y="14" width="12" height="7.5" rx="1"/>',
+  download: '<path d="M12 3.5v11M7.5 10.5l4.5 4.5 4.5-4.5"/><path d="M4 17.5v3h16v-3"/>',
+  link: '<path d="M10 13.5a4.5 4.5 0 0 0 6.8.5l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.7 1.7"/><path d="M14 10.5a4.5 4.5 0 0 0-6.8-.5l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.7-1.7"/>',
+  mail: '<rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3 6.5 9 6.5 9-6.5"/>',
+  facebook: '<path d="M17.5 2.5h-3a5 5 0 0 0-5 5v3h-3v4h3v8h4v-8h3l1-4h-4v-3a1 1 0 0 1 1-1h3z"/>',
+  x: '<path d="M4 3.5h4.5l11.5 17h-4.5z"/><path d="M19.5 3.5l-6.6 7.4M4.5 20.5l6.6-7.4"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

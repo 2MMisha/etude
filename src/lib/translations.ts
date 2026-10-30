@@ -45,6 +45,22 @@ export const translations = {
       footerAbout:
         'בית ספר לריקודי בלרום וריקודים לטיניים בראשון לציון. שיעורים קבוצתיים ופרטיים לילדים, לנוער ולמבוגרים — ממתחילים ועד רקדני תחרויות — באווירה מקצועית וחמה. מוזמנים לתאם שיעור ניסיון ולגלות את הריקוד שמתאים לכם.',
     },
+    share: {
+      print: 'הדפסה',
+      share: 'שיתוף',
+      title: 'שיתוף החדשה',
+      card: 'תמונה עם קוד QR',
+      cardHint: 'תמונה מוכנה לסטורי, לוואטסאפ או להדפסה: כותרת, תחילת הכתבה, תמונה וקוד QR לכתבה המלאה.',
+      download: 'הורדת התמונה',
+      shareImage: 'שיתוף התמונה',
+      link: 'שיתוף קישור',
+      copyLink: 'העתקת הקישור',
+      copied: 'הקישור הועתק',
+      more: 'עוד…',
+      instagramHint: 'באינסטגרם אי אפשר לשתף קישור מהאתר: שמרו את התמונה והעלו אותה לסטורי או לפוסט. הקישור הועתק, אפשר להדביק אותו כמדבקת קישור.',
+      scanToRead: 'סרקו לקריאת הכתבה המלאה',
+      close: 'סגירה',
+    },
     pageMore: {
       about: {
         title: "איך נראה שיעור ב-ETUDE",
@@ -517,6 +533,22 @@ export const translations = {
       footerAbout:
         'A ballroom and Latin dance school in Rishon LeZion. Group and private lessons for children, teens, and adults — from first steps to competition dancing — in a professional, friendly atmosphere. Book a trial class and find the dance that suits you.',
     },
+    share: {
+      print: 'Print',
+      share: 'Share',
+      title: 'Share this post',
+      card: 'Image with a QR code',
+      cardHint: 'A ready image for stories, WhatsApp or print: the headline, the start of the post, the photo and a QR code to the full post.',
+      download: 'Download image',
+      shareImage: 'Share image',
+      link: 'Share a link',
+      copyLink: 'Copy link',
+      copied: 'Link copied',
+      more: 'More…',
+      instagramHint: "Instagram doesn't accept links from websites: save the image and post it to your story or feed. The link is copied, so you can paste it as a link sticker.",
+      scanToRead: 'Scan to read the full post',
+      close: 'Close',
+    },
     pageMore: {
       about: {
         title: "What a lesson at ETUDE looks like",
@@ -986,6 +1018,22 @@ export const translations = {
       footerNav: 'Разделы',
       footerAbout:
         'Школа бальных и латиноамериканских танцев в Ришон-ле-Ционе. Групповые и индивидуальные занятия для детей, подростков и взрослых — от первых шагов до спортивных танцев — в профессиональной и дружеской атмосфере. Запишитесь на пробное занятие и найдите свой танец.',
+    },
+    share: {
+      print: 'Распечатать',
+      share: 'Поделиться',
+      title: 'Поделиться новостью',
+      card: 'Картинка с QR-кодом',
+      cardHint: 'Готовая картинка для сторис, WhatsApp или печати: заголовок, начало новости, фото и QR-код на полный текст.',
+      download: 'Скачать картинку',
+      shareImage: 'Поделиться картинкой',
+      link: 'Поделиться ссылкой',
+      copyLink: 'Скопировать ссылку',
+      copied: 'Ссылка скопирована',
+      more: 'Ещё…',
+      instagramHint: 'Instagram не принимает ссылки с сайтов: сохраните картинку и выложите её в сторис или пост. Ссылка уже скопирована, её можно вставить стикером «Ссылка».',
+      scanToRead: 'Отсканируйте, чтобы прочитать новость',
+      close: 'Закрыть',
     },
     pageMore: {
       about: {

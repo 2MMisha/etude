@@ -1,0 +1,503 @@
+---
+// "Print" and "Share" for a news post. Share opens a dialog with a ready
+// image (photo, headline, start of the post and a QR code to it), drawn on a
+// canvas in the browser, plus links for WhatsApp, Telegram, Facebook, X,
+// email and Instagram (which takes no web links, so it gets the image).
+// Printing keeps only the article, under the logo and a QR code to the post.
+import QRCode from 'qrcode';
+import { type Lang } from '../lib/languages';
+import { translations } from '../lib/translations';
+import { icon } from '../lib/icons';
+
+interface Props {
+  lang: Lang;
+  url: string; // absolute URL of the post
+  title: string;
+  lead: string; // plain-text start of the post
+  date: string; // already formatted for the language
+  image?: string;
+}
+
+const { lang, url, title, lead, date, image } = Astro.props;
+const t = translations[lang].share;
+const qrOptions = { margin: 1, errorCorrectionLevel: 'M' as const, color: { dark: '#17224a', light: '#ffffff' } };
+const qrSvg = await QRCode.toString(url, { ...qrOptions, type: 'svg' });
+const qrPng = await QRCode.toDataURL(url, { ...qrOptions, width: 480 });
+const host = new URL(url).host;
+---
+
+<div class="news-share" data-share={JSON.stringify({ lang, url, title, lead, date, image, qr: qrPng, host, scan: t.scanToRead })}>
+  <button type="button" class="btn btn--ghost" data-print><Fragment set:html={icon('printer')} />{t.print}</button>
+  <button type="button" class="btn btn--primary" data-open><Fragment set:html={icon('share')} />{t.share}</button>
+
+  <dialog class="share-dlg" aria-labelledby="shareTitle">
+    <div class="share-dlg__head">
+      <h2 id="shareTitle">{t.title}</h2>
+      <button type="button" class="share-dlg__close" data-close aria-label={t.close}><Fragment set:html={icon('close')} /></button>
+    </div>
+
+    <h3>{t.card}</h3>
+    <p class="share-dlg__hint">{t.cardHint}</p>
+    <div class="share-dlg__preview"><img alt="" data-preview hidden /></div>
+    <div class="share-dlg__row">
+      <button type="button" class="btn btn--primary" data-share-image hidden><Fragment set:html={icon('share')} />{t.shareImage}</button>
+      <button type="button" class="btn btn--ghost" data-download><Fragment set:html={icon('download')} />{t.download}</button>
+    </div>
+
+    <h3>{t.link}</h3>
+    <div class="share-dlg__links">
+      <a class="share-link" data-net="whatsapp" target="_blank" rel="noopener"><Fragment set:html={icon('chat')} />WhatsApp</a>
+      <a class="share-link" data-net="telegram" target="_blank" rel="noopener"><Fragment set:html={icon('send')} />Telegram</a>
+      <a class="share-link" data-net="facebook" target="_blank" rel="noopener"><Fragment set:html={icon('facebook')} />Facebook</a>
+      <button type="button" class="share-link" data-instagram><Fragment set:html={icon('instagram')} />Instagram</button>
+      <a class="share-link" data-net="x" target="_blank" rel="noopener"><Fragment set:html={icon('x')} />X</a>
+      <a class="share-link" data-net="email"><Fragment set:html={icon('mail')} />Email</a>
+      <button type="button" class="share-link" data-copy data-copied={t.copied}><Fragment set:html={icon('link')} /><span>{t.copyLink}</span></button>
+      <button type="button" class="share-link" data-native hidden><Fragment set:html={icon('share')} />{t.more}</button>
+    </div>
+    <p class="share-dlg__note" data-insta-hint hidden>{t.instagramHint}</p>
+  </dialog>
+</div>
+
+<!-- Only on paper: logo and a QR code to the post above the article. -->
+<div class="news-print" aria-hidden="true">
+  <img src="/images/brand/logo-line.svg" alt="" />
+  <p>{t.scanToRead}<br /><span dir="ltr">{url}</span></p>
+  <div class="news-print__qr" set:html={qrSvg} />
+</div>
+
+<script>
+  type ShareData = { lang: string; url: string; title: string; lead: string; date: string; image?: string; qr: string; host: string; scan: string };
+
+  const W = 1080;
+  const H = 1350;
+  const PAD = 72;
+  const PHOTO_H = 640;
+  const BAND_Y = 1110;
+  const NAVY = '#17224a';
+  const BLUE = '#2f4b9b';
+  const INK_SOFT = '#4a5367';
+
+  function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  /** Word-wraps text to at most `max` lines, ending the last one with "…" when cut. */
+  function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, max: number): string[] {
+    const words = text.split(/\s+/).filter(Boolean);
+    const lines: string[] = [];
+    let line = '';
+    for (let i = 0; i < words.length; i++) {
+      const next = line ? `${line} ${words[i]}` : words[i];
+      if (ctx.measureText(next).width <= width || !line) {
+        line = next;
+        continue;
+      }
+      lines.push(line);
+      line = words[i];
+      if (lines.length === max) {
+        let last = lines[max - 1];
+        while (last && ctx.measureText(`${last}…`).width > width) last = last.replace(/\s*\S+$/, '');
+        lines[max - 1] = `${last.replace(/[\s,.;:—–-]+$/, '')}…`;
+        return lines;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  async function drawCard(d: ShareData): Promise<Blob> {
+    const rtl = d.lang === 'he';
+    const family = rtl ? '"Heebo", sans-serif' : '"Montserrat", sans-serif';
+    await Promise.all(
+      ['600 28px', '700 56px', '400 32px'].map((f) => document.fonts.load(`${f} ${family}`, d.title + d.lead).catch(() => {}))
+    );
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Photo: a blurred copy fills the frame, the whole photo sits on top
+    // (same look as the post page). The blur is a tiny copy scaled up.
+    const photo = d.image ? await loadImage(d.image).catch(() => null) : null;
+    if (photo) {
+      const cover = Math.max(W / photo.width, PHOTO_H / photo.height);
+      const tiny = document.createElement('canvas');
+      tiny.width = 27;
+      tiny.height = Math.round((27 * PHOTO_H) / W);
+      const tctx = tiny.getContext('2d')!;
+      const sw = W / cover;
+      const sh = PHOTO_H / cover;
+      tctx.drawImage(photo, (photo.width - sw) / 2, (photo.height - sh) / 2, sw, sh, 0, 0, tiny.width, tiny.height);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(tiny, 0, 0, W, PHOTO_H);
+      ctx.fillStyle = 'rgba(23, 34, 74, 0.2)';
+      ctx.fillRect(0, 0, W, PHOTO_H);
+      const fit = Math.min(W / photo.width, PHOTO_H / photo.height);
+      const pw = photo.width * fit;
+      const ph = photo.height * fit;
+      ctx.drawImage(photo, (W - pw) / 2, (PHOTO_H - ph) / 2, pw, ph);
+    } else {
+      ctx.fillStyle = NAVY;
+      ctx.fillRect(0, 0, W, PHOTO_H);
+      const mark = await loadImage('/images/brand/icon-white.svg').catch(() => null);
+      if (mark) ctx.drawImage(mark, (W - 220) / 2, (PHOTO_H - 220) / 2, 220, 220);
+    }
+
+    // Text: date, headline, start of the post.
+    ctx.direction = rtl ? 'rtl' : 'ltr';
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+    const x = rtl ? W - PAD : PAD;
+    const width = W - PAD * 2;
+    let y = PHOTO_H + 72;
+    ctx.fillStyle = BLUE;
+    ctx.font = `600 28px ${family}`;
+    ctx.fillText(d.date, x, y);
+    y += 74;
+    ctx.fillStyle = NAVY;
+    ctx.font = `700 56px ${family}`;
+    for (const line of wrap(ctx, d.title, width, 3)) {
+      ctx.fillText(line, x, y);
+      y += 66;
+    }
+    y += 6;
+    ctx.fillStyle = INK_SOFT;
+    ctx.font = `400 32px ${family}`;
+    const room = Math.floor((BAND_Y - 40 - (y - 32)) / 46);
+    if (room > 0) {
+      for (const line of wrap(ctx, d.lead, width, room)) {
+        ctx.fillText(line, x, y);
+        y += 46;
+      }
+    }
+
+    // Band: logo on one side, QR code and its caption on the other.
+    ctx.fillStyle = NAVY;
+    ctx.fillRect(0, BAND_Y, W, H - BAND_Y);
+    const bandH = H - BAND_Y;
+    const at = (left: number, w: number) => (rtl ? W - left - w : left);
+    const logo = await loadImage('/images/brand/logo-line-white.svg').catch(() => null);
+    if (logo) {
+      const lh = 84;
+      const lw = (lh * logo.width) / logo.height;
+      ctx.drawImage(logo, at(PAD, lw), BAND_Y + (bandH - lh) / 2, lw, lh);
+    }
+    const qr = await loadImage(d.qr);
+    const qs = 184;
+    const qx = at(W - PAD - qs, qs);
+    const qy = BAND_Y + (bandH - qs) / 2;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.roundRect(qx - 12, qy - 12, qs + 24, qs + 24, 18);
+    ctx.fill();
+    ctx.drawImage(qr, qx, qy, qs, qs);
+
+    ctx.textAlign = 'end';
+    const cx = rtl ? qx + qs + 44 : qx - 44;
+    ctx.fillStyle = '#fff';
+    ctx.font = `600 26px ${family}`;
+    const caption = wrap(ctx, d.scan, 300, 2);
+    let cy = BAND_Y + bandH / 2 - (caption.length * 34) / 2 + 8;
+    for (const line of caption) {
+      ctx.fillText(line, cx, cy);
+      cy += 34;
+    }
+    ctx.fillStyle = '#c9d3f0';
+    ctx.font = `500 24px ${family}`;
+    ctx.fillText(d.host, cx, cy + 6);
+
+    return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject()), 'image/png'));
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>('.news-share')) {
+    const d: ShareData = JSON.parse(root.dataset.share!);
+    const $ = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
+    const dialog = $<HTMLDialogElement>('dialog');
+    const preview = $<HTMLImageElement>('[data-preview]');
+    const shareImageBtn = $<HTMLButtonElement>('[data-share-image]');
+    const fileName = `etude-${location.pathname.split('/').filter(Boolean).pop() || 'news'}.png`;
+    let card: Promise<File> | null = null;
+    const getCard = () => (card ??= drawCard(d).then((b) => new File([b], fileName, { type: 'image/png' })));
+
+    const download = async () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(await getCard());
+      a.download = fileName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    };
+    const shareFile = async () => {
+      try {
+        await navigator.share({ files: [await getCard()], title: d.title, text: d.url });
+      } catch (err) {
+        if ((err as DOMException).name !== 'AbortError') download();
+      }
+    };
+    const canShareFiles = async () => !!navigator.canShare?.({ files: [await getCard()] });
+    const copyLink = () => navigator.clipboard?.writeText(d.url).catch(() => {});
+
+    $('[data-print]').addEventListener('click', () => window.print());
+    $('[data-close]').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (e) => e.target === dialog && dialog.close());
+    $('[data-open]').addEventListener('click', async () => {
+      dialog.showModal();
+      if (preview.hidden) {
+        preview.src = URL.createObjectURL(await getCard());
+        preview.hidden = false;
+        shareImageBtn.hidden = !(await canShareFiles());
+      }
+    });
+    $('[data-download]').addEventListener('click', download);
+    shareImageBtn.addEventListener('click', shareFile);
+
+    const text = encodeURIComponent(d.title);
+    const url = encodeURIComponent(d.url);
+    const links: Record<string, string> = {
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(`${d.title}\n${d.url}`)}`,
+      telegram: `https://t.me/share/url?url=${url}&text=${text}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      x: `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
+      email: `mailto:?subject=${text}&body=${encodeURIComponent(`${d.lead}\n\n${d.url}`)}`,
+    };
+    for (const a of root.querySelectorAll<HTMLAnchorElement>('[data-net]')) a.href = links[a.dataset.net!];
+
+    // Instagram takes no links from the web: hand it the image instead.
+    $('[data-instagram]').addEventListener('click', async () => {
+      copyLink();
+      $<HTMLElement>('[data-insta-hint]').hidden = false;
+      if (await canShareFiles()) shareFile();
+      else download();
+    });
+
+    const copyBtn = $<HTMLButtonElement>('[data-copy]');
+    const copyLabel = copyBtn.querySelector('span')!;
+    const label = copyLabel.textContent;
+    copyBtn.addEventListener('click', async () => {
+      await copyLink();
+      copyLabel.textContent = copyBtn.dataset.copied!;
+      setTimeout(() => (copyLabel.textContent = label), 2000);
+    });
+
+    const native = $<HTMLButtonElement>('[data-native]');
+    native.hidden = !navigator.share;
+    native.addEventListener('click', () => navigator.share({ title: d.title, url: d.url }).catch(() => {}));
+  }
+</script>
+
+<style>
+  .news-share {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-block-start: var(--space-md);
+    padding-block-start: var(--space-md);
+    border-block-start: 1px solid var(--color-line);
+  }
+  .news-share :global(.ic),
+  .share-dlg :global(.ic) {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+    flex: none;
+  }
+
+  .share-dlg {
+    inline-size: min(560px, calc(100vw - 32px));
+    max-block-size: calc(100dvh - 32px);
+    box-sizing: border-box;
+    padding: var(--space-md);
+    border: 0;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lift);
+    color: var(--color-ink);
+  }
+  .share-dlg::backdrop {
+    background: rgba(23, 34, 74, 0.5);
+  }
+  .share-dlg__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+  }
+  .share-dlg h2 {
+    margin: 0;
+    font-size: 1.6rem;
+  }
+  .share-dlg h3 {
+    margin: var(--space-md) 0 0.3rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-navy-900);
+  }
+  .share-dlg__close {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-silver-100);
+    color: var(--color-navy-900);
+    cursor: pointer;
+  }
+  .share-dlg__hint,
+  .share-dlg__note {
+    margin: 0 0 var(--space-xs);
+    font-size: 0.9rem;
+    color: var(--color-ink-soft);
+  }
+  .share-dlg__note {
+    margin-block-start: var(--space-xs);
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    background: var(--color-blue-100);
+    color: var(--color-navy-900);
+  }
+  .share-dlg__preview {
+    display: grid;
+    place-items: center;
+    min-block-size: 12rem;
+    border-radius: var(--radius-md);
+    background: var(--color-silver-100);
+  }
+  .share-dlg__preview img {
+    display: block;
+    max-inline-size: 100%;
+    max-block-size: 42dvh;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+  }
+  .share-dlg__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-block-start: var(--space-xs);
+  }
+  .share-dlg__row .btn {
+    flex: 1 1 13rem;
+    justify-content: center;
+    padding-inline: 1em;
+  }
+  .share-dlg__links {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: var(--space-xs);
+  }
+  .share-link {
+    display: flex;
+    align-items: center;
+    gap: 0.55em;
+    padding: 0.7em 0.9em;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-navy-900);
+    font: 600 0.92rem var(--font-body);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .share-link:hover {
+    background: var(--color-silver-100);
+    text-decoration: none;
+  }
+  .share-link[hidden] {
+    display: none;
+  }
+
+  .news-print {
+    display: none;
+  }
+
+  @media print {
+    @page {
+      margin: 12mm;
+    }
+    :global(body) {
+      background: #fff;
+    }
+    /* Only the article: no header, footer, banners or floating buttons. */
+    :global(body > :not(main)),
+    :global(.back-link),
+    .news-share {
+      display: none !important;
+    }
+    :global(main .section) {
+      padding: 0;
+    }
+    /* Photo at a size that leaves the text on the same page. */
+    :global(.news-article .news-article__figure) {
+      margin-block: 3mm;
+    }
+    :global(.news-article .news-article__frame) {
+      aspect-ratio: auto !important;
+      display: flex;
+      justify-content: center;
+    }
+    :global(.news-article .news-article__frame::before) {
+      display: none;
+    }
+    :global(.news-article .news-article__image) {
+      inline-size: auto;
+      max-inline-size: 100%;
+      block-size: auto;
+      max-block-size: 60mm;
+    }
+    :global(.news-article h1) {
+      margin-block: 0;
+      font-size: 24pt;
+    }
+    :global(.news-article .news-article__body) {
+      font-size: 10.5pt;
+    }
+    :global(.news-article__inner) {
+      display: flex;
+      flex-direction: column;
+    }
+    .news-print {
+      order: -1;
+      display: flex;
+      align-items: center;
+      gap: 5mm;
+      margin-block-end: 4mm;
+      padding-block-end: 3mm;
+      border-block-end: 1px solid #ccc;
+    }
+    .news-print img {
+      block-size: 12mm;
+      margin-inline-end: auto;
+    }
+    .news-print__qr {
+      inline-size: 22mm;
+      block-size: 22mm;
+      flex: none;
+    }
+    .news-print__qr :global(svg) {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+    }
+    .news-print p {
+      margin: 0;
+      max-inline-size: 70mm;
+      font-size: 9pt;
+      font-weight: 600;
+      text-align: end;
+    }
+    .news-print p span {
+      font-weight: 400;
+      font-size: 0.85em;
+      color: #555;
+      word-break: break-all;
+    }
+  }
+</style>
