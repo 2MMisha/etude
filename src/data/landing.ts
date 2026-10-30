@@ -10,10 +10,10 @@ export type Audience = 'kids' | 'adults';
 export const LANDING_LANGS: LandingLang[] = ['he', 'ru'];
 export const AUDIENCES: Audience[] = ['kids', 'adults'];
 
-/** WhatsApp per ad language (owner's rule): Hebrew → 054, Russian → 053. */
+/** WhatsApp per ad language (owner's rule: 054 for every language). */
 export const LEAD_WHATSAPP: Record<LandingLang, { number: string; display: string; tel: string }> = {
   he: { number: '972547798676', display: '054-779-8676', tel: '+972-54-779-8676' },
-  ru: { number: '972534726469', display: '053-472-6469', tel: '+972-53-472-6469' },
+  ru: { number: '972547798676', display: '054-779-8676', tel: '+972-54-779-8676' },
 };
 
 type Item = { title: string; body: string };

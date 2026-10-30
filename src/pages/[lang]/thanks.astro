@@ -40,7 +40,7 @@ const copy = THANKS[lang];
 </BaseLayout>
 
 <script>
-  // Russian ad leads get the Russian-line WhatsApp (053), like on the landing page.
+  // Ad leads get the landing page's WhatsApp for their language (LEAD_WHATSAPP).
   const wa = document.getElementById('thanks-wa') as HTMLAnchorElement | null;
   if (wa?.dataset.lpHref && new URLSearchParams(location.search).get('from') === 'lp') wa.href = wa.dataset.lpHref;
 </script>

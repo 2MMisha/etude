@@ -249,7 +249,7 @@ export const translations = {
     contact: {
       // Search-result title (<title>); the on-page H1 stays `title`.
       metaTitle: 'צור קשר: רוטשילד 49, ראשון לציון',
-      metaDescription: 'צרו קשר עם אטיוד, רוטשילד 49 ראשון לציון: טלפון ווואטסאפ 053-472-6469, מייל או טופס באתר. פתוח כל יום 08:00–21:00.',
+      metaDescription: 'צרו קשר עם אטיוד, רוטשילד 49 ראשון לציון: טלפון ווואטסאפ 054-779-8676, מייל או טופס באתר. פתוח כל יום 08:00–21:00.',
       title: 'צור קשר',
       intro: 'נשמח לשמוע מכם ולעזור לכם למצוא את מסלול הריקוד המתאים — בטלפון, בוואטסאפ, במייל או דרך הטופס.',
       formTitle: 'השאירו הודעה',
@@ -736,7 +736,7 @@ export const translations = {
     contact: {
       // Search-result title (<title>); the on-page H1 stays `title`.
       metaTitle: 'Contact: Rothschild 49, Rishon LeZion',
-      metaDescription: 'Contact ETUDE dance school, Rothschild 49, Rishon LeZion: phone and WhatsApp 053-472-6469, email or the form on this page. Open daily 08:00–21:00.',
+      metaDescription: 'Contact ETUDE dance school, Rothschild 49, Rishon LeZion: phone and WhatsApp 054-779-8676, email or the form on this page. Open daily 08:00–21:00.',
       title: 'Contact',
       intro: 'We\u2019d love to hear from you and help you find the right track.',
       formTitle: 'Send us a message',
@@ -1223,7 +1223,7 @@ export const translations = {
     contact: {
       // Search-result title (<title>); the on-page H1 stays `title`.
       metaTitle: 'Контакты: Ротшильд 49, Ришон-ле-Цион',
-      metaDescription: 'Контакты школы танцев «Этюд»: Ротшильд 49, Ришон-ле-Цион. Телефон и WhatsApp 053-472-6469, e-mail или форма на сайте. Ежедневно 08:00–21:00.',
+      metaDescription: 'Контакты школы танцев «Этюд»: Ротшильд 49, Ришон-ле-Цион. Телефон и WhatsApp 054-779-8676, e-mail или форма на сайте. Ежедневно 08:00–21:00.',
       title: 'Контакты',
       intro: 'Будем рады услышать вас и помочь подобрать подходящее направление.',
       formTitle: 'Написать нам',
