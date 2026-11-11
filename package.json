@@ -9,12 +9,17 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test:db": "node supabase/tests/access.test.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
+    "@supabase/supabase-js": "^2.119.0",
     "astro": "^7.2.0",
     "qrcode": "^1.5.4",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16"
   }
 }

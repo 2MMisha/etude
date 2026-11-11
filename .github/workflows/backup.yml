@@ -1,0 +1,46 @@
+name: CRM database backup
+
+# The free Supabase plan keeps no backups, so every night the database is
+# dumped, encrypted and kept for 90 days as a workflow artifact. This repo is
+# public and so are its artifacts — hence the encryption; only the holder of
+# BACKUP_PASSPHRASE can read a backup. The nightly query also keeps the free
+# project from being paused for inactivity.
+#
+# Restore (documentation/PRD.md, section 3):
+#   openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:'<passphrase>' -in backup.tar.gz.enc | tar xz
+#   psql "<db url>" -f roles.sql -f schema.sql -f data.sql
+on:
+  schedule:
+    - cron: '30 1 * * *' # 03:30/04:30 in Israel
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      # Session-pooler connection string (the direct one is IPv6-only, which runners lack).
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      # Until the secrets are set the job does nothing, successfully.
+      - name: Dump
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        run: |
+          npx --yes supabase db dump --remote="$SUPABASE_DB_URL" --role-only -f roles.sql
+          npx --yes supabase db dump --remote="$SUPABASE_DB_URL" -f schema.sql
+          npx --yes supabase db dump --remote="$SUPABASE_DB_URL" --data-only --use-copy -f data.sql
+          test -s schema.sql && test -s data.sql
+          tar cz roles.sql schema.sql data.sql | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE -out backup.tar.gz.enc
+          rm roles.sql schema.sql data.sql
+
+      - name: Keep for 90 days
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: crm-backup-${{ github.run_id }}
+          path: backup.tar.gz.enc
+          retention-days: 90
+          if-no-files-found: error

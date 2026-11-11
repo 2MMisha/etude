@@ -1,0 +1,218 @@
+---
+// /crm/ — the school's management system (staff only). Stage 0: sign in,
+// password reset, and the Accounts screen (who has which role).
+// Not linked anywhere, noindex; everything it shows comes from the database
+// after a login, and what a login may see or change is decided there
+// (supabase/migrations/), not on this page.
+import '../../styles/global.css';
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#17224a" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
+    />
+    <title>ETUDE — CRM</title>
+    <style is:global>
+      body { background: var(--color-ground); }
+      .crm { max-width: 960px; margin-inline: auto; padding: var(--space-md) var(--space-sm) var(--space-xl); }
+      .crm-top { display: flex; align-items: center; gap: 0.6rem; margin-block-end: var(--space-md); }
+      .crm-top img { width: 32px; height: 32px; }
+      .crm-top strong { font-family: var(--font-display); font-size: 1.2rem; color: var(--color-navy-900); margin-inline-end: auto; }
+      .crm button, .crm input { font: inherit; }
+      .crm button { padding: 0.5em 1em; border-radius: var(--radius-sm); border: 1px solid var(--color-line); background: var(--color-surface); cursor: pointer; }
+      .crm button.primary { background: var(--color-navy-900); border-color: var(--color-navy-900); color: #fff; }
+      .crm button.link { border: 0; background: none; color: var(--color-blue-600); padding: 0; }
+      .crm button[aria-pressed='true'] { background: var(--color-blue-100); border-color: var(--color-blue-500); }
+      .crm button:disabled { opacity: 0.5; cursor: default; }
+      .langs button { padding: 0.25em 0.6em; font-size: 0.85rem; }
+      .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-md); }
+      .sign { max-width: 380px; margin: 10vh auto 0; display: grid; gap: var(--space-sm); }
+      .sign label { display: grid; gap: 0.3em; font-weight: 600; font-size: 0.9rem; }
+      .sign input, td input[type='text'] { padding: 0.6em 0.8em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); width: 100%; box-sizing: border-box; }
+      .msg { min-height: 1.4em; font-size: 0.9rem; color: var(--color-ink-soft); }
+      .msg.bad { color: #b3261e; }
+      .scroll { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+      th, td { text-align: start; padding: 0.6em 0.5em; border-block-end: 1px solid var(--color-line); vertical-align: middle; }
+      th { font-size: 0.8rem; color: var(--color-ink-soft); font-weight: 600; }
+      td small { color: var(--color-ink-soft); display: block; direction: ltr; text-align: start; }
+      .roles { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+      .roles button { padding: 0.2em 0.7em; border-radius: 999px; font-size: 0.82rem; }
+      tr.off td:first-child { opacity: 0.5; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="crm">
+      <div class="crm-top">
+        <img src="/images/brand/icon.svg" alt="" />
+        <strong>ETUDE — CRM</strong>
+        <span class="langs" id="langs"></span>
+        <button id="signOut" hidden></button>
+      </div>
+      <main id="view"></main>
+    </div>
+
+    <script>
+      import { createClient } from '@supabase/supabase-js';
+      import { SUPABASE_URL, SUPABASE_KEY } from '../../lib/crmConfig';
+
+      type Lang = 'he' | 'ru' | 'en';
+      type Role = 'owner' | 'admin' | 'trainer' | 'client';
+      interface Profile { id: string; email: string; full_name: string; lang: Lang; roles: Role[]; active: boolean }
+
+      const T = {
+        he: { email: 'אימייל', password: 'סיסמה', signIn: 'כניסה', signOut: 'יציאה', forgot: 'שכחתי סיסמה', sent: 'אם הכתובת רשומה, נשלח אליה קישור לאיפוס.', needEmail: 'הקלידו את האימייל קודם.', wrong: 'אימייל או סיסמה שגויים.', newPassword: 'סיסמה חדשה (8 תווים לפחות)', save: 'שמירה', saved: 'נשמר.', noAccess: 'לחשבון הזה אין גישה למערכת. פנו למנהל/ת.', notConnected: 'המערכת עדיין לא מחוברת למסד הנתונים.', accounts: 'חשבונות', name: 'שם', roles: 'תפקידים', active: 'פעיל', hint: 'חשבון חדש יוצרים ב-Supabase ← Authentication ← Add user; כאן נותנים לו שם ותפקיד.', owner: 'בעלים', admin: 'מנהל/ת', trainer: 'מאמן/ת', client: 'לקוח/ה' },
+        ru: { email: 'Эл. почта', password: 'Пароль', signIn: 'Войти', signOut: 'Выйти', forgot: 'Забыли пароль?', sent: 'Если адрес зарегистрирован, на него отправлена ссылка для сброса.', needEmail: 'Сначала введите почту.', wrong: 'Неверная почта или пароль.', newPassword: 'Новый пароль (не короче 8 символов)', save: 'Сохранить', saved: 'Сохранено.', noAccess: 'У этой учётной записи нет доступа к системе. Обратитесь к администратору.', notConnected: 'Система ещё не подключена к базе данных.', accounts: 'Учётные записи', name: 'Имя', roles: 'Роли', active: 'Активна', hint: 'Новая учётная запись создаётся в Supabase → Authentication → Add user; здесь ей дают имя и роль.', owner: 'Владелец', admin: 'Администратор', trainer: 'Тренер', client: 'Клиент' },
+        en: { email: 'Email', password: 'Password', signIn: 'Sign in', signOut: 'Sign out', forgot: 'Forgot password?', sent: 'If that address is registered, a reset link is on its way.', needEmail: 'Type your email first.', wrong: 'Wrong email or password.', newPassword: 'New password (at least 8 characters)', save: 'Save', saved: 'Saved.', noAccess: 'This account has no access to the system. Ask the administrator.', notConnected: 'The system is not connected to its database yet.', accounts: 'Accounts', name: 'Name', roles: 'Roles', active: 'Active', hint: 'A new account is created in Supabase → Authentication → Add user; here you give it a name and a role.', owner: 'Owner', admin: 'Admin', trainer: 'Trainer', client: 'Client' },
+      } as const;
+      const LANGS: Lang[] = ['he', 'ru', 'en'];
+      const ROLES: Role[] = ['owner', 'admin', 'trainer', 'client'];
+
+      // Same key as the trainers' app, so the choice follows the person.
+      const stored = () => { try { return localStorage.getItem('etude-lang'); } catch { return null; } };
+      let lang: Lang = (LANGS.find((l) => l === stored()) ?? LANGS.find((l) => navigator.language.startsWith(l)) ?? 'he') as Lang;
+      const t = (k: keyof (typeof T)['en']) => T[lang][k];
+
+      type Child = Node | string | false | null | undefined;
+      /** createElement with props and children — text always goes in as text, never as HTML. */
+      function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> & Record<string, unknown> = {}, ...kids: Child[]) {
+        const el = Object.assign(document.createElement(tag), props);
+        el.append(...kids.filter((k): k is Node | string => k != null && k !== false));
+        return el;
+      }
+
+      const view = document.getElementById('view')!;
+      const signOutBtn = document.getElementById('signOut') as HTMLButtonElement;
+      const db = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+      let me: Profile | null = null;
+      let recovering = false;
+
+      function setLang(l: Lang) {
+        lang = l;
+        try { localStorage.setItem('etude-lang', l); } catch {}
+        document.documentElement.lang = l;
+        document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+        document.getElementById('langs')!.replaceChildren(
+          ...LANGS.map((x) => h('button', { textContent: x.toUpperCase(), ariaPressed: String(x === l), onclick: () => { setLang(x); if (me && db) db.from('profiles').update({ lang: x }).eq('id', me.id).then(() => {}); render(); } }))
+        );
+        signOutBtn.textContent = t('signOut');
+      }
+
+      const message = () => h('p', { className: 'msg', role: 'status' });
+      const say = (el: HTMLElement, text: string, bad = false) => { el.textContent = text; el.classList.toggle('bad', bad); };
+
+      function signInView() {
+        const email = h('input', { type: 'email', autocomplete: 'username', required: true });
+        const password = h('input', { type: 'password', autocomplete: 'current-password', required: true });
+        const msg = message();
+        const form = h('form', { className: 'card sign' },
+          h('label', {}, t('email'), email),
+          h('label', {}, t('password'), password),
+          h('button', { className: 'primary', type: 'submit', textContent: t('signIn') }),
+          h('button', { className: 'link', type: 'button', textContent: t('forgot'), onclick: async () => {
+            if (!email.value) return say(msg, t('needEmail'), true);
+            await db!.auth.resetPasswordForEmail(email.value, { redirectTo: `${location.origin}/crm/` });
+            say(msg, t('sent'));
+          } }),
+          msg
+        );
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          const { error } = await db!.auth.signInWithPassword({ email: email.value, password: password.value });
+          if (error) say(msg, t('wrong'), true); // on success onAuthStateChange redraws
+        };
+        return form;
+      }
+
+      // Reached from the link in the reset email.
+      function newPasswordView() {
+        const password = h('input', { type: 'password', autocomplete: 'new-password', required: true, minLength: 8 });
+        const msg = message();
+        const form = h('form', { className: 'card sign' }, h('label', {}, t('newPassword'), password), h('button', { className: 'primary', type: 'submit', textContent: t('save') }), msg);
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          const { error } = await db!.auth.updateUser({ password: password.value });
+          if (error) return say(msg, error.message, true);
+          recovering = false;
+          render();
+        };
+        return form;
+      }
+
+      async function accountsView() {
+        const msg = message();
+        const { data, error } = await db!.from('profiles').select('id, email, full_name, lang, roles, active').order('created_at');
+        if (error) say(msg, error.message, true);
+        const iAmOwner = me!.roles.includes('owner');
+        // The database refuses what isn't allowed; the buttons are only switched off to match.
+        const save = async (p: Profile, patch: Partial<Profile>) => {
+          const { error } = await db!.from('profiles').update(patch).eq('id', p.id);
+          say(msg, error ? error.message : t('saved'), !!error);
+          if (!error) Object.assign(p, patch);
+          return !error;
+        };
+        const row = (p: Profile) => {
+          const locked = p.roles.includes('owner') && !iAmOwner;
+          const name = h('input', { type: 'text', value: p.full_name, disabled: locked, ariaLabel: t('name'), onchange: () => save(p, { full_name: name.value.trim() }) });
+          const tr = h('tr', { className: p.active ? '' : 'off' },
+            h('td', {}, name, h('small', {}, p.email)),
+            h('td', {}, h('div', { className: 'roles' }, ...ROLES.map((r) => {
+              const b = h('button', { textContent: t(r), ariaPressed: String(p.roles.includes(r)), disabled: locked || (r === 'owner' && !iAmOwner), onclick: async () => {
+                const roles = p.roles.includes(r) ? p.roles.filter((x) => x !== r) : [...p.roles, r];
+                if (await save(p, { roles })) b.ariaPressed = String(roles.includes(r));
+              } });
+              return b;
+            }))),
+            h('td', {}, h('input', { type: 'checkbox', checked: p.active, disabled: locked || p.id === me!.id, ariaLabel: t('active'), onchange: async (e: Event) => {
+              const box = e.target as HTMLInputElement;
+              if (await save(p, { active: box.checked })) tr.className = box.checked ? '' : 'off';
+              else box.checked = p.active;
+            } }))
+          );
+          return tr;
+        };
+        return h('section', { className: 'card' },
+          h('h1', { textContent: t('accounts'), style: 'font-size:1.2rem; margin-block-start:0' }),
+          h('div', { className: 'scroll' }, h('table', {},
+            h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('roles')), h('th', {}, t('active')))),
+            h('tbody', {}, ...((data ?? []) as Profile[]).map(row))
+          )),
+          msg,
+          h('p', { className: 'msg', textContent: t('hint') })
+        );
+      }
+
+      async function render() {
+        signOutBtn.hidden = !me;
+        if (!db) return view.replaceChildren(h('p', { className: 'card sign', textContent: t('notConnected') }));
+        if (recovering) return view.replaceChildren(newPasswordView());
+        if (!me) return view.replaceChildren(signInView());
+        const staff = me.active && (me.roles.includes('owner') || me.roles.includes('admin'));
+        view.replaceChildren(staff ? await accountsView() : h('p', { className: 'card sign', textContent: t('noAccess') }));
+      }
+
+      setLang(lang);
+      signOutBtn.onclick = () => db?.auth.signOut();
+      if (db) {
+        db.auth.onAuthStateChange((event, session) => {
+          if (event === 'PASSWORD_RECOVERY') recovering = true;
+          // Outside the callback: Supabase holds a lock while it runs.
+          setTimeout(async () => {
+            me = session ? ((await db.from('profiles').select('id, email, full_name, lang, roles, active').eq('id', session.user.id).single()).data as Profile | null) : null;
+            if (me && LANGS.includes(me.lang) && !stored()) setLang(me.lang);
+            render();
+          });
+        });
+      } else render();
+    </script>
+  </body>
+</html>

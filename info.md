@@ -265,3 +265,15 @@ All Hebrew, English, and Russian page copy in `src/lib/translations.ts` is a **f
 1. Add the copy to all three language blocks in `src/lib/translations.ts`.
 2. Create `src/pages/[lang]/your-page.astro` following the pattern of the existing pages (`getStaticPaths` returning all 3 langs, `<BaseLayout>` wrapper).
 3. Add a nav entry in `src/components/Header.astro`'s `navItems` array and a footer link if relevant.
+
+---
+
+## 12. CRM (`/crm/`) — in progress
+
+The school's management system. Requirements, architecture and roadmap: [documentation/PRD.md](documentation/PRD.md).
+
+- **Data** lives in a Supabase project (Postgres + logins), never in this repo. `src/lib/crmConfig.ts` holds the project URL and publishable key (both public by design).
+- **Schema and access rules:** `supabase/migrations/*.sql`, applied in order. What a login may read or change is decided in the database, not in the page.
+- **Check the access rules:** `npm run test:db` runs every migration in an in-process Postgres and tries the forbidden actions as each role. Run it after any change to a migration.
+- **Accounts:** created in Supabase → Authentication → Add user (public sign-up is switched off); name, roles and active/inactive are set in `/crm/`. The first owner is set once by SQL: `update public.profiles set roles = '{owner}' where email = '…';`
+- **Backups:** `.github/workflows/backup.yml`, nightly, encrypted; needs the repo secrets `SUPABASE_DB_URL` and `BACKUP_PASSPHRASE`. Restore steps are in that file.
