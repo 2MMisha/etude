@@ -36,12 +36,13 @@ export async function settingsView() {
     h('h2', { textContent: t('programmes') }),
     h('p', { className: 'muted', textContent: `${t('priceHint')} ${t('historyHint')}` }),
     h('div', { className: 'scroll' }, h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('minutes')), ...PER_WEEK.map((n) => h('th', {}, `${n}× ${t('perWeek')}`)), h('th', {}, t('archived')))),
+      h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('minutes')), ...PER_WEEK.map((n) => h('th', {}, `${n}× ${t('perWeek')}`)), h('th', {}, t('archived')), h('th'))),
       h('tbody', {}, ...programs.map((p) => h('tr', { className: p.archived ? 'off' : '' },
         h('td', {}, input(p.name, (v, el) => (v ? set('programs', p.id, { name: v }) : (el.value = p.name)), { ariaLabel: t('name') })),
         h('td', {}, number(p.minutes, (v, el) => (v ? set('programs', p.id, { minutes: v }) : (el.value = p.minutes)), { ariaLabel: t('minutes') })),
         ...PER_WEEK.map((n) => h('td', {}, priceCell(prices.find((x) => x.program_id === p.id && x.per_week === n), { kind: 'group', program_id: p.id, per_week: n }, `${p.name} ${n}×`))),
         h('td', {}, checkbox(p.archived, (v) => then(set('programs', p.id, { archived: v })), { ariaLabel: t('archived') }))
+        , h('td', { className: 'actions' }, sureButton('×', () => then(ok(db!.from('programs').delete().eq('id', p.id))), { title: t('del'), ariaLabel: t('del') }))
       )))
     )),
     programForm
@@ -88,11 +89,12 @@ export async function settingsView() {
   const groupsCard = h('section', { className: 'card' },
     h('h2', { textContent: t('groupsTitle') }),
     h('div', { className: 'scroll' }, h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('programme')), h('th', {}, t('archived')))),
+      h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('programme')), h('th', {}, t('archived')), h('th'))),
       h('tbody', {}, ...groups.map((g) => h('tr', { className: g.archived ? 'off' : '' },
         h('td', {}, input(g.name, (v, el) => (v ? set('groups', g.id, { name: v }) : (el.value = g.name)), { ariaLabel: t('name') })),
         h('td', {}, select(programs.map((p): [string, string] => [p.id, p.name]), g.program_id, (v) => set('groups', g.id, { program_id: v }), { ariaLabel: t('programme') })),
         h('td', {}, checkbox(g.archived, (v) => then(set('groups', g.id, { archived: v })), { ariaLabel: t('archived') }))
+        , h('td', { className: 'actions' }, sureButton('×', () => then(ok(db!.from('groups').delete().eq('id', g.id))), { title: t('del'), ariaLabel: t('del') }))
       )))
     )),
     programOptions.length > 0 && groupForm

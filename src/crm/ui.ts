@@ -29,7 +29,9 @@ export function flash(text: string, bad = false) {
   timer = window.setTimeout(() => (el.hidden = true), bad ? 8000 : 1800);
 }
 
-type Result<T> = PromiseLike<{ data: T; error: { message: string } | null }>;
+type Result<T> = PromiseLike<{ data: T; error: { message: string; code?: string } | null }>;
+/** The database refusing a delete because other records point at the row. */
+const FOREIGN_KEY = '23503';
 /** Read: the rows, or the error on screen (and thrown, so the view stops). */
 export async function get<T>(call: Result<unknown>): Promise<T> {
   const { data, error } = await call;
@@ -42,7 +44,7 @@ export async function get<T>(call: Result<unknown>): Promise<T> {
 /** Write: true and "Saved", or false and the database's refusal on screen. */
 export async function ok(call: Result<unknown>): Promise<boolean> {
   const { error } = await call;
-  flash(error ? error.message : t('saved'), !!error);
+  flash(error ? (error.code === FOREIGN_KEY ? t('inUse') : error.message) : t('saved'), !!error);
   return !error;
 }
 

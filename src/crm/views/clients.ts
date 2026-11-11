@@ -1,7 +1,7 @@
 // Clients list, and one client's page: the family, each student's groups,
 // discounts, suggested monthly price and charges.
-import { getLang, t, LANGS } from '../i18n';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, flash, money, ltr, pctOf, type Row } from '../ui';
+import { t, LANGS } from '../i18n';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
@@ -35,7 +35,7 @@ export async function clientsView() {
   const form = h('form', { className: 'row' }, name, phone, h('button', { className: 'primary', type: 'submit', textContent: t('newClient') }));
   form.onsubmit = async (e) => {
     e.preventDefault();
-    const row = await get<Row>(db!.from('clients').insert({ full_name: name.value.trim(), phone: phone.value.trim(), lang: getLang() }).select('id').single());
+    const row = await get<Row>(db!.from('clients').insert({ full_name: name.value.trim(), phone: phone.value.trim() }).select('id').single());
     location.hash = `#/client/${row.id}`;
   };
 
@@ -83,7 +83,13 @@ export async function clientView(id?: string) {
     ),
     twins.length > 0 && h('p', { className: 'warn' }, `${t('samePhone')}: `, ...twins.flatMap((o, i) => [i > 0 && ', ', h('a', { href: `#/client/${o.id}`, textContent: o.full_name })])),
     field(t('notes'), Object.assign(h('textarea', { value: client.notes, rows: 2 }), { onchange: (e: Event) => set('clients', client, { notes: (e.target as HTMLTextAreaElement).value.trim() }) })),
-    tick(t('archived'), checkbox(client.archived, (v) => set('clients', client, { archived: v })))
+    h('div', { className: 'row spread' },
+      tick(t('archived'), checkbox(client.archived, (v) => set('clients', client, { archived: v }))),
+      // Students first (one statement: all or none); charges on any of them stop it.
+      sureButton(t('delClient'), async () => {
+        if ((await ok(db!.from('students').delete().eq('client_id', client.id))) && (await ok(db!.from('clients').delete().eq('id', client.id)))) location.hash = '#/clients';
+      })
+    )
   );
 
   const studentCard = (s: Row) => {
@@ -156,7 +162,10 @@ export async function clientView(id?: string) {
             h('td', { className: 'muted' }, c.comment)
           )))))
         : h('p', { className: 'muted', textContent: t('noCharges') }),
-      tick(t('archived'), checkbox(s.archived, (v) => upd({ archived: v }, true)))
+      h('div', { className: 'row spread' },
+        tick(t('archived'), checkbox(s.archived, (v) => upd({ archived: v }, true))),
+        sureButton(t('del'), async () => { if (await ok(db!.from('students').delete().eq('id', s.id))) nav.refresh(); })
+      )
     );
   };
 

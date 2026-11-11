@@ -108,6 +108,9 @@ nav.refresh = async () => {
   scrollTo(0, y);
 };
 
+// Local development only: the signed-in client, for poking at data from the console.
+if (import.meta.env.DEV) Object.assign(window, { crmDb: db });
+
 setLang(getLang());
 signOutBtn.onclick = () => db?.auth.signOut();
 addEventListener('hashchange', render);

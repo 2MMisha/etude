@@ -14,6 +14,8 @@ const en = {
   save: 'Save', saved: 'Saved.', add: 'Add', remove: 'Remove', del: 'Delete', sure: 'Sure?', back: '← Clients',
   name: 'Name', phone: 'Phone', address: 'Address', language: 'Language', notes: 'Notes', archived: 'Archived',
   comment: 'Comment', commentRequired: 'A comment is required.', emptyList: 'Nothing here yet.', amount: 'Amount',
+  delClient: 'Delete the client and their students',
+  inUse: 'It has history (students, groups or charges), so it cannot be deleted. Archive it instead.',
   // navigation
   clients: 'Clients', month: 'Month', settings: 'Settings', accounts: 'Accounts',
   // accounts
@@ -48,6 +50,8 @@ const ru: Record<Key, string> = {
   save: 'Сохранить', saved: 'Сохранено.', add: 'Добавить', remove: 'Убрать', del: 'Удалить', sure: 'Точно?', back: '← Клиенты',
   name: 'Имя', phone: 'Телефон', address: 'Адрес', language: 'Язык', notes: 'Заметки', archived: 'В архиве',
   comment: 'Комментарий', commentRequired: 'Нужен комментарий.', emptyList: 'Пока пусто.', amount: 'Сумма',
+  delClient: 'Удалить клиента и его учеников',
+  inUse: 'Есть связанные записи (ученики, группы или начисления), поэтому удалить нельзя. Отправьте в архив.',
   clients: 'Клиенты', month: 'Месяц', settings: 'Настройки', accounts: 'Учётные записи',
   roles: 'Роли', active: 'Активна', owner: 'Владелец', admin: 'Администратор', trainer: 'Тренер', client: 'Клиент',
   accountsHint: 'Новая учётная запись создаётся в Supabase → Authentication → Add user; здесь ей дают имя и роль.',
@@ -76,6 +80,8 @@ const he: Record<Key, string> = {
   save: 'שמירה', saved: 'נשמר.', add: 'הוספה', remove: 'הסרה', del: 'מחיקה', sure: 'בטוח?', back: '→ לקוחות',
   name: 'שם', phone: 'טלפון', address: 'כתובת', language: 'שפה', notes: 'הערות', archived: 'בארכיון',
   comment: 'הערה', commentRequired: 'חובה לכתוב הערה.', emptyList: 'עדיין אין כאן כלום.', amount: 'סכום',
+  delClient: 'מחיקת הלקוח/ה והתלמידים',
+  inUse: 'יש רשומות קשורות (תלמידים, קבוצות או חיובים), ולכן אי אפשר למחוק. העבירו לארכיון.',
   clients: 'לקוחות', month: 'חודש', settings: 'הגדרות', accounts: 'חשבונות',
   roles: 'תפקידים', active: 'פעיל', owner: 'בעלים', admin: 'מנהל/ת', trainer: 'מאמן/ת', client: 'לקוח/ה',
   accountsHint: 'חשבון חדש יוצרים ב-Supabase ← Authentication ← Add user; כאן נותנים לו שם ותפקיד.',

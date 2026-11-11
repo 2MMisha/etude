@@ -109,6 +109,8 @@ create unique index one_membership_a_month on public.charges (student_id, month)
 -- the classes a week they take in its groups, summed over programmes (or the
 -- unlimited price); then the discounts, which add up. Null = no price row for
 -- that combination, the admin sets it by hand.
+-- The multiplication sign and the infinity sign are written as escapes so the
+-- statement survives a copy-paste in any encoding.
 create view public.student_quotes with (security_invoker = true) as
 with per_program as (
   select e.student_id, g.program_id, p.name, p.minutes, sum(e.per_week)::int as per_week
@@ -119,7 +121,7 @@ with per_program as (
 ),
 list as (
   select pp.student_id,
-    string_agg(pp.name || ' ' || pp.per_week || '×' || pp.minutes, ' + ' order by pp.name) as description,
+    string_agg(pp.name || ' ' || pp.per_week || U&'\00D7' || pp.minutes, ' + ' order by pp.name) as description,
     case when bool_or(pr.amount is null) then null else sum(pr.amount) end as amount
   from per_program pp
   left join public.prices pr on pr.kind = 'group' and pr.program_id = pp.program_id and pr.per_week = pp.per_week
@@ -132,7 +134,7 @@ pct as (
 ),
 quoted as (
   select s.id as student_id,
-    case when s.unlimited then '∞' else l.description end as description,
+    case when s.unlimited then U&'\221E' else l.description end as description,
     case when s.unlimited then (select amount from public.prices where kind = 'unlimited') else l.amount end as list_amount,
     case when s.second_child then pct.second_child else 0 end as second_child,
     case when s.full_year then pct.full_year else 0 end as full_year,
