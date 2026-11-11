@@ -1,6 +1,6 @@
 ---
-// /crm/ — the school's management system (staff only). Stage 0: sign in,
-// password reset, and the Accounts screen (who has which role).
+// /crm/ — the school's management system (staff only). The app itself is in
+// src/crm/ (app.ts = shell and routing, views/ = one file per screen).
 // Not linked anywhere, noindex; everything it shows comes from the database
 // after a login, and what a login may see or change is decided there
 // (supabase/migrations/), not on this page.
@@ -22,32 +22,77 @@ import '../../styles/global.css';
     <title>ETUDE — CRM</title>
     <style is:global>
       body { background: var(--color-ground); }
-      .crm { max-width: 960px; margin-inline: auto; padding: var(--space-md) var(--space-sm) var(--space-xl); }
-      .crm-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-block-end: var(--space-md); }
+      .crm { max-width: 1040px; margin-inline: auto; padding: var(--space-sm) var(--space-sm) var(--space-xl); }
+      .crm-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-block-end: var(--space-sm); }
       .crm-top img { width: 32px; height: 32px; }
       .crm-top strong { font-family: var(--font-display); font-size: 1.2rem; color: var(--color-navy-900); margin-inline-end: auto; white-space: nowrap; }
       .langs { display: flex; gap: 0.2rem; }
-      .crm button, .crm input { font: inherit; }
-      .crm button { padding: 0.5em 1em; border-radius: var(--radius-sm); border: 1px solid var(--color-line); background: var(--color-surface); cursor: pointer; }
+      .langs button { padding: 0.25em 0.6em; font-size: 0.85rem; }
+
+      .crm button, .crm input, .crm select, .crm textarea { font: inherit; }
+      .crm button, .crm a.btn { padding: 0.5em 1em; border-radius: var(--radius-sm); border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink); cursor: pointer; text-decoration: none; }
       .crm button.primary { background: var(--color-navy-900); border-color: var(--color-navy-900); color: #fff; }
       .crm button.link { border: 0; background: none; color: var(--color-blue-600); padding: 0; }
+      .crm button.danger { background: #b3261e; border-color: #b3261e; color: #fff; }
       .crm button[aria-pressed='true'] { background: var(--color-blue-100); border-color: var(--color-blue-500); }
       .crm button:disabled { opacity: 0.5; cursor: default; }
-      .langs button { padding: 0.25em 0.6em; font-size: 0.85rem; }
-      .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-md); }
-      .sign { max-width: 380px; margin: 10vh auto 0; display: grid; gap: var(--space-sm); }
-      .sign label { display: grid; gap: 0.3em; font-weight: 600; font-size: 0.9rem; }
-      .sign input, td input[type='text'] { padding: 0.6em 0.8em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); width: 100%; box-sizing: border-box; }
-      .msg { min-height: 1.4em; font-size: 0.9rem; color: var(--color-ink-soft); }
-      .msg.bad { color: #b3261e; }
+      .crm input[type='text'], .crm input[type='tel'], .crm input[type='email'], .crm input[type='search'], .crm input[type='date'],
+      .crm input[type='number'], .crm input[type='password'], .crm select, .crm textarea {
+        padding: 0.5em 0.7em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-surface);
+        width: 100%; min-width: 0; box-sizing: border-box;
+      }
+      .crm input.num { width: 6.5em; }
+      .crm input[type='checkbox'] { width: 1.1em; height: 1.1em; accent-color: var(--color-blue-600); }
+
+      #nav { display: flex; gap: 0.3rem; overflow-x: auto; margin-block-end: var(--space-sm); border-block-end: 1px solid var(--color-line); }
+      #nav a { padding: 0.6em 0.9em; text-decoration: none; color: var(--color-ink-soft); font-weight: 600; white-space: nowrap; border-block-end: 3px solid transparent; }
+      #nav a[aria-current='page'] { color: var(--color-navy-900); border-block-end-color: var(--color-blue-600); }
+
+      .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-sm); display: grid; gap: 0.9rem; }
+      .card.off { opacity: 0.6; }
+      .stack { display: grid; gap: var(--space-sm); }
+      .crm h1 { font-size: 1.35rem; margin: 0; }
+      .crm h2 { font-size: 1.1rem; margin: 0; font-family: var(--font-body); font-weight: 700; }
+      .crm h3 { font-size: 0.95rem; margin: 0; font-family: var(--font-body); font-weight: 700; color: var(--color-ink-soft); }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.7rem; }
+      .field { display: grid; gap: 0.25em; font-size: 0.82rem; font-weight: 600; color: var(--color-ink-soft); }
+      .field.wide { grid-column: span 2; }
+      .row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+      .row > input:not([type='checkbox']), .row > select { flex: 1 1 140px; width: auto; }
+      .row > input.num { flex: 0 0 6.5em; }
+      .row .grow { flex: 1; }
+      .tick { display: inline-flex; align-items: center; gap: 0.4em; font-size: 0.92rem; }
+      .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+      .chip { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.2em 0.3em 0.2em 0.7em; border-radius: 999px; background: var(--color-blue-100); font-weight: 600; font-size: 0.9rem; }
+      [dir='rtl'] .chip { padding: 0.2em 0.7em 0.2em 0.3em; }
+      .chips select { width: auto; padding-block: 0.25em; }
+      .chips button { padding: 0.2em 0.7em; border-radius: 999px; font-size: 0.82rem; }
+      .crm button.x { border: 0; background: none; padding: 0 0.3em; font-size: 1.1rem; line-height: 1; color: var(--color-ink-soft); }
+      .quote { margin: 0; padding: 0.6em 0.8em; border-radius: var(--radius-sm); background: var(--color-silver-100); font-weight: 600; }
+      .warn { margin: 0; padding: 0.6em 0.8em; border-radius: var(--radius-sm); background: #fff4d6; }
+      .muted, .crm small { color: var(--color-ink-soft); font-size: 0.85rem; }
+      .crm small { display: block; }
+      .monthbar h1 { min-width: 9em; text-align: center; }
+      .monthbar .primary { margin-inline-start: auto; }
+
       .scroll { overflow-x: auto; }
-      table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-      th, td { text-align: start; padding: 0.6em 0.5em; border-block-end: 1px solid var(--color-line); vertical-align: middle; }
-      th { font-size: 0.8rem; color: var(--color-ink-soft); font-weight: 600; }
-      td small { color: var(--color-ink-soft); display: block; direction: ltr; text-align: start; }
-      .roles { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-      .roles button { padding: 0.2em 0.7em; border-radius: 999px; font-size: 0.82rem; }
-      tr.off td:first-child { opacity: 0.5; }
+      .crm table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+      .crm th, .crm td { text-align: start; padding: 0.5em; border-block-end: 1px solid var(--color-line); vertical-align: middle; }
+      .crm th { font-size: 0.8rem; color: var(--color-ink-soft); font-weight: 600; white-space: nowrap; }
+      .crm tr.off td { opacity: 0.55; }
+      .crm tr.pending td { background: #fffaf0; }
+      .crm td.actions { white-space: nowrap; text-align: end; }
+      .crm td.actions button { padding: 0.35em 0.7em; margin-inline-start: 0.2rem; }
+
+      .sign { max-width: 380px; margin: 10vh auto 0; }
+      .sign label { display: grid; gap: 0.3em; font-weight: 600; font-size: 0.9rem; }
+      .msg { margin: 0; min-height: 1.4em; font-size: 0.9rem; color: var(--color-ink-soft); }
+      .msg.bad { color: #b3261e; }
+      .status {
+        position: fixed; inset-block-end: 1rem; inset-inline: 0; margin-inline: auto; width: fit-content; max-width: min(92vw, 640px); z-index: 5;
+        padding: 0.6em 1.1em; border-radius: 999px; background: #1f7a4d; color: #fff; font-weight: 600; font-size: 0.9rem; box-shadow: 0 6px 20px rgba(23, 34, 74, 0.25);
+      }
+      .status.bad { background: #b3261e; border-radius: var(--radius-md); }
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -59,161 +104,13 @@ import '../../styles/global.css';
         <span class="langs" id="langs"></span>
         <button id="signOut" hidden></button>
       </div>
+      <nav id="nav" hidden></nav>
       <main id="view"></main>
+      <div id="status" class="status" role="status" hidden></div>
     </div>
 
     <script>
-      import { createClient } from '@supabase/supabase-js';
-      import { SUPABASE_URL, SUPABASE_KEY } from '../../lib/crmConfig';
-
-      type Lang = 'he' | 'ru' | 'en';
-      type Role = 'owner' | 'admin' | 'trainer' | 'client';
-      interface Profile { id: string; email: string; full_name: string; lang: Lang; roles: Role[]; active: boolean }
-
-      const T = {
-        he: { email: 'אימייל', password: 'סיסמה', signIn: 'כניסה', signOut: 'יציאה', forgot: 'שכחתי סיסמה', sent: 'אם הכתובת רשומה, נשלח אליה קישור לאיפוס.', needEmail: 'הקלידו את האימייל קודם.', wrong: 'אימייל או סיסמה שגויים.', newPassword: 'סיסמה חדשה (8 תווים לפחות)', save: 'שמירה', saved: 'נשמר.', noAccess: 'לחשבון הזה אין גישה למערכת. פנו למנהל/ת.', notConnected: 'המערכת עדיין לא מחוברת למסד הנתונים.', accounts: 'חשבונות', name: 'שם', roles: 'תפקידים', active: 'פעיל', hint: 'חשבון חדש יוצרים ב-Supabase ← Authentication ← Add user; כאן נותנים לו שם ותפקיד.', owner: 'בעלים', admin: 'מנהל/ת', trainer: 'מאמן/ת', client: 'לקוח/ה' },
-        ru: { email: 'Эл. почта', password: 'Пароль', signIn: 'Войти', signOut: 'Выйти', forgot: 'Забыли пароль?', sent: 'Если адрес зарегистрирован, на него отправлена ссылка для сброса.', needEmail: 'Сначала введите почту.', wrong: 'Неверная почта или пароль.', newPassword: 'Новый пароль (не короче 8 символов)', save: 'Сохранить', saved: 'Сохранено.', noAccess: 'У этой учётной записи нет доступа к системе. Обратитесь к администратору.', notConnected: 'Система ещё не подключена к базе данных.', accounts: 'Учётные записи', name: 'Имя', roles: 'Роли', active: 'Активна', hint: 'Новая учётная запись создаётся в Supabase → Authentication → Add user; здесь ей дают имя и роль.', owner: 'Владелец', admin: 'Администратор', trainer: 'Тренер', client: 'Клиент' },
-        en: { email: 'Email', password: 'Password', signIn: 'Sign in', signOut: 'Sign out', forgot: 'Forgot password?', sent: 'If that address is registered, a reset link is on its way.', needEmail: 'Type your email first.', wrong: 'Wrong email or password.', newPassword: 'New password (at least 8 characters)', save: 'Save', saved: 'Saved.', noAccess: 'This account has no access to the system. Ask the administrator.', notConnected: 'The system is not connected to its database yet.', accounts: 'Accounts', name: 'Name', roles: 'Roles', active: 'Active', hint: 'A new account is created in Supabase → Authentication → Add user; here you give it a name and a role.', owner: 'Owner', admin: 'Admin', trainer: 'Trainer', client: 'Client' },
-      } as const;
-      const LANGS: Lang[] = ['he', 'ru', 'en'];
-      const ROLES: Role[] = ['owner', 'admin', 'trainer', 'client'];
-
-      // Same key as the trainers' app, so the choice follows the person.
-      const stored = () => { try { return localStorage.getItem('etude-lang'); } catch { return null; } };
-      let lang: Lang = (LANGS.find((l) => l === stored()) ?? LANGS.find((l) => navigator.language.startsWith(l)) ?? 'he') as Lang;
-      const t = (k: keyof (typeof T)['en']) => T[lang][k];
-
-      type Child = Node | string | false | null | undefined;
-      /** createElement with props and children — text always goes in as text, never as HTML. */
-      function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> & Record<string, unknown> = {}, ...kids: Child[]) {
-        const el = Object.assign(document.createElement(tag), props);
-        el.append(...kids.filter((k): k is Node | string => k != null && k !== false));
-        return el;
-      }
-
-      const view = document.getElementById('view')!;
-      const signOutBtn = document.getElementById('signOut') as HTMLButtonElement;
-      const db = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-      let me: Profile | null = null;
-      let recovering = false;
-
-      function setLang(l: Lang) {
-        lang = l;
-        try { localStorage.setItem('etude-lang', l); } catch {}
-        document.documentElement.lang = l;
-        document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
-        document.getElementById('langs')!.replaceChildren(
-          ...LANGS.map((x) => h('button', { textContent: x.toUpperCase(), ariaPressed: String(x === l), onclick: () => { setLang(x); if (me && db) db.from('profiles').update({ lang: x }).eq('id', me.id).then(() => {}); render(); } }))
-        );
-        signOutBtn.textContent = t('signOut');
-      }
-
-      const message = () => h('p', { className: 'msg', role: 'status' });
-      const say = (el: HTMLElement, text: string, bad = false) => { el.textContent = text; el.classList.toggle('bad', bad); };
-
-      function signInView() {
-        const email = h('input', { type: 'email', autocomplete: 'username', required: true });
-        const password = h('input', { type: 'password', autocomplete: 'current-password', required: true });
-        const msg = message();
-        const form = h('form', { className: 'card sign' },
-          h('label', {}, t('email'), email),
-          h('label', {}, t('password'), password),
-          h('button', { className: 'primary', type: 'submit', textContent: t('signIn') }),
-          h('button', { className: 'link', type: 'button', textContent: t('forgot'), onclick: async () => {
-            if (!email.value) return say(msg, t('needEmail'), true);
-            await db!.auth.resetPasswordForEmail(email.value, { redirectTo: `${location.origin}/crm/` });
-            say(msg, t('sent'));
-          } }),
-          msg
-        );
-        form.onsubmit = async (e) => {
-          e.preventDefault();
-          const { error } = await db!.auth.signInWithPassword({ email: email.value, password: password.value });
-          if (error) say(msg, t('wrong'), true); // on success onAuthStateChange redraws
-        };
-        return form;
-      }
-
-      // Reached from the link in the reset email.
-      function newPasswordView() {
-        const password = h('input', { type: 'password', autocomplete: 'new-password', required: true, minLength: 8 });
-        const msg = message();
-        const form = h('form', { className: 'card sign' }, h('label', {}, t('newPassword'), password), h('button', { className: 'primary', type: 'submit', textContent: t('save') }), msg);
-        form.onsubmit = async (e) => {
-          e.preventDefault();
-          const { error } = await db!.auth.updateUser({ password: password.value });
-          if (error) return say(msg, error.message, true);
-          recovering = false;
-          render();
-        };
-        return form;
-      }
-
-      async function accountsView() {
-        const msg = message();
-        const { data, error } = await db!.from('profiles').select('id, email, full_name, lang, roles, active').order('created_at');
-        if (error) say(msg, error.message, true);
-        const iAmOwner = me!.roles.includes('owner');
-        // The database refuses what isn't allowed; the buttons are only switched off to match.
-        const save = async (p: Profile, patch: Partial<Profile>) => {
-          const { error } = await db!.from('profiles').update(patch).eq('id', p.id);
-          say(msg, error ? error.message : t('saved'), !!error);
-          if (!error) Object.assign(p, patch);
-          return !error;
-        };
-        const row = (p: Profile) => {
-          const locked = p.roles.includes('owner') && !iAmOwner;
-          const name = h('input', { type: 'text', value: p.full_name, disabled: locked, ariaLabel: t('name'), onchange: () => save(p, { full_name: name.value.trim() }) });
-          const tr = h('tr', { className: p.active ? '' : 'off' },
-            h('td', {}, name, h('small', {}, p.email)),
-            h('td', {}, h('div', { className: 'roles' }, ...ROLES.map((r) => {
-              const b = h('button', { textContent: t(r), ariaPressed: String(p.roles.includes(r)), disabled: locked || (r === 'owner' && !iAmOwner), onclick: async () => {
-                const roles = p.roles.includes(r) ? p.roles.filter((x) => x !== r) : [...p.roles, r];
-                if (await save(p, { roles })) b.ariaPressed = String(roles.includes(r));
-              } });
-              return b;
-            }))),
-            h('td', {}, h('input', { type: 'checkbox', checked: p.active, disabled: locked || p.id === me!.id, ariaLabel: t('active'), onchange: async (e: Event) => {
-              const box = e.target as HTMLInputElement;
-              if (await save(p, { active: box.checked })) tr.className = box.checked ? '' : 'off';
-              else box.checked = p.active;
-            } }))
-          );
-          return tr;
-        };
-        return h('section', { className: 'card' },
-          h('h1', { textContent: t('accounts'), style: 'font-size:1.2rem; margin-block-start:0' }),
-          h('div', { className: 'scroll' }, h('table', {},
-            h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('roles')), h('th', {}, t('active')))),
-            h('tbody', {}, ...((data ?? []) as Profile[]).map(row))
-          )),
-          msg,
-          h('p', { className: 'msg', textContent: t('hint') })
-        );
-      }
-
-      async function render() {
-        signOutBtn.hidden = !me;
-        if (!db) return view.replaceChildren(h('p', { className: 'card sign', textContent: t('notConnected') }));
-        if (recovering) return view.replaceChildren(newPasswordView());
-        if (!me) return view.replaceChildren(signInView());
-        const staff = me.active && (me.roles.includes('owner') || me.roles.includes('admin'));
-        view.replaceChildren(staff ? await accountsView() : h('p', { className: 'card sign', textContent: t('noAccess') }));
-      }
-
-      setLang(lang);
-      signOutBtn.onclick = () => db?.auth.signOut();
-      if (db) {
-        db.auth.onAuthStateChange((event, session) => {
-          if (event === 'PASSWORD_RECOVERY') recovering = true;
-          // Outside the callback: Supabase holds a lock while it runs.
-          setTimeout(async () => {
-            me = session ? ((await db.from('profiles').select('id, email, full_name, lang, roles, active').eq('id', session.user.id).single()).data as Profile | null) : null;
-            if (me && LANGS.includes(me.lang) && !stored()) setLang(me.lang);
-            render();
-          });
-        });
-      } else render();
+      import '../../crm/app';
     </script>
   </body>
 </html>
