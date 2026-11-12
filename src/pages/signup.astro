@@ -92,7 +92,7 @@ import { SITE } from '../lib/site';
           pay: 'Payment is at the studio.', consent: 'We use these details only for this class and to contact you about it.', privacy: 'Privacy policy',
           ok: "You're signed up! See you on {when}.", already: 'This phone number is already on the list. See you there!',
           full: 'Sorry, this class is full.', closed: 'Sign-up for this class is closed.', notFound: 'This link is not active.',
-          invalid: 'Please check the form: a full name in at least one language and a valid phone are needed.', busy: 'Too many sign-ups right now. Please try again in a little while.',
+          invalid: 'Please check the form: a full name in at least one language, a valid phone and an ID number are needed.', busy: 'Too many sign-ups right now. Please try again in a little while.',
           error: 'Something went wrong. Please try again, or write to us on WhatsApp.', wa: 'Questions? Write to us on WhatsApp',
         },
         ru: {
@@ -102,7 +102,7 @@ import { SITE } from '../lib/site';
           pay: 'Оплата в студии.', consent: 'Эти данные нужны только для этого занятия и для связи по нему.', privacy: 'Политика конфиденциальности',
           ok: 'Вы записаны! Ждём вас: {when}.', already: 'Этот номер телефона уже в списке. До встречи!',
           full: 'К сожалению, мест больше нет.', closed: 'Запись на это занятие закрыта.', notFound: 'Эта ссылка не активна.',
-          invalid: 'Проверьте, пожалуйста, форму: нужны имя и фамилия хотя бы на одном языке и правильный номер телефона.', busy: 'Сейчас слишком много записей. Попробуйте чуть позже.',
+          invalid: 'Проверьте, пожалуйста, форму: нужны имя и фамилия хотя бы на одном языке, правильный номер телефона и номер удостоверения личности.', busy: 'Сейчас слишком много записей. Попробуйте чуть позже.',
           error: 'Что-то пошло не так. Попробуйте ещё раз или напишите нам в WhatsApp.', wa: 'Вопросы? Напишите нам в WhatsApp',
         },
         he: {
@@ -112,7 +112,7 @@ import { SITE } from '../lib/site';
           pay: 'התשלום בסטודיו.', consent: 'הפרטים משמשים רק לשיעור הזה וליצירת קשר לגביו.', privacy: 'מדיניות פרטיות',
           ok: 'נרשמתם! נתראה: {when}.', already: 'מספר הטלפון הזה כבר ברשימה. נתראה!',
           full: 'מצטערים, השיעור מלא.', closed: 'ההרשמה לשיעור הזה סגורה.', notFound: 'הקישור הזה אינו פעיל.',
-          invalid: 'נא לבדוק את הטופס: נדרשים שם מלא לפחות בשפה אחת ומספר טלפון תקין.', busy: 'יותר מדי הרשמות כרגע. נסו שוב בעוד מעט.',
+          invalid: 'נא לבדוק את הטופס: נדרשים שם מלא לפחות בשפה אחת, מספר טלפון תקין ומספר תעודת זהות.', busy: 'יותר מדי הרשמות כרגע. נסו שוב בעוד מעט.',
           error: 'משהו השתבש. נסו שוב או כתבו לנו בוואטסאפ.', wa: 'שאלות? כתבו לנו בוואטסאפ',
         },
       } as const;
@@ -166,7 +166,7 @@ import { SITE } from '../lib/site';
         const order: Lang[] = [lang, ...LANGS.filter((l) => l !== lang)];
         const phone = el('input', { type: 'tel', name: 'phone', autocomplete: 'tel', inputMode: 'tel', required: true, dir: 'ltr' });
         const email = el('input', { type: 'email', name: 'email', autocomplete: 'email', maxLength: 120, dir: 'ltr' });
-        const idNumber = el('input', { type: 'text', name: 'id_number', inputMode: 'numeric', maxLength: 20, autocomplete: 'off', dir: 'ltr' });
+        const idNumber = el('input', { type: 'text', name: 'id_number', required: true, minLength: 5, maxLength: 20, autocomplete: 'off', dir: 'ltr' });
         const comment = el('textarea', { name: 'comment', rows: 3, maxLength: 500 });
         const optional = () => el('span', { className: 'su-opt', textContent: ` (${t('optional')})` });
         const trap = el('input', { type: 'text', name: 'website', tabIndex: -1, autocomplete: 'off' }); // people don't see it; scripts fill it
@@ -176,7 +176,7 @@ import { SITE } from '../lib/site';
           el('p', { className: 'su-note', textContent: t('nameHint') }),
           el('label', {}, t('phone'), phone),
           el('label', {}, el('span', {}, t('email'), optional()), email),
-          el('label', {}, el('span', {}, t('idNumber'), optional()), idNumber),
+          el('label', {}, t('idNumber'), idNumber),
           el('label', {}, el('span', {}, t('comment'), optional()), comment),
           el('label', { className: 'su-trap', ariaHidden: 'true' }, 'Website', trap),
           button,

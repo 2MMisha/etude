@@ -417,13 +417,15 @@ await as('admin', 'update public.events set public_signup = true where id = $1',
 assert.deepEqual(await pub('public_event', [open.id]), { title: 'Open class', held_on: '2027-03-01', start_time: '18:00:00', minutes: 60, hall: 'Big Hall', price: 90, trainer: 'Roman', state: 'open' });
 // A sign-up needs at least one real-looking name and a phone; what else is given must look right.
 for (const form of [
-  { phone: '054-111-2222' }, // no name in any language
-  { name_en: 'D', phone: '054-111-2222' },
-  { name_en: 'Dana Levi', phone: '12345' },
-  { name_en: 'Dana Levi', name_he: 'x'.repeat(81), phone: '054-111-2222' },
-  { name_en: 'Dana Levi', phone: '054-111-2222', email: 'not-an-email' },
+  { phone: '054-111-2222', id_number: '123456782' }, // no name in any language
+  { name_en: 'Dana Levi', phone: '054-111-2222' }, // no ID number
+  { name_en: 'Dana Levi', phone: '054-111-2222', id_number: '123' }, // too short to be one
+  { name_en: 'D', phone: '054-111-2222', id_number: '123456782' },
+  { name_en: 'Dana Levi', phone: '12345', id_number: '123456782' },
+  { name_en: 'Dana Levi', name_he: 'x'.repeat(81), phone: '054-111-2222', id_number: '123456782' },
+  { name_en: 'Dana Levi', phone: '054-111-2222', id_number: '123456782', email: 'not-an-email' },
   { name_en: 'Dana Levi', phone: '054-111-2222', id_number: '<script>' },
-  { name_en: 'Dana Levi', phone: '054-111-2222', comment: 'x'.repeat(501) },
+  { name_en: 'Dana Levi', phone: '054-111-2222', id_number: '123456782', comment: 'x'.repeat(501) },
 ]) assert.equal(await signUp(open.id, form), 'invalid');
 // Names in more than one language are all kept; the entry is an unpaid guest at the event's price.
 assert.equal(await signUp(open.id, { name_he: ' דנה  לוי ', name_en: 'Dana Levi', phone: '054-111-2222', email: ' Dana@Example.com ', id_number: '123456782', comment: 'First time' }), 'ok');
@@ -431,10 +433,10 @@ assert.deepEqual(await one('admin', 'select guest_name, phone, amount::float, on
   guest_name: 'דנה לוי / Dana Levi', phone: '054-111-2222', amount: 90, online: true, student_id: null,
   details: { name_he: 'דנה לוי', name_en: 'Dana Levi', email: 'dana@example.com', id_number: '123456782', comment: 'First time' },
 });
-// The same phone again is recognised, however it is typed; only the name and phone are needed; then the class fills up.
-assert.equal(await signUp(open.id, { name_ru: 'Дана', phone: '0541112222' }), 'already');
-assert.equal(await signUp(open.id, { name_ru: 'Ноа Бар', phone: '052-333-4444' }), 'ok');
-assert.equal(await signUp(open.id, { name_en: 'Late Comer', phone: '050-555-6666' }), 'full');
+// The same phone again is recognised, however it is typed; a name, the phone and the ID are enough; then the class fills up.
+assert.equal(await signUp(open.id, { name_ru: 'Дана', phone: '0541112222', id_number: '987654321' }), 'already');
+assert.equal(await signUp(open.id, { name_ru: 'Ноа Бар', phone: '052-333-4444', id_number: 'A1234567' }), 'ok');
+assert.equal(await signUp(open.id, { name_en: 'Late Comer', phone: '050-555-6666', id_number: '555555555' }), 'full');
 assert.equal((await pub('public_event', [open.id])).state, 'full');
 // A class that has passed is closed.
 const gone = await ins('events', { title: 'Old class', held_on: '2026-01-10', start_time: '18:00', minutes: 60, price: 90, public_signup: true });
