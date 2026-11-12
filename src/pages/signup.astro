@@ -47,11 +47,13 @@ import { SITE } from '../lib/site';
       .su-facts dd { margin: 0; font-weight: 600; }
       .su-form { display: grid; gap: 14px; padding-block-start: 18px; border-block-start: 1px solid var(--color-line); }
       .su-form label { display: grid; gap: 5px; font-size: 0.88rem; font-weight: 600; }
-      .su-form input {
+      .su-opt { font-weight: 400; color: var(--color-ink-soft); }
+      .su-form input, .su-form textarea {
         font: inherit; padding: 0.75em 0.9em; border: 1px solid var(--color-silver-300); border-radius: var(--radius-md);
         background: var(--color-surface); width: 100%; box-sizing: border-box;
       }
-      .su-form input:focus-visible { outline: 3px solid var(--color-blue-500); outline-offset: 1px; }
+      .su-form textarea { resize: vertical; }
+      .su-form input:focus-visible, .su-form textarea:focus-visible { outline: 3px solid var(--color-blue-500); outline-offset: 1px; }
       .su-form button {
         font: inherit; font-weight: 700; padding: 0.85em 1em; border: 0; border-radius: var(--radius-md); cursor: pointer;
         background: var(--color-navy-900); color: #fff;
@@ -85,29 +87,32 @@ import { SITE } from '../lib/site';
       const T = {
         en: {
           when: 'When', where: 'Where', who: 'With', price: 'Price', minutes: 'min',
-          fullName: 'Full name', phone: 'Phone', signUp: 'Sign up', sending: 'Sending…',
-          pay: 'Payment is at the studio.', consent: 'We use your name and phone only to contact you about this class.', privacy: 'Privacy policy',
+          nameHe: 'Full name in Hebrew', nameRu: 'Full name in Russian', nameEn: 'Full name in English', nameHint: 'Fill in at least one; more than one is welcome.',
+          phone: 'Phone', email: 'Email', idNumber: 'ID number', comment: 'Comments', optional: 'optional', signUp: 'Sign up', sending: 'Sending…',
+          pay: 'Payment is at the studio.', consent: 'We use these details only for this class and to contact you about it.', privacy: 'Privacy policy',
           ok: "You're signed up! See you on {when}.", already: 'This phone number is already on the list. See you there!',
           full: 'Sorry, this class is full.', closed: 'Sign-up for this class is closed.', notFound: 'This link is not active.',
-          invalid: 'Please enter your full name and a valid phone number.', busy: 'Too many sign-ups right now. Please try again in a little while.',
+          invalid: 'Please check the form: a full name in at least one language and a valid phone are needed.', busy: 'Too many sign-ups right now. Please try again in a little while.',
           error: 'Something went wrong. Please try again, or write to us on WhatsApp.', wa: 'Questions? Write to us on WhatsApp',
         },
         ru: {
           when: 'Когда', where: 'Где', who: 'Ведёт', price: 'Цена', minutes: 'мин',
-          fullName: 'Имя и фамилия', phone: 'Телефон', signUp: 'Записаться', sending: 'Отправляем…',
-          pay: 'Оплата в студии.', consent: 'Имя и телефон нужны только для связи по этому занятию.', privacy: 'Политика конфиденциальности',
+          nameHe: 'Имя и фамилия на иврите', nameRu: 'Имя и фамилия на русском', nameEn: 'Имя и фамилия на английском', nameHint: 'Заполните хотя бы одно; можно несколько.',
+          phone: 'Телефон', email: 'Эл. почта', idNumber: 'Номер удостоверения личности', comment: 'Комментарии', optional: 'необязательно', signUp: 'Записаться', sending: 'Отправляем…',
+          pay: 'Оплата в студии.', consent: 'Эти данные нужны только для этого занятия и для связи по нему.', privacy: 'Политика конфиденциальности',
           ok: 'Вы записаны! Ждём вас {when}.', already: 'Этот номер телефона уже в списке. До встречи!',
           full: 'К сожалению, мест больше нет.', closed: 'Запись на это занятие закрыта.', notFound: 'Эта ссылка не активна.',
-          invalid: 'Введите, пожалуйста, имя и фамилию и правильный номер телефона.', busy: 'Сейчас слишком много записей. Попробуйте чуть позже.',
+          invalid: 'Проверьте, пожалуйста, форму: нужны имя и фамилия хотя бы на одном языке и правильный номер телефона.', busy: 'Сейчас слишком много записей. Попробуйте чуть позже.',
           error: 'Что-то пошло не так. Попробуйте ещё раз или напишите нам в WhatsApp.', wa: 'Вопросы? Напишите нам в WhatsApp',
         },
         he: {
           when: 'מתי', where: 'איפה', who: 'עם', price: 'מחיר', minutes: 'דק׳',
-          fullName: 'שם מלא', phone: 'טלפון', signUp: 'הרשמה', sending: 'שולחים…',
-          pay: 'התשלום בסטודיו.', consent: 'השם והטלפון משמשים רק ליצירת קשר לגבי השיעור הזה.', privacy: 'מדיניות פרטיות',
+          nameHe: 'שם מלא בעברית', nameRu: 'שם מלא ברוסית', nameEn: 'שם מלא באנגלית', nameHint: 'מלאו לפחות אחד; אפשר יותר מאחד.',
+          phone: 'טלפון', email: 'אימייל', idNumber: 'מספר תעודת זהות', comment: 'הערות', optional: 'לא חובה', signUp: 'הרשמה', sending: 'שולחים…',
+          pay: 'התשלום בסטודיו.', consent: 'הפרטים משמשים רק לשיעור הזה וליצירת קשר לגביו.', privacy: 'מדיניות פרטיות',
           ok: 'נרשמתם! נתראה ב{when}.', already: 'מספר הטלפון הזה כבר ברשימה. נתראה!',
           full: 'מצטערים, השיעור מלא.', closed: 'ההרשמה לשיעור הזה סגורה.', notFound: 'הקישור הזה אינו פעיל.',
-          invalid: 'נא להזין שם מלא ומספר טלפון תקין.', busy: 'יותר מדי הרשמות כרגע. נסו שוב בעוד מעט.',
+          invalid: 'נא לבדוק את הטופס: נדרשים שם מלא לפחות בשפה אחת ומספר טלפון תקין.', busy: 'יותר מדי הרשמות כרגע. נסו שוב בעוד מעט.',
           error: 'משהו השתבש. נסו שוב או כתבו לנו בוואטסאפ.', wa: 'שאלות? כתבו לנו בוואטסאפ',
         },
       } as const;
@@ -154,13 +159,25 @@ import { SITE } from '../lib/site';
         if (!event) return card.replaceChildren(el('p', { className: 'su-msg', textContent: t('notFound') }), wa);
         document.title = `${event.title} — ETUDE`;
 
-        const name = el('input', { type: 'text', name: 'name', autocomplete: 'name', required: true, minLength: 2, maxLength: 80 });
+        // The name in up to three languages, the page's own language first; at least one is needed.
+        const nameField = (l: Lang) => el('input', { type: 'text', name: `name_${l}`, lang: l, dir: l === 'he' ? 'rtl' : 'ltr', maxLength: 80, autocomplete: l === lang ? 'name' : 'off' });
+        const names = { he: nameField('he'), ru: nameField('ru'), en: nameField('en') };
+        const NAME_LABEL: Record<Lang, Key> = { he: 'nameHe', ru: 'nameRu', en: 'nameEn' };
+        const order: Lang[] = [lang, ...LANGS.filter((l) => l !== lang)];
         const phone = el('input', { type: 'tel', name: 'phone', autocomplete: 'tel', inputMode: 'tel', required: true, dir: 'ltr' });
+        const email = el('input', { type: 'email', name: 'email', autocomplete: 'email', maxLength: 120, dir: 'ltr' });
+        const idNumber = el('input', { type: 'text', name: 'id_number', inputMode: 'numeric', maxLength: 20, autocomplete: 'off', dir: 'ltr' });
+        const comment = el('textarea', { name: 'comment', rows: 3, maxLength: 500 });
+        const optional = () => el('span', { className: 'su-opt', textContent: ` (${t('optional')})` });
         const trap = el('input', { type: 'text', name: 'website', tabIndex: -1, autocomplete: 'off' }); // people don't see it; scripts fill it
         const button = el('button', { type: 'submit', textContent: t('signUp') });
         const form = el('form', { className: 'su-form' },
-          el('label', {}, t('fullName'), name),
+          ...order.map((l) => el('label', {}, t(NAME_LABEL[l]), names[l])),
+          el('p', { className: 'su-note', textContent: t('nameHint') }),
           el('label', {}, t('phone'), phone),
+          el('label', {}, el('span', {}, t('email'), optional()), email),
+          el('label', {}, el('span', {}, t('idNumber'), optional()), idNumber),
+          el('label', {}, el('span', {}, t('comment'), optional()), comment),
           el('label', { className: 'su-trap', ariaHidden: 'true' }, 'Website', trap),
           button,
           el('p', { className: 'su-note' }, `${t('pay')} ${t('consent')} `, el('a', { href: `/${lang}/privacy/`, target: '_blank', rel: 'noopener', textContent: t('privacy') }))
@@ -170,7 +187,14 @@ import { SITE } from '../lib/site';
           button.disabled = true;
           button.textContent = t('sending');
           try {
-            outcome = trap.value ? 'ok' : (await rpc('public_signup', { eid: id, guest: name.value, tel: phone.value }));
+            if (!LANGS.some((l) => names[l].value.trim().length >= 2)) {
+              outcome = 'invalid';
+              return draw();
+            }
+            outcome = trap.value ? 'ok' : (await rpc('public_signup', { eid: id, form: {
+              name_he: names.he.value, name_ru: names.ru.value, name_en: names.en.value,
+              phone: phone.value, email: email.value, id_number: idNumber.value, comment: comment.value,
+            } }));
             if (outcome === 'full' || outcome === 'closed') event!.state = outcome;
           } catch {
             outcome = 'error';

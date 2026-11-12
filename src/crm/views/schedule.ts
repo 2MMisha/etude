@@ -138,6 +138,9 @@ export async function scheduleView(arg?: string) {
             e.students ? h('a', { href: `#/client/${e.students.client_id}/pay`, textContent: e.students.full_name }) : e.guest_name,
             e.phone && ' · ', e.phone && h('a', { href: `tel:${e.phone}`, dir: 'ltr', textContent: e.phone }), ' · ', ltr(money(e.amount)),
             e.online && h('small', {}, t('signedOnline')),
+            // What they filled in on the sign-up page, beyond the name and phone.
+            (e.details?.email || e.details?.id_number || e.details?.comment) && h('small', {},
+              [e.details.email, e.details.id_number && `${t('idNumber')}: ${e.details.id_number}`, e.details.comment].filter(Boolean).join(' · ')),
             e.students ? h('small', {}, t('onClientAccount')) : paid >= Number(e.amount) && h('small', {}, `✓ ${t('paid')}`)
           ),
           !e.students && paid < Number(e.amount) && guestPay(e.guest_name, what, Number(e.amount) - paid, { entry_id: e.id }),

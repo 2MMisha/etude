@@ -39,6 +39,7 @@ const en = {
   label: 'Name', groupsTitle: 'Groups', programme: 'Programme', discountsTitle: 'Discounts, %',
   historyHint: 'A change applies to new charges only. Charges already made keep their price.',
   // stage 3: trainers, private lessons, expenses
+  idNumber: "ID",
   signedOnline: "signed up online",
   copied: "Copied.",
   copyLink: "Copy link",
@@ -159,6 +160,7 @@ const ru: Record<Key, string> = {
   label: 'Название', groupsTitle: 'Группы', programme: 'Программа', discountsTitle: 'Скидки, %',
   historyHint: 'Изменение действует только на новые начисления. Уже сделанные сохраняют свою цену.',
   // stage 3: trainers, private lessons, expenses
+  idNumber: "Уд. личности",
   signedOnline: "записался онлайн",
   copied: "Скопировано.",
   copyLink: "Скопировать ссылку",
@@ -278,6 +280,7 @@ const he: Record<Key, string> = {
   label: 'שם', groupsTitle: 'קבוצות', programme: 'תוכנית', discountsTitle: 'הנחות, %',
   historyHint: 'שינוי חל רק על חיובים חדשים. חיובים שכבר נוצרו שומרים על המחיר שלהם.',
   // stage 3: trainers, private lessons, expenses
+  idNumber: "ת.ז",
   signedOnline: "נרשם/ה אונליין",
   copied: "הועתק.",
   copyLink: "העתקת קישור",
