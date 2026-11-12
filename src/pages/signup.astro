@@ -100,7 +100,7 @@ import { SITE } from '../lib/site';
           nameHe: 'Имя и фамилия на иврите', nameRu: 'Имя и фамилия на русском', nameEn: 'Имя и фамилия на английском', nameHint: 'Заполните хотя бы одно; можно несколько.',
           phone: 'Телефон', email: 'Эл. почта', idNumber: 'Номер удостоверения личности', comment: 'Комментарии', optional: 'необязательно', signUp: 'Записаться', sending: 'Отправляем…',
           pay: 'Оплата в студии.', consent: 'Эти данные нужны только для этого занятия и для связи по нему.', privacy: 'Политика конфиденциальности',
-          ok: 'Вы записаны! Ждём вас {when}.', already: 'Этот номер телефона уже в списке. До встречи!',
+          ok: 'Вы записаны! Ждём вас: {when}.', already: 'Этот номер телефона уже в списке. До встречи!',
           full: 'К сожалению, мест больше нет.', closed: 'Запись на это занятие закрыта.', notFound: 'Эта ссылка не активна.',
           invalid: 'Проверьте, пожалуйста, форму: нужны имя и фамилия хотя бы на одном языке и правильный номер телефона.', busy: 'Сейчас слишком много записей. Попробуйте чуть позже.',
           error: 'Что-то пошло не так. Попробуйте ещё раз или напишите нам в WhatsApp.', wa: 'Вопросы? Напишите нам в WhatsApp',
@@ -110,7 +110,7 @@ import { SITE } from '../lib/site';
           nameHe: 'שם מלא בעברית', nameRu: 'שם מלא ברוסית', nameEn: 'שם מלא באנגלית', nameHint: 'מלאו לפחות אחד; אפשר יותר מאחד.',
           phone: 'טלפון', email: 'אימייל', idNumber: 'מספר תעודת זהות', comment: 'הערות', optional: 'לא חובה', signUp: 'הרשמה', sending: 'שולחים…',
           pay: 'התשלום בסטודיו.', consent: 'הפרטים משמשים רק לשיעור הזה וליצירת קשר לגביו.', privacy: 'מדיניות פרטיות',
-          ok: 'נרשמתם! נתראה ב{when}.', already: 'מספר הטלפון הזה כבר ברשימה. נתראה!',
+          ok: 'נרשמתם! נתראה: {when}.', already: 'מספר הטלפון הזה כבר ברשימה. נתראה!',
           full: 'מצטערים, השיעור מלא.', closed: 'ההרשמה לשיעור הזה סגורה.', notFound: 'הקישור הזה אינו פעיל.',
           invalid: 'נא לבדוק את הטופס: נדרשים שם מלא לפחות בשפה אחת ומספר טלפון תקין.', busy: 'יותר מדי הרשמות כרגע. נסו שוב בעוד מעט.',
           error: 'משהו השתבש. נסו שוב או כתבו לנו בוואטסאפ.', wa: 'שאלות? כתבו לנו בוואטסאפ',
@@ -204,7 +204,8 @@ import { SITE } from '../lib/site';
 
         const settled = outcome === 'ok' || outcome === 'already';
         const closed = event.state !== 'open';
-        card.replaceChildren(
+        // A part that doesn't apply is false or null here; only real elements go on the page.
+        const parts = [
           el('h1', { textContent: event.title, dir: 'auto' }),
           el('dl', { className: 'su-facts' },
             fact(t('when'), whenText(event)),
@@ -215,8 +216,9 @@ import { SITE } from '../lib/site';
           outcome && el('p', { className: `su-msg ${settled ? 'good' : 'bad'}`, textContent: t(outcome).replace('{when}', whenText(event)) }),
           !outcome && closed && el('p', { className: 'su-msg', textContent: t(event.state as Key) }),
           !settled && !closed && form,
-          wa
-        );
+          wa,
+        ];
+        card.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
       }
 
       for (const b of document.querySelectorAll<HTMLButtonElement>('#langs button'))
