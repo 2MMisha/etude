@@ -7,6 +7,7 @@ import { getLang, t, LOCALE, type Key } from '../i18n';
 import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, type Row } from '../ui';
 import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
+import { SITE } from '../../lib/site';
 
 const CHARGED = ['done', 'no_show', 'late_cancel'] as const;
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
@@ -29,6 +30,9 @@ const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${iso}T
 const dayText = (iso: string) => fmt(iso, { weekday: 'short', day: 'numeric', month: 'numeric' });
 /** "Sunday" … "Saturday" in the screen's language (1 January 2023 was a Sunday). */
 export const WEEKDAY = (n: number) => new Date(Date.UTC(2023, 0, 1 + n)).toLocaleDateString(LOCALE[getLang()], { weekday: 'long', timeZone: 'UTC' });
+
+/** The public page where people sign themselves up to a one-time group. */
+const signupLink = (eventId: string) => `${SITE.siteUrl}/signup/?e=${eventId}`;
 
 interface Entry { key: string; item: TimetableItem; lesson?: Row; group?: Row; rental?: Row; event?: Row }
 type Part = HTMLElement | false | null | undefined | '';
@@ -131,7 +135,9 @@ export async function scheduleView(arg?: string) {
         const paid = paidFor('entry_id', e.id);
         return h('div', { className: 'row' },
           h('span', { className: 'grow' },
-            e.students ? h('a', { href: `#/client/${e.students.client_id}/pay`, textContent: e.students.full_name }) : e.guest_name, ' · ', ltr(money(e.amount)),
+            e.students ? h('a', { href: `#/client/${e.students.client_id}/pay`, textContent: e.students.full_name }) : e.guest_name,
+            e.phone && ' · ', e.phone && h('a', { href: `tel:${e.phone}`, dir: 'ltr', textContent: e.phone }), ' · ', ltr(money(e.amount)),
+            e.online && h('small', {}, t('signedOnline')),
             e.students ? h('small', {}, t('onClientAccount')) : paid >= Number(e.amount) && h('small', {}, `✓ ${t('paid')}`)
           ),
           !e.students && paid < Number(e.amount) && guestPay(e.guest_name, what, Number(e.amount) - paid, { entry_id: e.id }),
@@ -164,6 +170,16 @@ export async function scheduleView(arg?: string) {
         field(t('hall'), select(hallOptions, e.hall, (v) => save({ hall: v }))),
         field(t('trainer'), select([['', '—'], ...trainerOptions], e.trainer_id ?? '', (v) => save({ trainer_id: v || null }))),
         field(t('pricePerEntry'), h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: Number(e.price), onchange: onChange('price', true) }))
+      ),
+      // Online sign-up: off by default. When on, anyone with the link can add themselves as a guest (name and phone).
+      h('div', { className: 'row' },
+        h('label', { className: 'tick' }, h('input', { type: 'checkbox', checked: e.public_signup, onchange: (ev: Event) => save({ public_signup: (ev.target as HTMLInputElement).checked }) }), t('openSignup')),
+        h('label', { className: 'tick' }, t('capacity'), h('input', { type: 'number', min: 1, className: 'num', value: e.capacity ?? '', onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value; save({ capacity: v === '' ? null : Number(v) }); } }))
+      ),
+      e.public_signup && h('div', { className: 'row' },
+        h('input', { type: 'text', readOnly: true, value: signupLink(e.id), ariaLabel: t('shareLink'), dir: 'ltr', onfocus: (ev: Event) => (ev.target as HTMLInputElement).select() }),
+        h('button', { type: 'button', textContent: t('copyLink'), onclick: () => navigator.clipboard.writeText(signupLink(e.id)).then(() => flash(t('copied'))) }),
+        h('a', { className: 'btn', href: signupLink(e.id), target: '_blank', rel: 'noopener', textContent: t('open') })
       ),
       ...entriesBlock({ event_id: e.id }, Number(e.price), `${e.title}, ${dayText(e.held_on)}`),
       h('div', { className: 'row' }, sureButton(t('del'), () => done(ok(db!.from('events').delete().eq('id', e.id))))),
