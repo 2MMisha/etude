@@ -6,15 +6,19 @@ import { clientsView, clientView } from './views/clients';
 import { monthView } from './views/month';
 import { settingsView } from './views/settings';
 import { accountsView } from './views/accounts';
+import { debtsView, receiptView, reportsView } from './views/payments';
 
 const ROUTES: Record<string, (arg?: string) => Promise<HTMLElement>> = {
   clients: clientsView,
   client: clientView,
   month: monthView,
+  debts: debtsView,
+  reports: reportsView,
+  receipt: receiptView,
   settings: settingsView,
   accounts: accountsView,
 };
-const TABS: Key[] = ['clients', 'month', 'settings', 'accounts'];
+const TABS: Key[] = ['clients', 'month', 'debts', 'reports', 'settings', 'accounts'];
 
 const view = document.getElementById('view')!;
 const tabs = document.getElementById('nav')!;
@@ -83,7 +87,7 @@ function drawChrome(current: string) {
     } }))
   );
   tabs.hidden = !staff || recovering;
-  tabs.replaceChildren(...TABS.map((k) => h('a', { href: `#/${k}`, textContent: t(k), ariaCurrent: k === current || (k === 'clients' && current === 'client') ? 'page' : null })));
+  tabs.replaceChildren(...TABS.map((k) => h('a', { href: `#/${k}`, textContent: t(k), ariaCurrent: k === current || (k === 'clients' && (current === 'client' || current === 'receipt')) ? 'page' : null })));
   return staff;
 }
 

@@ -38,6 +38,20 @@ const en = {
   otherPrices: 'Other prices', oneTimeEntry: 'One-time group entry', privateLessons: 'Private lessons', rentals: 'Hall rental',
   label: 'Name', groupsTitle: 'Groups', programme: 'Programme', discountsTitle: 'Discounts, %',
   historyHint: 'A change applies to new charges only. Charges already made keep their price.',
+  // stage 2: payments, confirmations, debts, reports
+  debts: "Debts", reports: "Reports", payments: "Payments", recordPayment: "Record payment",
+  date: "Date", method: "Method", cash: "Cash", transfer: "Bank transfer",
+  bit: "Bit", cheque: "Cheque", standing_order: "Standing order", chequeNumber: "Cheque no.",
+  chequeBank: "Bank", chequeDate: "Cheque date", paperDoc: "Paper document no.", covers: "Covers",
+  owes: "Owes", paidAhead: "Paid ahead", settled: "Nothing owed", useCredit: "Use the credit",
+  credit: "Credit not yet used", paid: "Paid", owed: "Owed", onAccount: "On account",
+  tooManyLines: "The ticked lines add up to more than the amount.", needAmount: "Enter the amount.", confirmation: "Confirmation", void: "Void",
+  voidReason: "Reason for voiding", voided: "Voided", refund: "Refund", refundReason: "Reason for the refund",
+  noPayments: "No payments yet.", rcTitle: "Payment confirmation", rcRefund: "Refund confirmation", rcFrom: "Received from",
+  rcTo: "Returned to", rcFor: "For", businessNo: "Business no.", print: "Print / save as PDF",
+  sendWhatsApp: "Send by WhatsApp", debtsTitle: "Who owes", noDebts: "Nobody owes anything.", remind: "Remind on WhatsApp",
+  remindText: "Hello {name}! A reminder from ETUDE Dance School: the balance to pay is {amount}. Thank you!", received: "Received", charged: "Charged for the month", stillOwed: "Still owed for the month",
+  exportExcel: "Export to Excel", business: "School details on confirmations", bizNumber: "Business number",
 };
 export type Key = keyof typeof en;
 
@@ -69,6 +83,20 @@ const ru: Record<Key, string> = {
   otherPrices: 'Другие цены', oneTimeEntry: 'Разовое занятие в группе', privateLessons: 'Индивидуальные занятия', rentals: 'Аренда зала',
   label: 'Название', groupsTitle: 'Группы', programme: 'Программа', discountsTitle: 'Скидки, %',
   historyHint: 'Изменение действует только на новые начисления. Уже сделанные сохраняют свою цену.',
+  // stage 2: payments, confirmations, debts, reports
+  debts: "Долги", reports: "Отчёты", payments: "Оплаты", recordPayment: "Записать оплату",
+  date: "Дата", method: "Способ", cash: "Наличные", transfer: "Перевод",
+  bit: "Bit", cheque: "Чек", standing_order: "Ораат кева", chequeNumber: "Номер чека",
+  chequeBank: "Банк", chequeDate: "Дата чека", paperDoc: "Номер бумажного документа", covers: "За что",
+  owes: "Долг", paidAhead: "Переплата", settled: "Долга нет", useCredit: "Зачесть переплату",
+  credit: "Незачтённая переплата", paid: "Оплачено", owed: "Осталось", onAccount: "В счёт будущих занятий",
+  tooManyLines: "Отмеченные строки в сумме больше, чем оплата.", needAmount: "Введите сумму.", confirmation: "Подтверждение", void: "Аннулировать",
+  voidReason: "Причина аннулирования", voided: "Аннулировано", refund: "Возврат", refundReason: "Причина возврата",
+  noPayments: "Оплат пока нет.", rcTitle: "Подтверждение оплаты", rcRefund: "Подтверждение возврата", rcFrom: "Получено от",
+  rcTo: "Возвращено", rcFor: "За что", businessNo: "Номер бизнеса", print: "Печать / сохранить PDF",
+  sendWhatsApp: "Отправить в WhatsApp", debtsTitle: "Кто должен", noDebts: "Никто ничего не должен.", remind: "Напомнить в WhatsApp",
+  remindText: "Здравствуйте, {name}! Напоминание от школы танцев ETUDE: к оплате {amount}. Спасибо!", received: "Получено", charged: "Начислено за месяц", stillOwed: "Не оплачено за месяц",
+  exportExcel: "Выгрузить в Excel", business: "Данные школы на подтверждениях", bizNumber: "Номер бизнеса",
 };
 
 const he: Record<Key, string> = {
@@ -99,6 +127,20 @@ const he: Record<Key, string> = {
   otherPrices: 'מחירים נוספים', oneTimeEntry: 'כניסה חד-פעמית לקבוצה', privateLessons: 'שיעורים פרטיים', rentals: 'השכרת אולם',
   label: 'שם', groupsTitle: 'קבוצות', programme: 'תוכנית', discountsTitle: 'הנחות, %',
   historyHint: 'שינוי חל רק על חיובים חדשים. חיובים שכבר נוצרו שומרים על המחיר שלהם.',
+  // stage 2: payments, confirmations, debts, reports
+  debts: "חובות", reports: "דוחות", payments: "תשלומים", recordPayment: "רישום תשלום",
+  date: "תאריך", method: "אמצעי תשלום", cash: "מזומן", transfer: "העברה בנקאית",
+  bit: "ביט", cheque: "צ'ק", standing_order: "הוראת קבע", chequeNumber: "מספר צ'ק",
+  chequeBank: "בנק", chequeDate: "תאריך הצ'ק", paperDoc: "מספר מסמך ידני", covers: "עבור",
+  owes: "חוב", paidAhead: "שולם מראש", settled: "אין חוב", useCredit: "לקזז את היתרה",
+  credit: "יתרת זכות שלא נוצלה", paid: "שולם", owed: "נותר", onAccount: "על חשבון שיעורים עתידיים",
+  tooManyLines: "סכום השורות המסומנות גדול מסכום התשלום.", needAmount: "הקלידו סכום.", confirmation: "אישור", void: "ביטול",
+  voidReason: "סיבת הביטול", voided: "בוטל", refund: "החזר", refundReason: "סיבת ההחזר",
+  noPayments: "עדיין אין תשלומים.", rcTitle: "אישור תשלום", rcRefund: "אישור החזר", rcFrom: "התקבל מאת",
+  rcTo: "הוחזר ל", rcFor: "עבור", businessNo: "ע.מ", print: "הדפסה / שמירה כ-PDF",
+  sendWhatsApp: "שליחה בוואטסאפ", debtsTitle: "מי חייב", noDebts: "אף אחד לא חייב.", remind: "תזכורת בוואטסאפ",
+  remindText: "שלום {name}! תזכורת מסטודיו ETUDE: היתרה לתשלום היא {amount}. תודה!", received: "התקבל", charged: "חויב עבור החודש", stillOwed: "טרם שולם עבור החודש",
+  exportExcel: "ייצוא לאקסל", business: "פרטי בית הספר על האישורים", bizNumber: "מספר עוסק",
 };
 
 const T: Record<Lang, Record<Key, string>> = { en, ru, he };
@@ -123,3 +165,5 @@ export function setLang(l: Lang) {
   document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
 }
 export const t = (k: Key) => T[lang][k];
+/** A string in a given language: confirmations and reminders go out in the client's language, not the screen's. */
+export const tIn = (l: Lang, k: Key) => T[l][k];

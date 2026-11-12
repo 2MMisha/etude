@@ -1,6 +1,7 @@
 // Clients list, and one client's page: the family, each student's groups,
 // discounts, suggested monthly price and charges.
 import { t, LANGS } from '../i18n';
+import { paymentsCard } from './payments';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
@@ -58,7 +59,7 @@ export async function clientView(id?: string) {
   const [enrollments, quotes, charges] = await Promise.all([
     get<Row[]>(db!.from('enrollments').select('*').in('student_id', ids)),
     get<Row[]>(db!.from('student_quotes').select('*').in('student_id', ids)),
-    get<Row[]>(db!.from('charges').select('*').in('student_id', ids).order('month', { ascending: false }).limit(100)),
+    get<Row[]>(db!.from('charges').select('*').in('student_id', ids).order('month', { ascending: false }).limit(500)),
   ]);
 
   /** Save one or more columns; `redraw` when the change moves the suggested price. */
@@ -185,6 +186,7 @@ export async function clientView(id?: string) {
     h('a', { href: '#/clients', textContent: t('back') }),
     h('h1', { textContent: client.full_name }),
     clientCard,
+    await paymentsCard(client, students, charges),
     h('h2', { textContent: t('students') }),
     ...students.map(studentCard),
     h('section', { className: 'card' }, addForm)

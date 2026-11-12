@@ -1,7 +1,7 @@
 // Settings: the price list (programmes at 1–3 classes a week, unlimited,
 // one-time entry, private lessons, rentals), the groups and the discount sizes.
 import { t } from '../i18n';
-import { db, h, get, ok, nav, input, number, checkbox, select, sureButton, type Row } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, type Row } from '../ui';
 
 const PER_WEEK = [1, 2, 3];
 
@@ -109,5 +109,14 @@ export async function settingsView() {
     pct('full_year_pct', t('fullYear'))
   );
 
-  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, others, groupsCard, discounts);
+  // Printed at the top of every payment confirmation.
+  const biz: Row = settings.find((x) => x.id === 'business')?.value ?? {};
+  const bizField = (key: string, label: string) =>
+    field(label, input(biz[key], (v) => { biz[key] = v; ok(db!.from('settings').upsert({ id: 'business', value: biz })); }));
+  const business = h('section', { className: 'card' },
+    h('h2', { textContent: t('business') }),
+    h('div', { className: 'grid' }, bizField('name', t('name')), bizField('address', t('address')), bizField('phone', t('phone')), bizField('number', t('bizNumber')))
+  );
+
+  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, others, groupsCard, discounts, business);
 }

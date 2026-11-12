@@ -17,12 +17,14 @@ export async function monthView(arg?: string) {
     get<Row[]>(db!.from('student_quotes').select('*')),
     get<Row[]>(db!.from('charges').select('*').eq('kind', 'membership').eq('month', first)),
   ]);
+  const balances = charges.length ? await get<Row[]>(db!.from('charge_balances').select('charge_id, paid, owed').in('charge_id', charges.map((c) => c.id))) : [];
   students.sort((a, b) => a.clients.full_name.localeCompare(b.clients.full_name) || a.full_name.localeCompare(b.full_name));
 
   const row = (s: Row) => {
     const q = quotes.find((x) => x.student_id === s.id);
     const c = charges.find((x) => x.student_id === s.id);
     const shown = c ?? q; // a charge keeps its own list price and discounts
+    const b = c && balances.find((x) => x.charge_id === c.id);
     const pct = pctOf(shown?.discounts);
     const amount = number(c ? c.amount : q?.amount, () => c && save());
     const note = input(c?.comment, () => c && save(), { placeholder: t('comment') });
@@ -49,6 +51,7 @@ export async function monthView(arg?: string) {
       h('td', {}, ltr(money(shown?.list_amount))),
       h('td', { title: Object.entries(shown?.discounts ?? {}).map(([k, v]) => `${k} ${v}%`).join(', ') }, pct ? ltr(`−${pct}%`) : ''),
       h('td', {}, amount, c?.manual && h('small', {}, t('byHand'))),
+      h('td', { className: b && Number(b.owed) <= 0 ? 'ok' : '' }, b ? ltr(money(b.paid)) : ''),
       h('td', {}, note),
       h('td', { className: 'actions' },
         !c && h('button', { type: 'button', className: 'primary', textContent: t('charge'), onclick: async () => {
@@ -80,9 +83,9 @@ export async function monthView(arg?: string) {
       } })
     ),
     h('div', { className: 'scroll' }, h('table', {},
-      h('thead', {}, h('tr', {}, ...[t('students'), t('plan'), t('list'), t('discount'), t('amount'), t('comment'), ''].map((x) => h('th', {}, x)))),
-      h('tbody', {}, ...students.map(row), !students.length && h('tr', {}, h('td', { colSpan: 7, className: 'muted', textContent: t('emptyList') })))
+      h('thead', {}, h('tr', {}, ...[t('students'), t('plan'), t('list'), t('discount'), t('amount'), t('paid'), t('comment'), ''].map((x) => h('th', {}, x)))),
+      h('tbody', {}, ...students.map(row), !students.length && h('tr', {}, h('td', { colSpan: 8, className: 'muted', textContent: t('emptyList') })))
     )),
-    h('p', { className: 'quote' }, `${t('total')}: `, ltr(money(total)), missing ? ` · ${missing} ${t('notCharged')}` : '')
+    h('p', { className: 'quote' }, `${t('total')}: `, ltr(money(total)), ` · ${t('paid')}: `, ltr(money(balances.reduce((s, x) => s + Number(x.paid), 0))), missing ? ` · ${missing} ${t('notCharged')}` : '')
   );
 }
