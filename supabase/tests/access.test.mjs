@@ -304,6 +304,37 @@ for (const who of ['trainer', 'client', 'nobody']) {
   assert.equal(await count(who, 'group_slots'), 0);
   await denied(as(who, `insert into public.group_slots (group_id, weekday, start_time, minutes) values ($1, 1, '10:00', 45)`, [kidsBeg.id]), /row-level security/);
 }
+// One date of a group class can differ from its weekly slot.
+const classes = async (d1, d2) =>
+  (await as('admin', `select on_date::text, held_on::text, start_time::text, hall, trainer_id, changed, cancelled from public.group_classes_between($1, $2) where slot_id = $3 order by held_on`, [d1, d2, slot.id])).rows;
+const usual = { on_date: '2026-12-09', held_on: '2026-12-09', start_time: '18:15:00', hall: 'Small Hall', trainer_id: misha.id, changed: false, cancelled: false };
+assert.deepEqual(await classes('2026-12-06', '2026-12-12'), [usual]);
+// Another trainer covers that one Wednesday: Misha is free for a lesson then, Roman is not.
+const change = await ins('group_slot_changes', { slot_id: slot.id, on_date: '2026-12-09', trainer_id: roman.id });
+assert.deepEqual(await classes('2026-12-06', '2026-12-12'), [{ ...usual, trainer_id: roman.id, changed: true }]);
+const covered = (await lesson('admin', { trainer_id: misha.id, minutes: 45, held_on: '2026-12-09', start_time: '18:30' }, [a.id])).id;
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-12-09', start_time: '18:30' }, [a.id]), /has a group class/);
+await as('admin', 'delete from public.lessons where id = $1', [covered]);
+// Moved to Friday at another time and hall: gone from Wednesday, there on Friday; the next week is untouched.
+await as('admin', `update public.group_slot_changes set trainer_id = null, new_date = '2026-12-11', start_time = '10:00', hall = 'Big Hall' where id = $1`, [change.id]);
+assert.deepEqual(await classes('2026-12-06', '2026-12-12'), [{ ...usual, held_on: '2026-12-11', start_time: '10:00:00', hall: 'Big Hall', changed: true }]);
+assert.deepEqual(await classes('2026-12-13', '2026-12-19'), [{ ...usual, on_date: '2026-12-16', held_on: '2026-12-16' }]);
+// Cancelled for that date: still listed, flagged, and its trainer is free.
+await as('admin', `update public.group_slot_changes set new_date = null, start_time = null, hall = null, cancelled = true where id = $1`, [change.id]);
+assert.deepEqual(await classes('2026-12-09', '2026-12-09'), [{ ...usual, changed: true, cancelled: true }]);
+await as('admin', 'delete from public.lessons where id = $1', [(await lesson('admin', { trainer_id: misha.id, minutes: 45, held_on: '2026-12-09', start_time: '18:30' }, [a.id])).id]);
+// Hall rentals: who is required; staff only.
+await denied(ins('rentals', { held_on: '2026-12-10', start_time: '12:00', minutes: 60, who: ' ' }), /check/);
+await ins('rentals', { held_on: '2026-12-10', start_time: '12:00', minutes: 60, hall: 'Big Hall', who: 'Wedding rehearsal', price: 250 });
+for (const table of ['group_slot_changes', 'rentals']) {
+  await denied(as('anon', `select * from public.${table}`), /permission denied/);
+  for (const who of ['trainer', 'client', 'nobody']) assert.equal(await count(who, table), 0, `${who} reads nothing from ${table}`);
+}
+for (const who of ['trainer', 'client', 'nobody']) {
+  assert.equal((await as(who, `select * from public.group_classes_between('2026-12-06', '2026-12-12')`)).rows.length, 0);
+  await denied(as(who, `insert into public.rentals (held_on, start_time, minutes, who) values ('2026-12-10', '12:00', 60, 'x')`), /row-level security/);
+  await denied(as(who, `insert into public.group_slot_changes (slot_id, on_date, cancelled) values ($1, '2026-12-16', true)`, [slot.id]), /row-level security/);
+}
 await as('admin', 'delete from public.group_slots where id = $1', [slot.id]);
 
 // Dance partners always point at each other, and changing one side lets the old partner go.
