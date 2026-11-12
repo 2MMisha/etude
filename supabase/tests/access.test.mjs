@@ -160,4 +160,62 @@ for (const who of ['trainer', 'client', 'nobody']) {
 const trail = await one('owner', `select actor, new ->> 'comment' note from public.activity_log where table_name = 'charges' and action = 'update' order by id desc limit 1`);
 assert.deepEqual(trail, { actor: U.admin, note: 'joined on the 20th' });
 
+// ── Stage 2: payments, lines, balances, credit ───────────────────────────────
+// Where things stand: Child A owes 50 (Nov, by hand) + 153 (Dec); Child B 282 (Nov) + 1061 (Dec, after the
+// price change above); Child C 450 (Nov). 1996 in all.
+const chargeOf = async (s, m) => (await one('admin', 'select id from public.charges where student_id = $1 and month = $2', [s.id, m])).id;
+const [aNov, aDec, bNov, cNov] = [await chargeOf(a, '2026-11-01'), await chargeOf(a, '2026-12-01'), await chargeOf(b, '2026-11-01'), await chargeOf(c, '2026-11-01')];
+const pay = (who, p, lines) => one(who, 'select public.record_payment($1::jsonb, $2::jsonb) id', [JSON.stringify({ client_id: family.id, method: 'cash', ...p }), JSON.stringify(lines)]);
+const balance = async () => one('admin', 'select charged::float, paid::float, balance::float, credit::float from public.client_balances where client_id = $1', [family.id]);
+const owed = async (id) => (await one('admin', 'select owed::float from public.charge_balances where charge_id = $1', [id])).owed;
+assert.deepEqual(await balance(), { charged: 1996, paid: 0, balance: 1996, credit: 0 });
+
+// One payment covers several lines, each its own row; the rest is the family's credit.
+const p1 = (await pay('admin', { amount: 400 }, [{ charge_id: aNov, amount: 50 }, { charge_id: bNov, amount: 200 }])).id;
+assert.equal(await owed(aNov), 0);
+assert.equal(await owed(bNov), 82);
+assert.deepEqual(await balance(), { charged: 1996, paid: 400, balance: 1596, credit: 150 });
+// Confirmation numbers go up and are never handed out twice.
+const p2 = (await pay('admin', { amount: 82, method: 'cheque', cheque_number: '0012', cheque_bank: 'Leumi' }, [{ charge_id: bNov, amount: 82 }])).id;
+const numbers = (await as('admin', 'select number::int from public.payments order by number')).rows.map((r) => r.number);
+assert.deepEqual(numbers, [1, 2]);
+// Refused, and nothing is half-saved: paying a charge twice, lines above the payment, someone else's charge.
+await denied(pay('admin', { amount: 10 }, [{ charge_id: bNov, amount: 10 }]), /paid twice/);
+await denied(pay('admin', { amount: 10 }, [{ charge_id: aDec, amount: 11 }]), /more than the payment/);
+const stranger = await ins('clients', { full_name: 'Other family' });
+await denied(one('admin', 'select public.record_payment($1::jsonb, $2::jsonb)', [JSON.stringify({ client_id: stranger.id, method: 'cash', amount: 10 }), JSON.stringify([{ charge_id: aDec, amount: 10 }])]), /another client/);
+assert.equal(await count('admin', 'payments'), 2);
+// The credit goes to the oldest unpaid charge: Child C's November.
+assert.equal((await one('admin', 'select public.use_credit($1)::float used', [family.id])).used, 150);
+assert.equal(await owed(cNov), 300);
+assert.equal(await owed(aDec), 153);
+assert.equal((await balance()).credit, 0);
+// A recorded payment can't be re-priced or deleted; a mistake is voided with a reason and stops counting.
+await denied(as('admin', 'update public.payments set amount = 1 where id = $1', [p2]), /cannot be changed/);
+await denied(as('admin', 'delete from public.payments where id = $1', [p2]), /permission denied/);
+await denied(as('admin', 'delete from public.payment_lines'), /permission denied/);
+await denied(as('admin', 'update public.payments set voided = true where id = $1', [p2]), /void_needs_reason/);
+await as('admin', `update public.payments set voided = true, void_reason = 'typed twice' where id = $1`, [p2]);
+assert.equal(await owed(bNov), 82);
+await denied(as('admin', 'update public.payments set voided = false where id = $1', [p2]), /stays voided/);
+// A refund is a negative payment and must say why.
+await denied(pay('admin', { amount: -50 }, [{ charge_id: aNov, amount: -50 }]), /refund_needs_comment/);
+await pay('admin', { amount: -50, comment: 'left after one class' }, [{ charge_id: aNov, amount: -50 }]);
+assert.equal(await owed(aNov), 50);
+assert.deepEqual(await balance(), { charged: 1996, paid: 350, balance: 1646, credit: 0 });
+// A charge that has been paid can't be deleted.
+await denied(as('admin', 'delete from public.charges where id = $1', [bNov]), /foreign key/);
+
+// Everyone else: no money in, none out, nothing to see.
+for (const table of ['payments', 'payment_lines', 'charge_balances', 'client_balances']) {
+  await denied(as('anon', `select * from public.${table}`), /permission denied/);
+  for (const who of ['trainer', 'client', 'nobody']) assert.equal(await count(who, table), 0, `${who} reads nothing from ${table}`);
+}
+for (const who of ['trainer', 'client', 'nobody']) {
+  await denied(pay(who, { amount: 5 }, []), /row-level security/);
+  assert.equal((await as(who, `update public.payments set voided = true, void_reason = 'x'`)).affectedRows, 0);
+  assert.equal((await one(who, 'select public.use_credit($1)::float used', [family.id])).used, 0);
+}
+assert.deepEqual(await one('owner', `select actor, new ->> 'void_reason' why from public.activity_log where table_name = 'payments' and action = 'update' order by id desc limit 1`), { actor: U.admin, why: 'typed twice' });
+
 console.log('access rules: all checks passed');
