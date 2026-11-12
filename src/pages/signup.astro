@@ -1,0 +1,211 @@
+---
+// /signup/?e=<event id> — the public sign-up page for a one-time group (master
+// class). The school switches sign-up on for an event in the CRM and shares
+// this link; a visitor sees the class and leaves a full name and a phone.
+// No login. It can only call two database functions (public_event,
+// public_signup — supabase/migrations/20261121000000_public_signup.sql); it
+// reads no table and never sees who else signed up. noindex: the link is
+// shared, not searched for.
+import '../styles/global.css';
+import { SITE } from '../lib/site';
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#17224a" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
+    />
+    <title>ETUDE</title>
+    <style is:global>
+      body { margin: 0; background: var(--color-ground); }
+      .su-top { background: var(--color-navy-900); padding: 22px 16px 54px; text-align: center; }
+      .su-top img { width: 132px; height: auto; }
+      .su-langs { display: flex; justify-content: center; gap: 6px; margin-block-start: 14px; }
+      .su-langs button {
+        font: inherit; font-size: 0.8rem; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.35); background: transparent; color: #fff;
+      }
+      .su-langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); border-color: #fff; }
+      .su-card {
+        max-width: 460px; margin: -34px auto 40px; padding: 26px 22px; box-sizing: border-box;
+        background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-lg);
+        box-shadow: 0 12px 34px rgba(23, 34, 74, 0.1); display: grid; gap: 18px;
+      }
+      @media (max-width: 500px) { .su-card { margin-inline: 12px; } }
+      .su-card h1 { margin: 0; font-size: 1.7rem; line-height: 1.15; }
+      .su-facts { margin: 0; display: grid; gap: 8px; }
+      .su-facts div { display: flex; gap: 10px; align-items: baseline; }
+      .su-facts dt { flex: 0 0 5.2em; font-size: 0.82rem; color: var(--color-ink-soft); }
+      .su-facts dd { margin: 0; font-weight: 600; }
+      .su-form { display: grid; gap: 14px; padding-block-start: 18px; border-block-start: 1px solid var(--color-line); }
+      .su-form label { display: grid; gap: 5px; font-size: 0.88rem; font-weight: 600; }
+      .su-form input {
+        font: inherit; padding: 0.75em 0.9em; border: 1px solid var(--color-silver-300); border-radius: var(--radius-md);
+        background: var(--color-surface); width: 100%; box-sizing: border-box;
+      }
+      .su-form input:focus-visible { outline: 3px solid var(--color-blue-500); outline-offset: 1px; }
+      .su-form button {
+        font: inherit; font-weight: 700; padding: 0.85em 1em; border: 0; border-radius: var(--radius-md); cursor: pointer;
+        background: var(--color-navy-900); color: #fff;
+      }
+      .su-form button:disabled { opacity: 0.6; cursor: default; }
+      .su-trap { position: absolute; inset-inline-start: -9999px; block-size: 1px; overflow: hidden; }
+      .su-note { margin: 0; font-size: 0.82rem; color: var(--color-ink-soft); }
+      .su-msg { margin: 0; padding: 14px 16px; border-radius: var(--radius-md); background: var(--color-blue-100); font-weight: 600; }
+      .su-msg.good { background: #e3f4ea; color: #175c3a; }
+      .su-msg.bad { background: #fdecea; color: #8c1d18; }
+      .su-wa { text-align: center; font-size: 0.9rem; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body data-wa={SITE.whatsapp} data-where={`${SITE.address.street}, ${SITE.address.city}`}>
+    <header class="su-top">
+      <img src="/images/brand/logo-full-white.svg" alt="ETUDE" width="132" height="55" />
+      <div class="su-langs" id="langs" role="group" aria-label="Language">
+        <button type="button" data-lang="he" lang="he">עב</button>
+        <button type="button" data-lang="ru" lang="ru">RU</button>
+        <button type="button" data-lang="en" lang="en">EN</button>
+      </div>
+    </header>
+    <main class="su-card" id="card" aria-live="polite"></main>
+
+    <script>
+      import { SUPABASE_URL, SUPABASE_KEY } from '../lib/crmConfig';
+
+      type Lang = 'he' | 'ru' | 'en';
+      const LOCALE: Record<Lang, string> = { he: 'he-IL', ru: 'ru-RU', en: 'en-GB' };
+      const T = {
+        en: {
+          when: 'When', where: 'Where', who: 'With', price: 'Price', minutes: 'min',
+          fullName: 'Full name', phone: 'Phone', signUp: 'Sign up', sending: 'Sending…',
+          pay: 'Payment is at the studio.', consent: 'We use your name and phone only to contact you about this class.', privacy: 'Privacy policy',
+          ok: "You're signed up! See you on {when}.", already: 'This phone number is already on the list. See you there!',
+          full: 'Sorry, this class is full.', closed: 'Sign-up for this class is closed.', notFound: 'This link is not active.',
+          invalid: 'Please enter your full name and a valid phone number.', busy: 'Too many sign-ups right now. Please try again in a little while.',
+          error: 'Something went wrong. Please try again, or write to us on WhatsApp.', wa: 'Questions? Write to us on WhatsApp',
+        },
+        ru: {
+          when: 'Когда', where: 'Где', who: 'Ведёт', price: 'Цена', minutes: 'мин',
+          fullName: 'Имя и фамилия', phone: 'Телефон', signUp: 'Записаться', sending: 'Отправляем…',
+          pay: 'Оплата в студии.', consent: 'Имя и телефон нужны только для связи по этому занятию.', privacy: 'Политика конфиденциальности',
+          ok: 'Вы записаны! Ждём вас {when}.', already: 'Этот номер телефона уже в списке. До встречи!',
+          full: 'К сожалению, мест больше нет.', closed: 'Запись на это занятие закрыта.', notFound: 'Эта ссылка не активна.',
+          invalid: 'Введите, пожалуйста, имя и фамилию и правильный номер телефона.', busy: 'Сейчас слишком много записей. Попробуйте чуть позже.',
+          error: 'Что-то пошло не так. Попробуйте ещё раз или напишите нам в WhatsApp.', wa: 'Вопросы? Напишите нам в WhatsApp',
+        },
+        he: {
+          when: 'מתי', where: 'איפה', who: 'עם', price: 'מחיר', minutes: 'דק׳',
+          fullName: 'שם מלא', phone: 'טלפון', signUp: 'הרשמה', sending: 'שולחים…',
+          pay: 'התשלום בסטודיו.', consent: 'השם והטלפון משמשים רק ליצירת קשר לגבי השיעור הזה.', privacy: 'מדיניות פרטיות',
+          ok: 'נרשמתם! נתראה ב{when}.', already: 'מספר הטלפון הזה כבר ברשימה. נתראה!',
+          full: 'מצטערים, השיעור מלא.', closed: 'ההרשמה לשיעור הזה סגורה.', notFound: 'הקישור הזה אינו פעיל.',
+          invalid: 'נא להזין שם מלא ומספר טלפון תקין.', busy: 'יותר מדי הרשמות כרגע. נסו שוב בעוד מעט.',
+          error: 'משהו השתבש. נסו שוב או כתבו לנו בוואטסאפ.', wa: 'שאלות? כתבו לנו בוואטסאפ',
+        },
+      } as const;
+      type Key = keyof (typeof T)['en'];
+
+      const LANGS: Lang[] = ['he', 'ru', 'en'];
+      const saved = (() => { try { return localStorage.getItem('etude-lang'); } catch { return null; } })();
+      let lang: Lang = LANGS.find((l) => l === saved) ?? LANGS.find((l) => navigator.language.startsWith(l)) ?? 'he';
+      const t = (k: Key) => T[lang][k];
+
+      const card = document.getElementById('card')!;
+      const id = new URLSearchParams(location.search).get('e') ?? '';
+      /** Text always goes in as text, never as HTML. */
+      const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string, unknown> = {}, ...kids: (Node | string | false | null | undefined)[]) => {
+        const node = Object.assign(document.createElement(tag), props);
+        for (const k of kids) if (k) node.append(k);
+        return node;
+      };
+      /** Call one of the two public database functions. */
+      const rpc = async (fn: string, body: object) => {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json();
+      };
+
+      let event: Record<string, any> | null | undefined; // undefined = still loading; null = no such open event
+      let outcome: Key | null = null; // the last answer to a sign-up
+
+      const plus = (time: string, mins: number) => {
+        const [h, m] = time.split(':').map(Number);
+        const x = h * 60 + m + mins;
+        return `${String(Math.floor(x / 60) % 24).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+      };
+      const whenText = (e: Record<string, any>) =>
+        `${new Date(`${e.held_on}T12:00:00Z`).toLocaleDateString(LOCALE[lang], { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}, ${e.start_time.slice(0, 5)}–${plus(e.start_time, e.minutes)}`;
+      const fact = (label: string, value: string, ltr = false) => el('div', {}, el('dt', {}, label), el('dd', ltr ? { dir: 'ltr' } : {}, value));
+
+      function draw() {
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+        for (const b of document.querySelectorAll<HTMLButtonElement>('#langs button')) b.ariaPressed = String(b.dataset.lang === lang);
+        const wa = el('p', { className: 'su-wa' }, el('a', { href: `https://wa.me/${document.body.dataset.wa}`, target: '_blank', rel: 'noopener', textContent: t('wa') }));
+        if (event === undefined) return card.replaceChildren(el('p', { className: 'su-note', textContent: '…' }));
+        if (!event) return card.replaceChildren(el('p', { className: 'su-msg', textContent: t('notFound') }), wa);
+        document.title = `${event.title} — ETUDE`;
+
+        const name = el('input', { type: 'text', name: 'name', autocomplete: 'name', required: true, minLength: 2, maxLength: 80 });
+        const phone = el('input', { type: 'tel', name: 'phone', autocomplete: 'tel', inputMode: 'tel', required: true, dir: 'ltr' });
+        const trap = el('input', { type: 'text', name: 'website', tabIndex: -1, autocomplete: 'off' }); // people don't see it; scripts fill it
+        const button = el('button', { type: 'submit', textContent: t('signUp') });
+        const form = el('form', { className: 'su-form' },
+          el('label', {}, t('fullName'), name),
+          el('label', {}, t('phone'), phone),
+          el('label', { className: 'su-trap', ariaHidden: 'true' }, 'Website', trap),
+          button,
+          el('p', { className: 'su-note' }, `${t('pay')} ${t('consent')} `, el('a', { href: `/${lang}/privacy/`, target: '_blank', rel: 'noopener', textContent: t('privacy') }))
+        );
+        form.onsubmit = async (ev) => {
+          ev.preventDefault();
+          button.disabled = true;
+          button.textContent = t('sending');
+          try {
+            outcome = trap.value ? 'ok' : (await rpc('public_signup', { eid: id, guest: name.value, tel: phone.value }));
+            if (outcome === 'full' || outcome === 'closed') event!.state = outcome;
+          } catch {
+            outcome = 'error';
+          }
+          draw();
+        };
+
+        const settled = outcome === 'ok' || outcome === 'already';
+        const closed = event.state !== 'open';
+        card.replaceChildren(
+          el('h1', { textContent: event.title, dir: 'auto' }),
+          el('dl', { className: 'su-facts' },
+            fact(t('when'), whenText(event)),
+            fact(t('where'), [event.hall, document.body.dataset.where].filter(Boolean).join(' · ')),
+            event.trainer && fact(t('who'), event.trainer),
+            Number(event.price) > 0 && fact(t('price'), `${Number(event.price)} ₪`, true)
+          ),
+          outcome && el('p', { className: `su-msg ${settled ? 'good' : 'bad'}`, textContent: t(outcome).replace('{when}', whenText(event)) }),
+          !outcome && closed && el('p', { className: 'su-msg', textContent: t(event.state as Key) }),
+          !settled && !closed && form,
+          wa
+        );
+      }
+
+      for (const b of document.querySelectorAll<HTMLButtonElement>('#langs button'))
+        b.onclick = () => {
+          lang = b.dataset.lang as Lang;
+          try { localStorage.setItem('etude-lang', lang); } catch {}
+          draw();
+        };
+      draw();
+      (/^[0-9a-f-]{36}$/i.test(id) ? rpc('public_event', { eid: id }) : Promise.resolve(null))
+        .then((e) => (event = e))
+        .catch(() => (event = null))
+        .then(draw);
+    </script>
+  </body>
+</html>

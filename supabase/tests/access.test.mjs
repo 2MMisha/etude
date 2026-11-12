@@ -405,6 +405,33 @@ for (const who of ['trainer', 'client', 'nobody']) {
   await denied(as(who, 'insert into public.trainer_payouts (trainer_id, amount) values ($1, 1)', [roman.id]), /row-level security/);
 }
 
+// ── Public sign-up to a master class: the one thing a visitor may do ─────────
+const pub = (fn, args) => as('anon', `select public.${fn}(${args.map((_, i) => `$${i + 1}`).join(', ')}) r`, args).then((x) => x.rows[0].r);
+const open = await ins('events', { title: 'Open class', held_on: '2027-03-01', start_time: '18:00', minutes: 60, hall: 'Big Hall', trainer_id: roman.id, price: 90, capacity: 2 });
+// Switched off (the default): the event doesn't exist for a visitor.
+assert.equal(await pub('public_event', [open.id]), null);
+assert.equal(await pub('public_signup', [open.id, 'Dana Levi', '054-111-2222']), 'closed');
+await as('admin', 'update public.events set public_signup = true where id = $1', [open.id]);
+// Switched on: its public details, and nothing about who is coming.
+assert.deepEqual(await pub('public_event', [open.id]), { title: 'Open class', held_on: '2027-03-01', start_time: '18:00:00', minutes: 60, hall: 'Big Hall', price: 90, trainer: 'Roman', state: 'open' });
+// A sign-up needs a real-looking name and phone; it lands as an unpaid guest entry at the event's price.
+for (const [name, tel] of [['D', '054-111-2222'], ['Dana Levi', '12345'], ['', ''], ['x'.repeat(81), '054-111-2222']]) assert.equal(await pub('public_signup', [open.id, name, tel]), 'invalid');
+assert.equal(await pub('public_signup', [open.id, '  Dana   Levi ', '054-111-2222']), 'ok');
+assert.deepEqual(await one('admin', 'select guest_name, phone, amount::float, online, student_id from public.entries where event_id = $1', [open.id]), { guest_name: 'Dana Levi', phone: '054-111-2222', amount: 90, online: true, student_id: null });
+// The same phone again is recognised, however it is typed; then the class fills up.
+assert.equal(await pub('public_signup', [open.id, 'Dana Again', '0541112222']), 'already');
+assert.equal(await pub('public_signup', [open.id, 'Noa Bar', '052-333-4444']), 'ok');
+assert.equal(await pub('public_signup', [open.id, 'Late Comer', '050-555-6666']), 'full');
+assert.equal((await pub('public_event', [open.id])).state, 'full');
+// A class that has passed is closed.
+const gone = await ins('events', { title: 'Old class', held_on: '2026-01-10', start_time: '18:00', minutes: 60, price: 90, public_signup: true });
+assert.equal(await pub('public_signup', [gone.id, 'Dana Levi', '054-111-2222']), 'closed');
+assert.equal((await pub('public_event', [gone.id])).state, 'closed');
+// And that is all a visitor can do: still no table, no other function.
+for (const table of ['events', 'entries', 'clients', 'students']) await denied(as('anon', `select * from public.${table}`), /permission denied/);
+await denied(as('anon', `select public.add_entry('{}'::jsonb)`), /permission denied|row-level security|null value/);
+await as('admin', 'delete from public.events where id in ($1, $2)', [open.id, gone.id]);
+
 // ── Stage 3b: a trainer in their own app ─────────────────────────────────────
 // The "trainer" login is linked to Misha. Everything goes through functions; the tables stay shut.
 await as('admin', 'update public.trainers set user_id = $1 where id = $2', [U.trainer, misha.id]);
