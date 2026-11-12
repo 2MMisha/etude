@@ -229,7 +229,7 @@ const privates = async (s) => (await as('admin', `select amount::float, descript
 const earned = async (t) => one('admin', 'select earned::float, paid::float, owed::float from public.trainer_balances where trainer_id = $1', [t.id]);
 
 // One student: the full price; the trainer gets the percentage.
-const l1 = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-11-10' }, [a.id])).id;
+const l1 = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-11-10', status: 'done' }, [a.id])).id;
 assert.deepEqual(await privates(a), [{ amount: 250, description: 'Roman 45′', day: '2026-11-10' }]);
 assert.deepEqual(await earned(roman), { earned: 250, paid: 0, owed: 250 });
 // A couple: half each, on each one's own family; the trainer gets the fixed amount once.
@@ -239,19 +239,50 @@ assert.equal((await privates(b))[0].amount, 75);
 assert.equal((await privates(partner))[0].amount, 75);
 assert.equal((await earned(misha)).earned, 100);
 // A price typed by hand overrides the rate; the percentage follows it.
-await lesson('admin', { trainer_id: misha.id, minutes: 60, price: 300 }, [b.id]);
+await lesson('admin', { trainer_id: misha.id, minutes: 60, price: 300, status: 'done' }, [b.id]);
 assert.equal((await earned(misha)).earned, 280);
 // Refused: no rate for that length, no students, three students.
 await denied(lesson('admin', { trainer_id: roman.id, minutes: 90 }, [a.id]), /no price/);
 await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one or two students/);
 await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id, b.id, partner.id]), /one or two students/);
 // Deleting a lesson takes its charges with it - unless one is already paid.
-const l4 = (await lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id])).id;
+const l4 = (await lesson('admin', { trainer_id: roman.id, minutes: 45, status: 'done' }, [a.id])).id;
 await as('admin', 'delete from public.lessons where id = $1', [l4]);
 assert.equal((await privates(a)).length, 1);
 const paidCharge = (await one('admin', 'select id from public.charges where lesson_id = $1', [l1])).id;
 await pay('admin', { amount: 250 }, [{ charge_id: paidCharge, amount: 250 }]);
 await denied(as('admin', 'delete from public.lessons where id = $1', [l1]), /foreign key/);
+
+// A lesson is scheduled first: planned costs nothing and earns nothing…
+const before = (await earned(roman)).earned;
+const plan = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-12-01', start_time: '17:00' }, [b.id, partner.id])).id;
+const status = (id, st) => as('admin', 'select public.set_lesson_status($1, $2)', [id, st]);
+const lessonCharges = async (id) => (await as('admin', 'select amount::float from public.charges where lesson_id = $1 order by amount', [id])).rows.map((r) => r.amount);
+assert.deepEqual(await lessonCharges(plan), []);
+assert.equal((await earned(roman)).earned, before);
+// …the trainer can't be booked twice at that time (a lesson right after is fine)…
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-12-01', start_time: '17:30' }, [a.id]), /already has a lesson/);
+const next = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-12-01', start_time: '17:45' }, [a.id])).id;
+await denied(as('admin', `update public.lessons set start_time = '17:15' where id = $1`, [next]), /already has a lesson/);
+// …confirming it charges the couple half each and the trainer has earned it…
+await status(plan, 'done');
+assert.deepEqual(await lessonCharges(plan), [125, 125]);
+assert.equal((await earned(roman)).earned, before + 250);
+await status(plan, 'no_show'); // changing between charged statuses doesn't charge twice
+assert.deepEqual(await lessonCharges(plan), [125, 125]);
+// …and cancelling takes the charges and the earning away, and frees the time.
+await status(plan, 'cancelled');
+assert.deepEqual(await lessonCharges(plan), []);
+assert.equal((await earned(roman)).earned, before);
+await as('admin', `update public.lessons set start_time = '17:15' where id = $1`, [next]);
+await denied(status(plan, 'planned'), /already has a lesson/);
+await denied(status(next, 'sometime'), /lessons_status_check/);
+// A charged lesson that is already paid can't be un-charged.
+await denied(status(l1, 'cancelled'), /foreign key/);
+for (const who of ['trainer', 'client', 'nobody']) {
+  await as(who, 'select public.set_lesson_status($1, $2)', [next, 'done']); // sees no lesson: nothing happens
+  assert.deepEqual(await lessonCharges(next), [], `${who} cannot confirm a lesson`);
+}
 
 // Dance partners always point at each other, and changing one side lets the old partner go.
 const partnerOf = async (s) => (await one('admin', 'select partner_id from public.students where id = $1', [s.id])).partner_id;
