@@ -1,7 +1,8 @@
 // The weekly schedule table: one week as a time grid (the same grid the
-// trainers' page uses) with the group classes, which repeat every week, and
-// that week's private lessons, by day, time and hall. Click a private lesson to
-// confirm, move or cancel it; the form under the grid schedules a new one.
+// trainers' page uses) with everything that happens in the studio — group
+// classes (weekly, with any change made for one date), private lessons and
+// hall rentals — by day, time and hall. Click anything on the grid to change
+// it; the forms under the grid add a private lesson or a rental.
 import { getLang, t, LOCALE, type Key } from '../i18n';
 import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, type Row } from '../ui';
 import { weekGrid, fitCards } from '../../lib/weekGrid';
@@ -22,16 +23,23 @@ const plus = (time: string, mins: number) => {
   return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
 };
 const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE[getLang()], { timeZone: 'UTC', ...opts });
+const dayText = (iso: string) => fmt(iso, { weekday: 'short', day: 'numeric', month: 'numeric' });
+/** "Sunday" … "Saturday" in the screen's language (1 January 2023 was a Sunday). */
+export const WEEKDAY = (n: number) => new Date(Date.UTC(2023, 0, 1 + n)).toLocaleDateString(LOCALE[getLang()], { weekday: 'long', timeZone: 'UTC' });
 
-interface Entry { item: TimetableItem; lesson?: Row; slot?: Row }
+interface Entry { item: TimetableItem; lesson?: Row; group?: Row; rental?: Row }
+type Part = HTMLElement | false | null | undefined | '';
 
 export async function scheduleView(arg?: string) {
   const day = /^\d{4}-\d{2}-\d{2}$/.test(arg ?? '') ? (arg as string) : today();
   const start = addDays(day, -weekdayOf(day));
+  const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const [lessons, slots, trainers, rates, students, settings, waiting] = await Promise.all([
-    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').gte('held_on', start).lt('held_on', addDays(start, 7)).order('held_on').order('start_time')),
-    get<Row[]>(db!.from('group_slots').select('*, groups!inner(name, archived), trainers(full_name)').eq('groups.archived', false)),
+  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting] = await Promise.all([
+    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
+    get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
+    get<Row[]>(db!.from('group_slots').select('*')),
+    get<Row[]>(db!.from('rentals').select('*').gte('held_on', start).lte('held_on', end)),
     get<Row[]>(db!.from('trainers').select('id, full_name').eq('archived', false).order('full_name')),
     get<Row[]>(db!.from('trainer_rates').select('*').order('minutes')),
     get<Row[]>(db!.from('students').select('id, full_name, partner_id').eq('archived', false).order('full_name')),
@@ -39,14 +47,18 @@ export async function scheduleView(arg?: string) {
     get<Row[]>(db!.from('lessons').select('held_on').eq('status', 'planned').lt('held_on', today()).order('held_on').limit(100)),
   ]);
   const halls: string[] = settings[0]?.value ?? [];
+  const hallOptions: [string, string][] = [['', '—'], ...halls.map((x): [string, string] => [x, x])];
+  const trainerOptions = trainers.map((x): [string, string] => [x.id, x.full_name]);
+  const trainerName = (id: string | null) => trainers.find((x) => x.id === id)?.full_name ?? '';
   const names = (l: Row) => l.lesson_students.map((x: Row) => x.students.full_name).join(' + ');
+  const done = (p: PromiseLike<boolean>) => p.then((okay) => { if (okay) nav.refresh(); });
 
-  // What goes on the grid: every group slot on its weekday, and the week's
-  // lessons that have a time and aren't cancelled.
+  // What goes on the grid: group classes as they really are that day, the
+  // week's lessons that have a time and aren't cancelled, and the rentals.
   const entries = new Map<string, Entry[]>(dates.map((d) => [d, [
-    ...slots.filter((s) => s.weekday === weekdayOf(d)).map((s): Entry => ({
-      slot: s,
-      item: { start: hhmm(s.start_time), end: plus(s.start_time, s.minutes), title: s.groups.name, column: s.trainers?.full_name ?? '', hall: s.hall },
+    ...classes.filter((c) => c.held_on === d && !c.cancelled).map((c): Entry => ({
+      group: c,
+      item: { start: hhmm(c.start_time), end: plus(c.start_time, c.minutes), title: `${c.changed ? '✎ ' : ''}${c.group_name}`, column: trainerName(c.trainer_id), hall: c.hall }, // ✎ = changed for this date
     })),
     ...lessons.filter((l) => l.held_on === d && l.start_time && l.status !== 'cancelled').map((l): Entry => ({
       lesson: l,
@@ -55,8 +67,12 @@ export async function scheduleView(arg?: string) {
         title: `${MARK[l.status] ?? (l.held_on < today() ? '⚠ ' : '')}${names(l)}`, // ⚠ = its day has passed and nobody said what happened
       },
     })),
+    // The grid draws a card as a rental when its "column" says so (t('rent') does, in all three languages).
+    ...rentals.filter((r) => r.held_on === d).map((r): Entry => ({
+      rental: r,
+      item: { start: hhmm(r.start_time), end: plus(r.start_time, r.minutes), title: r.who, column: t('rent'), hall: r.hall },
+    })),
   ]]));
-  const offGrid = lessons.filter((l) => !l.start_time || l.status === 'cancelled');
 
   const nowParts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()).split(':').map(Number);
   const grid = h('div', { className: 'week' });
@@ -75,65 +91,118 @@ export async function scheduleView(arg?: string) {
   }) || `<p class="muted">${t('emptyList')}</p>`;
   setTimeout(() => fitCards(grid)); // once it is on the page and has a size
 
-  const setStatus = async (l: Row, status: string) => {
-    if (await ok(db!.rpc('set_lesson_status', { lid: l.id, new_status: status }))) nav.refresh();
-  };
-  const actions = (l: Row) => [
+  // ── Private lessons ──
+  const setStatus = (l: Row, status: string) => done(ok(db!.rpc('set_lesson_status', { lid: l.id, new_status: status })));
+  const lessonActions = (l: Row) => [
     ...(l.status === 'planned'
       ? [
           ...CHARGED.map((st) => h('button', { type: 'button', className: st === 'done' ? 'primary' : '', textContent: t(st), onclick: () => setStatus(l, st) })),
           h('button', { type: 'button', textContent: t('cancelLesson'), onclick: () => setStatus(l, 'cancelled') }),
         ]
       : [h('button', { type: 'button', textContent: `↺ ${t('backToPlanned')}`, onclick: () => setStatus(l, 'planned') })]),
-    sureButton(t('del'), async () => { if (await ok(db!.from('lessons').delete().eq('id', l.id))) nav.refresh(); }),
+    sureButton(t('del'), () => done(ok(db!.from('lessons').delete().eq('id', l.id)))),
   ];
-
-  // The panel under the grid: what was clicked, and what can be done with it.
-  const detail = h('div', { className: 'stack' });
-  const show = (e: Entry) => {
-    if (e.slot) {
-      return detail.replaceChildren(h('p', { className: 'quote' },
-        `${e.slot.groups.name} · ${WEEKDAY(e.slot.weekday)} `, ltr(`${e.item.start}–${e.item.end}`),
-        ` · ${e.slot.hall || '—'} · ${e.slot.trainers?.full_name ?? '—'} · `, h('a', { href: '#/settings', textContent: t('editInSettings') })
-      ));
-    }
-    const l = e.lesson!;
-    const move = (patch: Row) => ok(db!.from('lessons').update(patch).eq('id', l.id)).then((done) => { if (done) nav.refresh(); });
-    const parts: (HTMLElement | false)[] = [
+  const lessonPanel = (l: Row): Part[] => {
+    const move = (patch: Row) => done(ok(db!.from('lessons').update(patch).eq('id', l.id)));
+    // Another trainer means that trainer's price and pay for the same length.
+    const changeTrainer = (id: string, el: HTMLSelectElement) => {
+      const r = rates.find((x) => x.trainer_id === id && x.minutes === l.minutes);
+      if (!r) {
+        el.value = l.trainer_id;
+        return flash(t('noRate'), true);
+      }
+      move({ trainer_id: id, price: r.price, trainer_pay: r.pay_kind === 'fixed' ? r.pay_value : Math.round(Number(r.price) * Number(r.pay_value)) / 100 });
+    };
+    return [
       h('p', { className: 'quote' },
         `${names(l)} · ${l.trainers.full_name} ${l.minutes}′ · `, ltr(money(l.price)), ` (${t('trainerGets')}: `, ltr(money(l.trainer_pay)), `) · ${t(l.status as Key)}`,
         l.note && h('small', {}, l.note)
       ),
-      // A planned lesson can still be moved; a confirmed one keeps its place.
-      l.status === 'planned' && h('div', { className: 'row' },
-        h('input', { type: 'date', value: l.held_on, ariaLabel: t('date'), onchange: (ev: Event) => move({ held_on: (ev.target as HTMLInputElement).value }) }),
-        h('input', { type: 'time', step: 300, value: hhmm(l.start_time), ariaLabel: t('time'), onchange: (ev: Event) => move({ start_time: (ev.target as HTMLInputElement).value }) }),
-        select([['', '—'], ...halls.map((x): [string, string] => [x, x])], l.hall, (v) => move({ hall: v }), { ariaLabel: t('hall') })
+      // A planned lesson can still be moved or given to another trainer; a confirmed one keeps its place.
+      l.status === 'planned' && h('div', { className: 'grid' },
+        field(t('date'), h('input', { type: 'date', value: l.held_on, onchange: (ev: Event) => move({ held_on: (ev.target as HTMLInputElement).value }) })),
+        field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(l.start_time), onchange: (ev: Event) => move({ start_time: (ev.target as HTMLInputElement).value }) })),
+        field(t('hall'), select(hallOptions, l.hall, (v) => move({ hall: v }))),
+        field(t('trainer'), select(trainerOptions, l.trainer_id, changeTrainer))
       ),
-      h('div', { className: 'row' }, ...actions(l)),
+      h('div', { className: 'row' }, ...lessonActions(l)),
     ];
-    detail.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
-    detail.scrollIntoView({ block: 'nearest' });
   };
+
+  // ── Group classes: a change for this one date, or for every week ──
+  const classPanel = (c: Row): Part[] => {
+    const slot = slots.find((s) => s.id === c.slot_id)!;
+    const once = (patch: Row) => done(ok(db!.from('group_slot_changes').upsert({ slot_id: c.slot_id, on_date: c.on_date, ...patch }, { onConflict: 'slot_id,on_date' })));
+    const always = (patch: Row) => done(ok(db!.from('group_slots').update(patch).eq('id', slot.id)));
+    return [
+      h('p', { className: 'quote' }, `${c.group_name} · `, ltr(`${dayText(c.held_on)} ${hhmm(c.start_time)}–${plus(c.start_time, c.minutes)}`), ` · ${c.hall || '—'} · ${trainerName(c.trainer_id) || '—'}`),
+      h('h3', {}, `${t('onlyThisDate')} `, ltr(dayText(c.on_date))),
+      h('div', { className: 'grid' },
+        field(t('date'), h('input', { type: 'date', value: c.held_on, onchange: (ev: Event) => once({ new_date: (ev.target as HTMLInputElement).value || null }) })),
+        field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(c.start_time), onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value; if (v) once({ start_time: v }); } })),
+        field(t('hall'), select(hallOptions, c.hall, (v) => once({ hall: v }))),
+        field(t('trainer'), select([['', '—'], ...trainerOptions], c.trainer_id ?? '', (v) => once({ trainer_id: v || null })))
+      ),
+      h('div', { className: 'row' },
+        h('button', { type: 'button', textContent: t('cancelClass'), onclick: () => once({ cancelled: true }) }),
+        c.changed && h('button', { type: 'button', textContent: `↺ ${t('backToUsual')}`, onclick: () => done(ok(db!.from('group_slot_changes').delete().eq('slot_id', c.slot_id).eq('on_date', c.on_date))) })
+      ),
+      h('h3', { textContent: t('everyWeek') }),
+      h('div', { className: 'grid' },
+        field(t('weekday'), select([0, 1, 2, 3, 4, 5, 6].map((n): [string, string] => [String(n), WEEKDAY(n)]), String(slot.weekday), (v) => always({ weekday: Number(v) }))),
+        field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(slot.start_time), onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value; if (v) always({ start_time: v }); } })),
+        field(t('minutes'), h('input', { type: 'number', min: 1, className: 'num', value: slot.minutes, onchange: (ev: Event) => { const v = Number((ev.target as HTMLInputElement).value); if (v > 0) always({ minutes: v }); } })),
+        field(t('hall'), select(hallOptions, slot.hall, (v) => always({ hall: v }))),
+        field(t('trainer'), select([['', '—'], ...trainerOptions], slot.trainer_id ?? '', (v) => always({ trainer_id: v || null })))
+      ),
+    ];
+  };
+
+  // ── Hall rentals ──
+  const rentalPanel = (r: Row): Part[] => {
+    const save = (patch: Row) => done(ok(db!.from('rentals').update(patch).eq('id', r.id)));
+    const text = (key: string, type = 'text', props: Row = {}) =>
+      h('input', { type, value: r[key] ?? '', ...props, onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value.trim(); if (v || key === 'price' || key === 'note') save({ [key]: key === 'price' ? (v === '' ? null : Number(v)) : key === 'minutes' ? Number(v) : v }); } });
+    return [
+      h('p', { className: 'quote' }, `🔑 ${r.who} · `, ltr(`${dayText(r.held_on)} ${hhmm(r.start_time)}–${plus(r.start_time, r.minutes)}`), ` · ${r.hall || '—'}`, r.price != null && ' · ', r.price != null && ltr(money(r.price))),
+      h('div', { className: 'grid' },
+        field(t('who'), text('who')), field(t('date'), text('held_on', 'date')),
+        field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(r.start_time), onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value; if (v) save({ start_time: v }); } })),
+        field(t('minutes'), text('minutes', 'number', { min: 1, className: 'num' })),
+        field(t('hall'), select(hallOptions, r.hall, (v) => save({ hall: v }))),
+        field(t('price'), text('price', 'number', { min: 0, step: 'any', className: 'num' })),
+        field(t('comment'), text('note'), 'wide')
+      ),
+      h('div', { className: 'row' }, sureButton(t('del'), () => done(ok(db!.from('rentals').delete().eq('id', r.id))))),
+    ];
+  };
+
+  // The panel under the grid: what was clicked, and what can be done with it.
+  const detail = h('div', { className: 'stack detail' });
   grid.onclick = (ev) => {
     const card = (ev.target as Element).closest<HTMLElement>('[data-ev]');
     if (!card) return;
     const [d, n] = card.dataset.ev!.split('|');
+    const e = entries.get(d)![Number(n)];
     grid.querySelector('.is-picked')?.classList.remove('is-picked');
     card.classList.add('is-picked');
-    show(entries.get(d)![Number(n)]);
+    const parts = e.lesson ? lessonPanel(e.lesson) : e.group ? classPanel(e.group) : rentalPanel(e.rental!);
+    detail.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
+    detail.scrollIntoView({ block: 'nearest' });
   };
 
-  // The form. Choosing a trainer offers that trainer's lesson lengths; the
-  // first student's dance partner is offered as the second; up to four share a lesson.
+  // ── Add a private lesson ──
+  // Choosing a trainer offers that trainer's lesson lengths; the first student's
+  // dance partner is offered as the second; up to four share a lesson.
   const studentOptions = students.map((s): [string, string] => [s.id, s.full_name]);
-  const date = h('input', { type: 'date', value: dates.includes(today()) ? today() : start, required: true });
+  const firstDay = dates.includes(today()) ? today() : start;
+  const date = h('input', { type: 'date', value: firstDay, required: true });
   const time = h('input', { type: 'time', step: 300, required: true });
   const minutes = h('select', { required: true });
   const price = h('input', { type: 'number', step: 'any', min: 0, className: 'num' });
   const rateOf = () => rates.find((r) => r.trainer_id === trainer.value && String(r.minutes) === minutes.value);
   const showRate = () => (price.placeholder = rateOf() ? String(Number(rateOf()!.price)) : '');
-  const trainer = select([['', '—'], ...trainers.map((x): [string, string] => [x.id, x.full_name])], '', (v) => {
+  const trainer = select([['', '—'], ...trainerOptions], '', (v) => {
     minutes.replaceChildren(...rates.filter((r) => r.trainer_id === v).map((r) => h('option', { value: String(r.minutes), textContent: String(r.minutes) })));
     showRate();
   }, { required: true });
@@ -142,7 +211,14 @@ export async function scheduleView(arg?: string) {
   const others = [1, 2, 3].map((n) => select([['', '—'], ...studentOptions], '', () => {}, { ariaLabel: `${t('student')} ${n + 1}` }));
   const first = select([['', '—'], ...studentOptions], '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true });
   const note = h('input', { type: 'text' });
-  const form = h('form', { className: 'stack' },
+  const goTo = (iso: string) => {
+    flash(t('saved'));
+    // Show the week it landed in: a new address redraws by itself, the same one needs a nudge.
+    const target = `#/lessons/${iso}`;
+    if (location.hash === target) nav.refresh();
+    else location.hash = target;
+  };
+  const lessonForm = h('form', { className: 'stack' },
     h('h2', { textContent: t('scheduleLesson') }),
     h('div', { className: 'grid' },
       field(t('date'), date), field(t('time'), time), field(t('trainer'), trainer), field(t('minutes'), minutes),
@@ -152,45 +228,68 @@ export async function scheduleView(arg?: string) {
     h('p', { className: 'muted', textContent: t('lessonPriceHint') }),
     h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('scheduleLesson') }))
   );
-  form.onsubmit = async (ev) => {
+  lessonForm.onsubmit = async (ev) => {
     ev.preventDefault();
     const group = [first.value, ...others.map((o) => o.value)].filter((id, i, all) => id && all.indexOf(id) === i);
     await get(db!.rpc('record_lesson', {
       l: { trainer_id: trainer.value, held_on: date.value, start_time: time.value, minutes: Number(minutes.value), hall: hall.value, price: price.value, note: note.value.trim() },
       student_ids: group,
     }));
-    flash(t('saved'));
-    // Show the week the lesson landed in: a new address redraws by itself, the same one needs a nudge.
-    const target = `#/lessons/${date.value}`;
-    if (location.hash === target) nav.refresh();
-    else location.hash = target;
+    goTo(date.value);
   };
 
-  // Weeks that still hold a planned lesson whose day has passed.
-  const overdue = [...new Set(waiting.map((l) => addDays(l.held_on, -weekdayOf(l.held_on))))];
+  // ── Add a hall rental ──
+  const rDate = h('input', { type: 'date', value: firstDay, required: true });
+  const rTime = h('input', { type: 'time', step: 300, required: true });
+  const rMinutes = h('input', { type: 'number', min: 1, value: 60, className: 'num', required: true });
+  const rHall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {});
+  const rWho = h('input', { type: 'text', required: true });
+  const rPrice = h('input', { type: 'number', min: 0, step: 'any', className: 'num' });
+  const rNote = h('input', { type: 'text' });
+  const rentalForm = h('form', { className: 'stack' },
+    h('h2', { textContent: t('addRental') }),
+    h('div', { className: 'grid' },
+      field(t('date'), rDate), field(t('time'), rTime), field(t('minutes'), rMinutes), field(t('hall'), rHall),
+      field(t('who'), rWho), field(t('price'), rPrice), field(t('comment'), rNote, 'wide')
+    ),
+    h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('addRental') }))
+  );
+  rentalForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const saved = await ok(db!.from('rentals').insert({ held_on: rDate.value, start_time: rTime.value, minutes: Number(rMinutes.value), hall: rHall.value, who: rWho.value.trim(), price: rPrice.value === '' ? null : Number(rPrice.value), note: rNote.value.trim() }));
+    if (saved) goTo(rDate.value);
+  };
+
+  // Under the grid: what is not on it — cancelled lessons and classes, lessons without a time.
+  const offLessons = lessons.filter((l) => !l.start_time || l.status === 'cancelled');
+  const offClasses = classes.filter((c) => c.cancelled);
+  const overdue = [...new Set(waiting.map((l) => addDays(l.held_on, -weekdayOf(l.held_on))))]; // weeks with a planned lesson whose day has passed
   return h('div', { className: 'stack' },
     h('section', { className: 'card' },
       h('div', { className: 'row monthbar' },
         h('a', { href: `#/lessons/${addDays(start, -7)}`, className: 'btn', textContent: '‹', ariaLabel: addDays(start, -7) }),
-        h('h1', {}, ltr(`${fmt(start, { day: 'numeric', month: 'short' })} – ${fmt(dates[6], { day: 'numeric', month: 'short', year: 'numeric' })}`)),
+        h('h1', {}, ltr(`${fmt(start, { day: 'numeric', month: 'short' })} – ${fmt(end, { day: 'numeric', month: 'short', year: 'numeric' })}`)),
         h('a', { href: `#/lessons/${addDays(start, 7)}`, className: 'btn', textContent: '›', ariaLabel: addDays(start, 7) }),
         !dates.includes(today()) && h('a', { href: '#/lessons', className: 'btn', textContent: t('thisWeek') })
       ),
       overdue.length > 0 && h('p', { className: 'warn' }, `${t('needsConfirming')} `,
         ...overdue.flatMap((w, i) => [i > 0 && ', ', h('a', { href: `#/lessons/${w}`, textContent: fmt(w, { day: 'numeric', month: 'short' }) })])),
+      h('p', { className: 'muted', textContent: t('gridHint') }),
       h('div', { className: 'scroll' }, grid),
       detail,
-      offGrid.length > 0 && h('div', { className: 'stack' },
+      (offLessons.length > 0 || offClasses.length > 0) && h('div', { className: 'stack' },
         h('h3', { textContent: t('cancelledList') }),
-        ...offGrid.map((l) => h('div', { className: 'row' },
-          h('span', { className: 'grow muted' }, ltr(`${fmt(l.held_on, { weekday: 'short', day: 'numeric', month: 'numeric' })}${l.start_time ? ` ${hhmm(l.start_time)}` : ''}`), ` · ${l.trainers.full_name} · ${names(l)} · ${t(l.status as Key)}`),
-          ...actions(l)
+        ...offClasses.map((c) => h('div', { className: 'row' },
+          h('span', { className: 'grow muted' }, ltr(`${dayText(c.on_date)} ${hhmm(c.start_time)}`), ` · ${c.group_name} · ${t('cancelled')}`),
+          h('button', { type: 'button', textContent: `↺ ${t('backToUsual')}`, onclick: () => done(ok(db!.from('group_slot_changes').delete().eq('slot_id', c.slot_id).eq('on_date', c.on_date))) })
+        )),
+        ...offLessons.map((l) => h('div', { className: 'row' },
+          h('span', { className: 'grow muted' }, ltr(`${dayText(l.held_on)}${l.start_time ? ` ${hhmm(l.start_time)}` : ''}`), ` · ${l.trainers.full_name} · ${names(l)} · ${t(l.status as Key)}`),
+          ...lessonActions(l)
         ))
       )
     ),
-    h('section', { className: 'card' }, form)
+    h('section', { className: 'card' }, lessonForm),
+    h('section', { className: 'card' }, rentalForm)
   );
 }
-
-/** "Sunday" … "Saturday" in the screen's language (1 January 2023 was a Sunday). */
-export const WEEKDAY = (n: number) => new Date(Date.UTC(2023, 0, 1 + n)).toLocaleDateString(LOCALE[getLang()], { weekday: 'long', timeZone: 'UTC' });
