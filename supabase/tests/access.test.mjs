@@ -337,6 +337,45 @@ for (const who of ['trainer', 'client', 'nobody']) {
 }
 await as('admin', 'delete from public.group_slots where id = $1', [slot.id]);
 
+// One-time groups, entries, and money from people who are not clients.
+const mc = await ins('events', { title: 'Bachata master class', held_on: '2026-12-05', start_time: '11:00', minutes: 90, hall: 'Big Hall', trainer_id: roman.id, price: 120 });
+const entry = (who, e) => one(who, 'select public.add_entry($1::jsonb) id', [JSON.stringify(e)]);
+// A client's student: the entry lands on their account, named after the event.
+const mine = (await entry('admin', { event_id: mc.id, student_id: a.id, amount: 120 })).id;
+assert.deepEqual(await one('admin', `select kind, description, day::text, amount::float from public.charges where entry_id = $1`, [mine]), { kind: 'entry', description: 'Bachata master class', day: '2026-12-05', amount: 120 });
+// A guest is only a name: nothing on anyone's account…
+const guest = (await entry('admin', { event_id: mc.id, guest_name: 'Dana (guest)', amount: 120 })).id;
+assert.equal((await as('admin', 'select 1 from public.charges where entry_id = $1', [guest])).rows.length, 0);
+await denied(entry('admin', { event_id: mc.id, amount: 120 }), /entry_by_student_or_guest/);
+// …a drop-in to a regular group class works the same way.
+const dropIn = (await entry('admin', { group_id: kidsBeg.id, held_on: '2026-12-07', guest_name: 'Noa (guest)', amount: 80 })).id;
+// The guest pays without being a client; the payment says who and what for, and gets the next number.
+const lastNumber = (await one('admin', 'select max(number)::int n from public.payments')).n;
+const guestPay = (p) => one('admin', 'select public.record_payment($1::jsonb, $2::jsonb) id', [JSON.stringify({ method: 'cash', ...p }), '[]']);
+const gp = (await guestPay({ payer_name: 'Dana (guest)', what: 'Bachata master class', entry_id: guest, amount: 120 })).id;
+assert.deepEqual(await one('admin', 'select client_id, payer_name, what, number::int from public.payments where id = $1', [gp]), { client_id: null, payer_name: 'Dana (guest)', what: 'Bachata master class', number: lastNumber + 1 });
+await denied(guestPay({ amount: 50 }), /payer_known/); // neither a client nor a name
+// A hall rental is paid the same way; neither touches a family's balance.
+const rent = (await one('admin', `select id from public.rentals where who = 'Wedding rehearsal'`)).id;
+await guestPay({ payer_name: 'Wedding rehearsal', what: 'Hall rental', rental_id: rent, amount: 250, method: 'bit' });
+const familyBefore = await balance();
+assert.deepEqual(await balance(), familyBefore);
+// Its payer and purpose can't be rewritten afterwards; a paid entry or rental can't be deleted.
+await denied(as('admin', `update public.payments set payer_name = 'Someone else' where id = $1`, [gp]), /cannot be changed/);
+await denied(as('admin', 'delete from public.entries where id = $1', [guest]), /foreign key/);
+await denied(as('admin', 'delete from public.rentals where id = $1', [rent]), /foreign key/);
+// An unpaid entry can go, taking its charge with it.
+await as('admin', 'delete from public.entries where id in ($1, $2)', [mine, dropIn]);
+assert.equal((await as('admin', 'select 1 from public.charges where entry_id = $1', [mine])).rows.length, 0);
+for (const table of ['events', 'entries']) {
+  await denied(as('anon', `select * from public.${table}`), /permission denied/);
+  for (const who of ['trainer', 'client', 'nobody']) assert.equal(await count(who, table), 0, `${who} reads nothing from ${table}`);
+}
+for (const who of ['trainer', 'client', 'nobody']) {
+  await denied(entry(who, { event_id: mc.id, guest_name: 'x', amount: 1 }), /row-level security|null value/);
+  await denied(one(who, 'select public.record_payment($1::jsonb, $2::jsonb)', [JSON.stringify({ method: 'cash', payer_name: 'x', amount: 1 }), '[]']), /row-level security/);
+}
+
 // Dance partners always point at each other, and changing one side lets the old partner go.
 const partnerOf = async (s) => (await one('admin', 'select partner_id from public.students where id = $1', [s.id])).partner_id;
 await as('admin', 'update public.students set partner_id = $1 where id = $2', [partner.id, b.id]);
