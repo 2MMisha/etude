@@ -503,6 +503,47 @@ assert.equal((await one('admin', 'select amount::float from public.charges where
 const summary = (await rpc('trainer', 'trainer_summary')).rows[0].trainer_summary;
 assert.deepEqual([summary.name, summary.earned - earnedBefore, summary.payouts.length], ['Misha', 100, 1]);
 await denied(rpc('trainer', 'trainer_confirm', [past, 'no_show']), /only your own planned/); // already confirmed
+// ── Group classes: attendance and the trainer's pay ──────────────────────────
+// Misha gives Kids Beg on Wednesdays for 70 a class; Child B is in that group (enrolled far above).
+const wed = await ins('group_slots', { group_id: kidsBeg.id, weekday: 3, start_time: '16:00', minutes: 45, hall: 'Small Hall', trainer_id: misha.id, class_pay: 70 });
+const roster = async (who, fn, d) => (await rpc(who, fn, [wed.id, d])).rows;
+const kidsInGroup = (await roster('admin', 'class_roster', '2026-11-04')).map((r) => r.full_name);
+assert.ok(kidsInGroup.length >= 1 && (await roster('admin', 'class_roster', '2026-11-04')).every((r) => !r.marked && !r.present));
+const earnedNow = async () => (await rpc('trainer', 'trainer_summary')).rows[0].trainer_summary.earned;
+const base = await earnedNow();
+// The trainer sees it among their classes, with its roster, and marks who came: it took place and they earned it.
+const myClasses = (await rpc('trainer', 'trainer_classes', ['2026-11-01', '2026-11-07'])).rows.filter((c) => c.slot_id === wed.id);
+assert.deepEqual(myClasses.map((c) => [c.group_name, String(c.on_date).length > 0, c.marked, Number(c.pay)]), [['Kids Beg', true, false, 70]]);
+const present = (await roster('trainer', 'trainer_class_roster', '2026-11-04'))[0].student_id;
+await rpc('trainer', 'trainer_mark_class', [wed.id, '2026-11-04', [present]]);
+assert.equal(await earnedNow(), base + 70);
+assert.deepEqual((await roster('admin', 'class_roster', '2026-11-04')).map((r) => [r.student_id === present, r.present, r.marked]).filter((x) => x[0]), [[true, true, true]]);
+// Marking again changes the list, not the pay.
+await rpc('trainer', 'trainer_mark_class', [wed.id, '2026-11-04', []]);
+assert.equal(await earnedNow(), base + 70);
+assert.ok((await roster('admin', 'class_roster', '2026-11-04')).every((r) => r.marked && !r.present));
+// Not a class in the future, and not someone else's: a week when Roman covers it is Roman's.
+await denied(rpc('trainer', 'trainer_mark_class', [wed.id, '2027-06-02', []]), /on its day or after/);
+await ins('group_slot_changes', { slot_id: wed.id, on_date: '2026-11-11', trainer_id: roman.id });
+await denied(rpc('trainer', 'trainer_mark_class', [wed.id, '2026-11-11', []]), /only your own class/);
+assert.equal((await roster('trainer', 'trainer_class_roster', '2026-11-11')).length, 0);
+// The admin can mark any class; that week's pay goes to the one who really gave it.
+await as('admin', 'select public.mark_class($1, $2, $3)', [wed.id, '2026-11-11', [present]]);
+assert.equal(await earnedNow(), base + 70);
+assert.equal((await earned(roman)).earned - (await one('admin', `select coalesce(sum(trainer_pay), 0)::float s from public.lessons where trainer_id = $1 and status in ('done', 'no_show', 'late_cancel')`, [roman.id])).s, 70);
+// Undoing a mark takes the pay back.
+await as('admin', 'delete from public.class_sessions where slot_id = $1 and held_on = $2', [wed.id, '2026-11-04']);
+assert.equal(await earnedNow(), base);
+for (const table of ['class_sessions', 'attendance']) {
+  await denied(as('anon', `select * from public.${table}`), /permission denied/);
+  for (const who of ['trainer', 'client', 'nobody']) assert.equal(await count(who, table), 0, `${who} reads nothing from ${table}`);
+}
+for (const who of ['client', 'nobody']) {
+  assert.equal((await rpc(who, 'trainer_classes', ['2026-11-01', '2026-11-30'])).rows.length, 0);
+  await denied(rpc(who, 'trainer_mark_class', [wed.id, '2026-11-04', []]), /only your own class/);
+  await denied(as(who, 'select public.mark_class($1, $2, $3)', [wed.id, '2026-11-04', []]), /row-level security|no such class/);
+}
+
 // A trainer whose role is taken away is nobody again.
 await as('admin', `update public.profiles set roles = '{}' where id = $1`, [U.trainer]);
 assert.equal((await mineIn('2026-01-01', '2027-12-31')).length, 0);
