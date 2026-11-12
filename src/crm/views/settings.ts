@@ -7,7 +7,7 @@ import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton
 const PER_WEEK = [1, 2, 3];
 
 export async function settingsView() {
-  const [programs, prices, groups, settings, trainers, rates, slots] = await Promise.all([
+  const [programs, prices, groups, settings, trainers, rates, slots, profiles] = await Promise.all([
     get<Row[]>(db!.from('programs').select('*').order('sort').order('name')),
     get<Row[]>(db!.from('prices').select('*').order('sort').order('label')),
     get<Row[]>(db!.from('groups').select('*').order('name')),
@@ -15,6 +15,7 @@ export async function settingsView() {
     get<Row[]>(db!.from('trainers').select('*').order('full_name')),
     get<Row[]>(db!.from('trainer_rates').select('*').order('minutes')),
     get<Row[]>(db!.from('group_slots').select('*').order('weekday').order('start_time')),
+    get<Row[]>(db!.from('profiles').select('id, email, roles')),
   ]);
   const set = (table: string, id: string, patch: Row) => ok(db!.from(table).update(patch).eq('id', id));
   /** After a change that adds or removes a row: redraw. */
@@ -131,6 +132,8 @@ export async function settingsView() {
     return h('div', { className: `stack block${x.archived ? ' off' : ''}` },
       h('div', { className: 'row' },
         input(x.full_name, (v, el) => (v ? set('trainers', x.id, { full_name: v }) : (el.value = x.full_name)), { ariaLabel: t('name') }),
+        // The login this trainer signs in with in the trainers' app (an account that has the Trainer role).
+        select([['', `— ${t('login')} —`], ...profiles.filter((p) => p.roles.includes('trainer')).map((p): [string, string] => [p.id, p.email])], x.user_id ?? '', (v) => set('trainers', x.id, { user_id: v || null }), { ariaLabel: t('login') }),
         h('label', { className: 'tick' }, checkbox(x.archived, (v) => then(set('trainers', x.id, { archived: v }))), t('archived')),
         sureButton('×', () => then(ok(db!.from('trainers').delete().eq('id', x.id))), { title: t('del'), ariaLabel: t('del') })
       ),
@@ -162,7 +165,7 @@ export async function settingsView() {
   };
   const trainersCard = h('section', { className: 'card' },
     h('h2', { textContent: t('ratesTitle') }),
-    h('p', { className: 'muted', textContent: t('ratesHint') }),
+    h('p', { className: 'muted', textContent: `${t('ratesHint')} ${t('loginHint')}` }),
     ...trainers.map(trainerBlock),
     trainerForm
   );

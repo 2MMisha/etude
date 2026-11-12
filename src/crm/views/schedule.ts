@@ -12,7 +12,7 @@ const CHARGED = ['done', 'no_show', 'late_cancel'] as const;
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
 /** What was open before the last change, so the panel comes back after the redraw. */
 let picked = '';
-const MARK: Record<string, string> = { done: '✓ ', no_show: '✗ ', late_cancel: '✗ ' };
+const MARK: Record<string, string> = { done: '✓ ', no_show: '✗ ', late_cancel: '✗ ', requested: '? ' };
 const addDays = (iso: string, n: number) => {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
@@ -38,7 +38,7 @@ export async function scheduleView(arg?: string) {
   const start = addDays(day, -weekdayOf(day));
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices] = await Promise.all([
+  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes] = await Promise.all([
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
@@ -52,6 +52,9 @@ export async function scheduleView(arg?: string) {
     get<Row[]>(db!.from('entries').select('*, students(full_name, client_id)').gte('held_on', start).lte('held_on', end).order('created_at')),
     get<Row[]>(db!.from('payments').select('amount, entry_id, rental_id').eq('voided', false).or('entry_id.not.is.null,rental_id.not.is.null')),
     get<Row[]>(db!.from('prices').select('amount').eq('kind', 'entry')),
+    // Waiting for a decision, whatever week they are in: lessons trainers asked for, and their requests to move or cancel.
+    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').eq('status', 'requested').order('held_on').order('start_time')),
+    get<Row[]>(db!.from('lesson_requests').select('*, lessons(held_on, start_time, minutes, trainers(full_name), lesson_students(students(full_name)))').eq('status', 'pending').order('created_at')),
   ]);
   const entryPrice = Number(entryPrices[0]?.amount ?? 0);
   const halls: string[] = settings[0]?.value ?? [];
@@ -170,13 +173,16 @@ export async function scheduleView(arg?: string) {
   // ── Private lessons ──
   const setStatus = (l: Row, status: string) => done(ok(db!.rpc('set_lesson_status', { lid: l.id, new_status: status })));
   const lessonActions = (l: Row) => [
-    ...(l.status === 'planned'
+    // Asked for by the trainer: approve it (it becomes planned) or reject it (it goes).
+    ...(l.status === 'requested'
+      ? [h('button', { type: 'button', className: 'primary', textContent: t('approve'), onclick: () => setStatus(l, 'planned') })]
+      : l.status === 'planned'
       ? [
           ...CHARGED.map((st) => h('button', { type: 'button', className: st === 'done' ? 'primary' : '', textContent: t(st), onclick: () => setStatus(l, st) })),
           h('button', { type: 'button', textContent: t('cancelLesson'), onclick: () => setStatus(l, 'cancelled') }),
         ]
       : [h('button', { type: 'button', textContent: `↺ ${t('backToPlanned')}`, onclick: () => setStatus(l, 'planned') })]),
-    sureButton(t('del'), () => done(ok(db!.from('lessons').delete().eq('id', l.id)))),
+    sureButton(t(l.status === 'requested' ? 'reject' : 'del'), () => done(ok(db!.from('lessons').delete().eq('id', l.id)))),
   ];
   const lessonPanel = (l: Row): Part[] => {
     const move = (patch: Row) => done(ok(db!.from('lessons').update(patch).eq('id', l.id)));
@@ -195,7 +201,7 @@ export async function scheduleView(arg?: string) {
         l.note && h('small', {}, l.note)
       ),
       // A planned lesson can still be moved or given to another trainer; a confirmed one keeps its place.
-      l.status === 'planned' && h('div', { className: 'grid' },
+      (l.status === 'planned' || l.status === 'requested') && h('div', { className: 'grid' },
         field(t('date'), h('input', { type: 'date', value: l.held_on, onchange: (ev: Event) => move({ held_on: (ev.target as HTMLInputElement).value }) })),
         field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(l.start_time), onchange: (ev: Event) => move({ start_time: (ev.target as HTMLInputElement).value }) })),
         field(t('hall'), select(hallOptions, l.hall, (v) => move({ hall: v }))),
@@ -373,11 +379,30 @@ export async function scheduleView(arg?: string) {
     if (saved) goTo(eDate.value);
   };
 
+  // ── Requests from trainers ──
+  const decide = (r: Row, approve: boolean) => done(ok(db!.rpc('decide_lesson_request', { rid: r.id, approve })));
+  const requestsCard = (asked.length > 0 || changes.length > 0) && h('section', { className: 'card' },
+    h('h2', { textContent: `${t('requests')} (${asked.length + changes.length})` }),
+    ...asked.map((l) => h('div', { className: 'row' },
+      h('span', { className: 'grow' }, `${t('newLesson')}: ${l.trainers.full_name} · ${names(l)} · `, ltr(`${dayText(l.held_on)} ${hhmm(l.start_time ?? '')}, ${l.minutes}′`), l.hall && ` · ${l.hall}`, l.note && h('small', {}, l.note)),
+      h('a', { className: 'btn', href: `#/lessons/${l.held_on}`, textContent: t('open') }),
+      h('button', { type: 'button', className: 'primary', textContent: t('approve'), onclick: () => setStatus(l, 'planned') }),
+      sureButton(t('reject'), () => done(ok(db!.from('lessons').delete().eq('id', l.id))))
+    )),
+    ...changes.map((r) => h('div', { className: 'row' },
+      h('span', { className: 'grow' }, `${r.lessons.trainers.full_name} · ${names(r.lessons)} · `, ltr(`${dayText(r.lessons.held_on)} ${hhmm(r.lessons.start_time ?? '')}`),
+        r.kind === 'move' ? ' → ' : ` → ${t('cancelled')}`, r.kind === 'move' && ltr(`${dayText(r.new_date)} ${hhmm(r.new_time)}`), r.note && h('small', {}, r.note)),
+      h('button', { type: 'button', className: 'primary', textContent: t('approve'), onclick: () => decide(r, true) }),
+      h('button', { type: 'button', textContent: t('reject'), onclick: () => decide(r, false) })
+    ))
+  );
+
   // Under the grid: what is not on it — cancelled lessons and classes, lessons without a time.
   const offLessons = lessons.filter((l) => !l.start_time || l.status === 'cancelled');
   const offClasses = classes.filter((c) => c.cancelled);
   const overdue = [...new Set(waiting.map((l) => addDays(l.held_on, -weekdayOf(l.held_on))))]; // weeks with a planned lesson whose day has passed
   return h('div', { className: 'stack' },
+    requestsCard,
     h('section', { className: 'card' },
       h('div', { className: 'row monthbar' },
         h('a', { href: `#/lessons/${addDays(start, -7)}`, className: 'btn', textContent: '‹', ariaLabel: addDays(start, -7) }),

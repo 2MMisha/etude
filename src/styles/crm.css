@@ -1,0 +1,123 @@
+/* The CRM's look (/crm/) — also used by the trainers' own page (/trainers/me/). */
+body { background: var(--color-ground); }
+.crm { max-width: 1040px; margin-inline: auto; padding: var(--space-sm) var(--space-sm) var(--space-xl); }
+.crm-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-block-end: var(--space-sm); }
+.crm-top img { width: 32px; height: 32px; }
+.crm-top strong { font-family: var(--font-display); font-size: 1.2rem; color: var(--color-navy-900); margin-inline-end: auto; white-space: nowrap; }
+.langs { display: flex; gap: 0.2rem; }
+.langs button { padding: 0.25em 0.6em; font-size: 0.85rem; }
+
+.crm button, .crm input, .crm select, .crm textarea { font: inherit; }
+.crm button, .crm a.btn { padding: 0.5em 1em; border-radius: var(--radius-sm); border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink); cursor: pointer; text-decoration: none; }
+.crm button.primary { background: var(--color-navy-900); border-color: var(--color-navy-900); color: #fff; }
+.crm button.link { border: 0; background: none; color: var(--color-blue-600); padding: 0; }
+.crm button.danger { background: #b3261e; border-color: #b3261e; color: #fff; }
+.crm button[aria-pressed='true'] { background: var(--color-blue-100); border-color: var(--color-blue-500); }
+.crm button:disabled { opacity: 0.5; cursor: default; }
+.crm input[type='text'], .crm input[type='tel'], .crm input[type='email'], .crm input[type='search'], .crm input[type='date'],
+.crm input[type='number'], .crm input[type='password'], .crm select, .crm textarea {
+  padding: 0.5em 0.7em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-surface);
+  width: 100%; min-width: 0; box-sizing: border-box;
+}
+.crm input.num { width: 6.5em; }
+/* In a table a text field would shrink to nothing on a phone; the table scrolls sideways instead. */
+.crm td input[type='text'], .crm td select { min-width: 9em; }
+.crm input[type='checkbox'] { width: 1.1em; height: 1.1em; accent-color: var(--color-blue-600); }
+
+#nav { display: flex; gap: 0.3rem; overflow-x: auto; margin-block-end: var(--space-sm); border-block-end: 1px solid var(--color-line); }
+#nav a { padding: 0.6em 0.9em; text-decoration: none; color: var(--color-ink-soft); font-weight: 600; white-space: nowrap; border-block-end: 3px solid transparent; }
+#nav a[aria-current='page'] { color: var(--color-navy-900); border-block-end-color: var(--color-blue-600); }
+
+.block { padding: 0.8rem; border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
+.block.off { opacity: 0.6; }
+.week { min-width: 720px; }
+@media (max-width: 760px) { .week { min-width: 0; } }
+.detail:not(:empty) { padding: 0.9rem; border: 1px solid var(--color-blue-500); border-radius: var(--radius-sm); }
+.wg-ev.is-picked { outline: 2px solid var(--color-navy-900); z-index: 2; }
+.subtabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.subtabs a { padding: 0.45em 1em; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink); text-decoration: none; font-weight: 600; font-size: 0.92rem; }
+.subtabs a[aria-current='page'] { background: var(--color-navy-900); border-color: var(--color-navy-900); color: #fff; }
+
+.card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-sm); display: grid; gap: 0.9rem; }
+.card.off { opacity: 0.6; }
+.stack { display: grid; gap: var(--space-sm); }
+.crm h1 { font-size: 1.35rem; margin: 0; }
+.crm h2 { font-size: 1.1rem; margin: 0; font-family: var(--font-body); font-weight: 700; }
+.crm h3 { font-size: 0.95rem; margin: 0; font-family: var(--font-body); font-weight: 700; color: var(--color-ink-soft); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.7rem; }
+.field { display: grid; gap: 0.25em; font-size: 0.82rem; font-weight: 600; color: var(--color-ink-soft); }
+.field.wide { grid-column: span 2; }
+.field.full { grid-column: 1 / -1; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.row > input:not([type='checkbox']), .row > select { flex: 1 1 140px; width: auto; }
+.row > input.num { flex: 0 0 6.5em; }
+.row .grow { flex: 1; }
+.row.spread { justify-content: space-between; }
+.tick { display: inline-flex; align-items: center; gap: 0.4em; font-size: 0.92rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.2em 0.3em 0.2em 0.7em; border-radius: 999px; background: var(--color-blue-100); font-weight: 600; font-size: 0.9rem; }
+[dir='rtl'] .chip { padding: 0.2em 0.7em 0.2em 0.3em; }
+.chips select { width: auto; padding-block: 0.25em; }
+.chips button { padding: 0.2em 0.7em; border-radius: 999px; font-size: 0.82rem; }
+.crm button.x { border: 0; background: none; padding: 0 0.3em; font-size: 1.1rem; line-height: 1; color: var(--color-ink-soft); }
+.quote { margin: 0; padding: 0.6em 0.8em; border-radius: var(--radius-sm); background: var(--color-silver-100); font-weight: 600; }
+.warn { margin: 0; padding: 0.6em 0.8em; border-radius: var(--radius-sm); background: #fff4d6; }
+.muted, .crm small { color: var(--color-ink-soft); font-size: 0.85rem; }
+.crm small { display: block; }
+.monthbar h1 { min-width: 9em; text-align: center; }
+.monthbar .primary { margin-inline-start: auto; }
+
+.scroll { overflow-x: auto; }
+.crm table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.crm th, .crm td { text-align: start; padding: 0.5em; border-block-end: 1px solid var(--color-line); vertical-align: middle; }
+.crm th { font-size: 0.8rem; color: var(--color-ink-soft); font-weight: 600; white-space: nowrap; }
+.crm tr.off td { opacity: 0.55; }
+.crm tr.pending td { background: #fffaf0; }
+.crm td.actions { white-space: nowrap; text-align: end; }
+.crm td.actions button { padding: 0.35em 0.7em; margin-inline-start: 0.2rem; }
+
+.quote.owes { background: #fdecea; }
+.quote button { margin-inline-start: 0.8rem; }
+.pick { padding: 0.35em 0.6em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
+.crm td.ok { color: #1f7a4d; font-weight: 700; }
+.crm td.owes { color: #b3261e; font-weight: 700; }
+.crm td .row { flex-wrap: nowrap; justify-content: flex-end; }
+.crm td .row.when { justify-content: flex-start; }
+.crm td .row.when input { flex: 0 0 auto; width: auto; min-width: 0; }
+
+.receipt { max-width: 640px; margin-inline: auto; padding: var(--space-md); position: relative; }
+.receipt header { display: flex; gap: 0.8rem; align-items: flex-start; font-size: 0.9rem; color: var(--color-ink-soft); }
+.receipt header img { width: 44px; height: 44px; }
+.receipt header strong { font-size: 1.05rem; color: var(--color-navy-900); }
+.receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.3em 1em; margin: 0; }
+.receipt dt { color: var(--color-ink-soft); }
+.receipt dd { margin: 0; font-weight: 600; }
+.receipt .sum { text-align: end; white-space: nowrap; }
+.receipt tfoot th { font-size: 1.05rem; color: var(--color-navy-900); border-block-end: 0; }
+.receipt.void { opacity: 0.6; }
+.receipt .stamp { margin: 0; color: #b3261e; font-weight: 700; font-size: 1.2rem; text-transform: uppercase; }
+.receipt.copy { display: none; }
+/* On paper: one A4 sheet, the same confirmation on each half, a dashed line to cut along. */
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body { background: #fff; }
+  .crm-top, #nav, .noprint, .status { display: none !important; }
+  .crm { max-width: none; padding: 0; }
+  .sheets { gap: 0; }
+  .receipt, .receipt.copy {
+    display: grid; align-content: start; box-sizing: border-box; height: 148.5mm; max-width: none; margin: 0;
+    padding: 12mm 16mm; border: 0; border-radius: 0; overflow: hidden; break-inside: avoid; font-size: 10.5pt;
+  }
+  .receipt.copy { border-block-start: 1px dashed #999; }
+}
+
+.sign { max-width: 380px; margin: 10vh auto 0; }
+.sign label { display: grid; gap: 0.3em; font-weight: 600; font-size: 0.9rem; }
+.msg { margin: 0; min-height: 1.4em; font-size: 0.9rem; color: var(--color-ink-soft); }
+.msg.bad { color: #b3261e; }
+.status {
+  position: fixed; inset-block-end: 1rem; inset-inline: 0; margin-inline: auto; width: fit-content; max-width: min(92vw, 640px); z-index: 5;
+  padding: 0.6em 1.1em; border-radius: 999px; background: #1f7a4d; color: #fff; font-weight: 600; font-size: 0.9rem; box-shadow: 0 6px 20px rgba(23, 34, 74, 0.25);
+}
+.status.bad { background: #b3261e; border-radius: var(--radius-md); }
+[hidden] { display: none !important; }
