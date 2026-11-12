@@ -218,4 +218,68 @@ for (const who of ['trainer', 'client', 'nobody']) {
 }
 assert.deepEqual(await one('owner', `select actor, new ->> 'void_reason' why from public.activity_log where table_name = 'payments' and action = 'update' order by id desc limit 1`), { actor: U.admin, why: 'typed twice' });
 
+// ── Stage 3a: trainers, rates, couples, private lessons, earnings, expenses ───
+const roman = await ins('trainers', { full_name: 'Roman' });
+const misha = await ins('trainers', { full_name: 'Misha' });
+await ins('trainer_rates', { trainer_id: roman.id, minutes: 45, price: 250, pay_kind: 'percent', pay_value: 100 });
+await ins('trainer_rates', { trainer_id: misha.id, minutes: 45, price: 150, pay_kind: 'fixed', pay_value: 100 });
+await ins('trainer_rates', { trainer_id: misha.id, minutes: 60, price: 200, pay_kind: 'percent', pay_value: 60 });
+const lesson = (who, l, students) => one(who, 'select public.record_lesson($1::jsonb, $2::uuid[]) id', [JSON.stringify(l), students]);
+const privates = async (s) => (await as('admin', `select amount::float, description, day::text from public.charges where student_id = $1 and kind = 'private' order by created_at`, [s.id])).rows;
+const earned = async (t) => one('admin', 'select earned::float, paid::float, owed::float from public.trainer_balances where trainer_id = $1', [t.id]);
+
+// One student: the full price; the trainer gets the percentage.
+const l1 = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-11-10' }, [a.id])).id;
+assert.deepEqual(await privates(a), [{ amount: 250, description: 'Roman 45′', day: '2026-11-10' }]);
+assert.deepEqual(await earned(roman), { earned: 250, paid: 0, owed: 250 });
+// A couple: half each, on each one's own family; the trainer gets the fixed amount once.
+const partner = await ins('students', { client_id: stranger.id, full_name: 'Partner' });
+await lesson('admin', { trainer_id: misha.id, minutes: 45, status: 'no_show' }, [b.id, partner.id]);
+assert.equal((await privates(b))[0].amount, 75);
+assert.equal((await privates(partner))[0].amount, 75);
+assert.equal((await earned(misha)).earned, 100);
+// A price typed by hand overrides the rate; the percentage follows it.
+await lesson('admin', { trainer_id: misha.id, minutes: 60, price: 300 }, [b.id]);
+assert.equal((await earned(misha)).earned, 280);
+// Refused: no rate for that length, no students, three students.
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 90 }, [a.id]), /no price/);
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one or two students/);
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id, b.id, partner.id]), /one or two students/);
+// Deleting a lesson takes its charges with it - unless one is already paid.
+const l4 = (await lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id])).id;
+await as('admin', 'delete from public.lessons where id = $1', [l4]);
+assert.equal((await privates(a)).length, 1);
+const paidCharge = (await one('admin', 'select id from public.charges where lesson_id = $1', [l1])).id;
+await pay('admin', { amount: 250 }, [{ charge_id: paidCharge, amount: 250 }]);
+await denied(as('admin', 'delete from public.lessons where id = $1', [l1]), /foreign key/);
+
+// Dance partners always point at each other, and changing one side lets the old partner go.
+const partnerOf = async (s) => (await one('admin', 'select partner_id from public.students where id = $1', [s.id])).partner_id;
+await as('admin', 'update public.students set partner_id = $1 where id = $2', [partner.id, b.id]);
+assert.equal(await partnerOf(partner), b.id);
+await as('admin', 'update public.students set partner_id = $1 where id = $2', [partner.id, a.id]);
+assert.deepEqual([await partnerOf(partner), await partnerOf(b), await partnerOf(a)], [a.id, null, partner.id]);
+await as('admin', 'update public.students set partner_id = null where id = $1', [a.id]);
+assert.equal(await partnerOf(partner), null);
+await denied(as('admin', 'update public.students set partner_id = id where id = $1', [a.id]), /own partner/);
+
+// Payouts bring down what is owed to the trainer; an expense must say what it was for.
+await ins('trainer_payouts', { trainer_id: misha.id, amount: 200 });
+assert.deepEqual(await earned(misha), { earned: 280, paid: 200, owed: 80 });
+await denied(ins('expenses', { amount: 50, comment: ' ' }), /check/);
+await ins('expenses', { amount: 50, comment: 'floor wax' });
+
+// Everyone else: nothing.
+for (const table of ['trainers', 'trainer_rates', 'lessons', 'lesson_students', 'trainer_payouts', 'expenses', 'trainer_balances']) {
+  await denied(as('anon', `select * from public.${table}`), /permission denied/);
+  for (const who of ['trainer', 'client', 'nobody']) assert.equal(await count(who, table), 0, `${who} reads nothing from ${table}`);
+}
+for (const who of ['trainer', 'client', 'nobody']) {
+  // They can't even see the rates, so it stops before the insert the rules would refuse.
+  await denied(lesson(who, { trainer_id: roman.id, minutes: 45 }, [a.id]), /no price/);
+  await denied(lesson(who, { trainer_id: roman.id, minutes: 45, price: 1, trainer_pay: 1 }, [a.id]), /row-level security/);
+  await denied(as(who, `insert into public.expenses (amount, comment) values (1, 'x')`), /row-level security/);
+  await denied(as(who, 'insert into public.trainer_payouts (trainer_id, amount) values ($1, 1)', [roman.id]), /row-level security/);
+}
+
 console.log('access rules: all checks passed');
