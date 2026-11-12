@@ -64,7 +64,7 @@ Brand tokens are in `src/styles/global.css` (`--color-navy-900 #17224a`, `--colo
 
 - `npm run dev` (port 4321, launch config `etude-dev`), `npm run build`, `npm run test:db`. There is no `astro check` installed; the build is the type gate.
 - **Start by `git fetch`** — the admin panel commits to `main` many times a day, so local `main` is usually behind. Rebase `crm` on `origin/main` before pushing.
-- **Pushing:** this shell has no GitHub credentials and no `gh`. Fast-forward local `main`, then the owner presses "Push origin" in GitHub Desktop.
+- **Pushing:** this shell has no GitHub credentials and no `gh`. Fast-forward local `main`, then the owner presses "Push origin" in GitHub Desktop. GitHub Desktop pushes whichever branch is checked out, so **leave the repo on `main` before asking for the push** (on 2026-11-12 it was left on `crm`, the owner pushed `crm`, and the live site did not change). Afterwards verify with `git fetch` that `origin/main` moved, then switch back to `crm`.
 - **Applying a migration:** the owner pastes it into Supabase → SQL Editor (copy it to the clipboard with `LC_ALL=en_US.UTF-8 pbcopy`; plain `pbcopy` mangles non-ASCII such as the multiplication sign, so keep SQL that matters ASCII, using `U&'\00D7'` escapes). Run `npm run test:db` first. Never edit a migration that has been applied; add a new one.
 - **Testing the CRM for real** needs the owner's session: they sign in at `http://localhost:4321/crm/` in the browser pane (Claude may not type passwords). Without it only the sign-in form is visible.
 - GitHub Actions logs and artifacts need the owner's login; the run summary pages are public.
