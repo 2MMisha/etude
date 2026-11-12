@@ -42,6 +42,8 @@ import '../../styles/global.css';
         width: 100%; min-width: 0; box-sizing: border-box;
       }
       .crm input.num { width: 6.5em; }
+      /* In a table a text field would shrink to nothing on a phone; the table scrolls sideways instead. */
+      .crm td input[type='text'], .crm td select { min-width: 9em; }
       .crm input[type='checkbox'] { width: 1.1em; height: 1.1em; accent-color: var(--color-blue-600); }
 
       #nav { display: flex; gap: 0.3rem; overflow-x: auto; margin-block-end: var(--space-sm); border-block-end: 1px solid var(--color-line); }
