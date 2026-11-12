@@ -75,5 +75,5 @@ Brand tokens are in `src/styles/global.css` (`--color-navy-900 #17224a`, `--colo
 ## Status
 
 - **Stage 0 — done, live (2026-11-12).** Accounts, roles, activity log, `/crm/` sign-in + Accounts screen, nightly backup (run #2 green). Still unverified: the owner opening a backup with the passphrase; the password-reset email round trip.
-- **Stage 1 — built and tested locally against the real database (2026-11-12)**, on branch `crm`: clients, students, groups, price list, monthly charges, discounts, delete buttons (two-click). Both stage 1 SQL files are applied to the real database, and the price list and groups are seeded there. Waiting for the owner's go-ahead to push. Client Excel files for import will come later.
+- **Stage 1 — done, live (2026-11-12).** Clients, students, groups, price list, monthly charges, discounts, delete buttons (two-click; refused with a plain message when charges or groups hang on the row). Migration `20261112000000_clients_memberships.sql` is applied; the price list and groups were seeded by pasted SQL. Not built: client import from Excel (files not received yet).
 - Next: stage 2 payments and confirmations, 3 trainers, 4 parents, 5 dashboard, 6 scheduler (replaces the Sheet, on the owner's word), 7 on-demand items, 8 security review.
