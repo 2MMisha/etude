@@ -56,8 +56,10 @@ export async function lessonsView(arg?: string) {
       student_ids: pair,
     }));
     flash(t('saved'));
-    location.hash = `#/lessons/${date.value.slice(0, 7)}`;
-    nav.refresh();
+    // Show the month the lesson landed in: a new address redraws by itself, the same one needs a nudge.
+    const target = `#/lessons/${date.value.slice(0, 7)}`;
+    if (location.hash === target) nav.refresh();
+    else location.hash = target;
   };
 
   const label = new Date(`${ym}-01T12:00:00Z`).toLocaleDateString(LOCALE[getLang()], { month: 'long', year: 'numeric', timeZone: 'UTC' });

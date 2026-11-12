@@ -2,7 +2,7 @@
 // void, refund), the printable confirmation, the Debts list and the monthly
 // report with its Excel export.
 import { getLang, t, tIn, LOCALE, type Key, type Lang } from '../i18n';
-import { db, h, get, ok, nav, input, select, field, flash, money, ltr, today, type Row } from '../ui';
+import { db, h, get, ok, nav, input, select, field, sureButton, flash, money, ltr, today, type Row } from '../ui';
 
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
 const monthName = (lang: Lang, iso: string) =>
@@ -10,7 +10,8 @@ const monthName = (lang: Lang, iso: string) =>
 const dateText = (lang: Lang, iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE[lang], { timeZone: 'UTC' });
 const sum = (rows: Row[], key = 'amount') => rows.reduce((s, r) => s + Number(r[key]), 0);
 /** What a charge is for, in a given language: "Kids 2×45, November 2026". */
-const chargeLabel = (lang: Lang, c: Row) => [c.description, c.month && monthName(lang, c.month)].filter(Boolean).join(', ') || c.comment || '';
+const chargeLabel = (lang: Lang, c: Row) =>
+  [c.kind === 'private' ? `${tIn(lang, 'privateLesson')}: ${c.description}` : c.description, c.month ? monthName(lang, c.month) : c.day && dateText(lang, c.day)].filter(Boolean).join(', ') || c.comment || '';
 /** A WhatsApp chat with the text ready. Israeli numbers are typed 05x…, WhatsApp wants 9725x…. */
 const waLink = (phone: string, text: string) => `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '972')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 const methodText = (lang: Lang, p: Row) =>
@@ -28,9 +29,10 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
     const c = charges.find((x) => x.id === id);
     return c ? `${students.find((s) => s.id === c.student_id)?.full_name ?? ''}: ${chargeLabel(getLang(), c)}` : '?';
   };
+  const when = (id: string) => { const c = charges.find((x) => x.id === id)!; return c.month ?? c.day ?? ''; };
   const open = perCharge
     .filter((b) => Number(b.owed) > 0 && charges.some((c) => c.id === b.charge_id))
-    .sort((a, b) => (charges.find((c) => c.id === a.charge_id)!.month ?? '').localeCompare(charges.find((c) => c.id === b.charge_id)!.month ?? ''));
+    .sort((a, b) => when(a.charge_id).localeCompare(when(b.charge_id)));
 
   const balance = Number(bal.balance);
   const headline = h('p', { className: `quote${balance > 0 ? ' owes' : ''}` },
@@ -87,6 +89,8 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
 
   const payRow = (p: Row) => {
     const actions = h('td', { className: 'actions' });
+    // The confirmation can be opened again at any time, to print or send it once more.
+    actions.append(h('a', { className: 'btn', href: `#/receipt/${p.id}`, textContent: t('confirmation') }));
     /** Swap the buttons for a reason field (and an amount, for a refund) plus a confirm button. */
     const ask = (label: Key, reasonLabel: Key, withAmount: boolean, run: (reason: string, amount: number) => void) => {
       const reason = h('input', { type: 'text', placeholder: t(reasonLabel) });
@@ -151,7 +155,7 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
 // ── The confirmation: printed (two per A4 sheet), saved as PDF or sent as a picture, in the client's language ──
 export async function receiptView(id?: string) {
   const [p, settings] = await Promise.all([
-    get<Row>(db!.from('payments').select('*, clients(id, full_name, phone, lang), payment_lines(amount, charges(description, month, comment, students(full_name)))').eq('id', id).single()),
+    get<Row>(db!.from('payments').select('*, clients(id, full_name, phone, lang), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name)))').eq('id', id).single()),
     get<Row[]>(db!.from('settings').select('value').eq('id', 'business')),
   ]);
   const biz: Row = settings[0]?.value ?? {};
@@ -349,14 +353,27 @@ const shift = (ym: string, by: number) => {
 
 export async function reportsView(arg?: string) {
   const ym = /^\d{4}-\d{2}$/.test(arg ?? '') ? (arg as string) : today().slice(0, 7);
-  const [payments, charges] = await Promise.all([
-    get<Row[]>(db!.from('payments').select('*, clients(full_name), payment_lines(amount, charges(description, month, comment, students(full_name)))').gte('paid_on', `${ym}-01`).lt('paid_on', `${shift(ym, 1)}-01`).order('number')),
+  const [payments, charges, lessons, expenses] = await Promise.all([
+    get<Row[]>(db!.from('payments').select('*, clients(full_name), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name)))').gte('paid_on', `${ym}-01`).lt('paid_on', `${shift(ym, 1)}-01`).order('number')),
     get<Row[]>(db!.from('charges').select('id, amount').eq('month', `${ym}-01`)),
+    get<Row[]>(db!.from('lessons').select('trainer_pay').gte('held_on', `${ym}-01`).lt('held_on', `${shift(ym, 1)}-01`)),
+    get<Row[]>(db!.from('expenses').select('*').gte('spent_on', `${ym}-01`).lt('spent_on', `${shift(ym, 1)}-01`).order('spent_on')),
   ]);
   const owed = charges.length ? sum(await get<Row[]>(db!.from('charge_balances').select('owed').in('charge_id', charges.map((c) => c.id))), 'owed') : 0;
   const live = payments.filter((p) => !p.voided);
   const lang = getLang();
   const covers = (p: Row) => p.payment_lines.map((l: Row) => `${l.charges.students.full_name}: ${chargeLabel(lang, l.charges)} (${Number(l.amount)})`).join('; ');
+
+  // An expense always says what it was for.
+  const spentOn = h('input', { type: 'date', value: today().slice(0, 7) === ym ? today() : `${ym}-01`, required: true, ariaLabel: t('date') });
+  const spent = h('input', { type: 'number', step: 'any', min: 0, className: 'num', required: true, ariaLabel: t('amount') });
+  const whatFor = h('input', { type: 'text', placeholder: t('whatFor'), required: true });
+  const expenseForm = h('form', { className: 'row' }, spentOn, spent, whatFor, h('button', { type: 'submit', textContent: t('addExpense') }));
+  expenseForm.onsubmit = async (e) => {
+    e.preventDefault();
+    if (!whatFor.value.trim()) return flash(t('commentRequired'), true);
+    if (await ok(db!.from('expenses').insert({ spent_on: spentOn.value, amount: Number(spent.value), comment: whatFor.value.trim() }))) nav.refresh();
+  };
 
   const exportExcel = async () => {
     const XLSX = await import('xlsx');
@@ -380,8 +397,20 @@ export async function reportsView(arg?: string) {
       ...METHODS.filter((m) => live.some((p) => p.method === m)).map((m) => h('tr', {}, h('td', {}, t(m)), h('td', {}, ltr(money(sum(live.filter((p) => p.method === m))))))),
       h('tr', {}, h('th', {}, t('received')), h('th', {}, ltr(money(sum(live))))),
       h('tr', {}, h('td', {}, t('charged')), h('td', {}, ltr(money(sum(charges))))),
-      h('tr', {}, h('td', {}, t('stillOwed')), h('td', {}, ltr(money(owed))))
+      h('tr', {}, h('td', {}, t('stillOwed')), h('td', {}, ltr(money(owed)))),
+      h('tr', {}, h('td', {}, t('trainersEarned')), h('td', {}, ltr(money(sum(lessons, 'trainer_pay'))))),
+      h('tr', {}, h('td', {}, t('expenses')), h('td', {}, ltr(money(sum(expenses))))),
+      h('tr', {}, h('th', {}, t('leftOver')), h('th', {}, ltr(money(sum(live) - sum(lessons, 'trainer_pay') - sum(expenses)))))
     )),
+    h('h2', { textContent: t('expenses') }),
+    expenseForm,
+    expenses.length > 0 && h('div', { className: 'scroll' }, h('table', {}, h('tbody', {}, ...expenses.map((x) => h('tr', {},
+      h('td', {}, ltr(dateText(lang, x.spent_on))),
+      h('td', {}, x.comment),
+      h('td', {}, ltr(money(x.amount))),
+      h('td', { className: 'actions' }, sureButton('×', async () => { if (await ok(db!.from('expenses').delete().eq('id', x.id))) nav.refresh(); }, { title: t('del'), ariaLabel: t('del') }))
+    ))))),
+    h('h2', { textContent: t('payments') }),
     payments.length
       ? h('div', { className: 'scroll' }, h('table', {},
           h('thead', {}, h('tr', {}, ...['№', t('date'), t('client'), t('method'), t('amount'), t('covers')].map((x) => h('th', {}, x)))),

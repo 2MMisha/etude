@@ -6,11 +6,13 @@ import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton
 const PER_WEEK = [1, 2, 3];
 
 export async function settingsView() {
-  const [programs, prices, groups, settings] = await Promise.all([
+  const [programs, prices, groups, settings, trainers, rates] = await Promise.all([
     get<Row[]>(db!.from('programs').select('*').order('sort').order('name')),
     get<Row[]>(db!.from('prices').select('*').order('sort').order('label')),
     get<Row[]>(db!.from('groups').select('*').order('name')),
     get<Row[]>(db!.from('settings').select('*')),
+    get<Row[]>(db!.from('trainers').select('*').order('full_name')),
+    get<Row[]>(db!.from('trainer_rates').select('*').order('minutes')),
   ]);
   const set = (table: string, id: string, patch: Row) => ok(db!.from(table).update(patch).eq('id', id));
   /** After a change that adds or removes a row: redraw. */
@@ -74,7 +76,6 @@ export async function settingsView() {
     h('h2', { textContent: t('otherPrices') }),
     single('unlimited', `${t('unlimited')}, ${t('perMonth')}`),
     single('entry', t('oneTimeEntry')),
-    labelled('private', t('privateLessons')),
     labelled('rental', t('rentals'))
   );
 
@@ -118,5 +119,51 @@ export async function settingsView() {
     h('div', { className: 'grid' }, bizField('name', t('name')), bizField('address', t('address')), bizField('phone', t('phone')), bizField('number', t('bizNumber')))
   );
 
-  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, others, groupsCard, discounts, business);
+  // Each trainer: the lesson lengths they give, what the client pays and what the trainer gets.
+  const KINDS: [string, string][] = [['percent', t('percentKind')], ['fixed', t('fixedKind')]];
+  const trainerBlock = (x: Row) => {
+    const minutes = h('input', { type: 'number', min: 1, className: 'num', placeholder: t('minutes'), ariaLabel: t('minutes') });
+    const price = h('input', { type: 'number', min: 0, step: 'any', className: 'num', placeholder: t('price'), ariaLabel: t('price') });
+    const pay = h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: 100, ariaLabel: t('trainerGets') });
+    const kind = select(KINDS, 'percent', () => {});
+    return h('div', { className: `stack block${x.archived ? ' off' : ''}` },
+      h('div', { className: 'row' },
+        input(x.full_name, (v, el) => (v ? set('trainers', x.id, { full_name: v }) : (el.value = x.full_name)), { ariaLabel: t('name') }),
+        h('label', { className: 'tick' }, checkbox(x.archived, (v) => then(set('trainers', x.id, { archived: v }))), t('archived')),
+        sureButton('×', () => then(ok(db!.from('trainers').delete().eq('id', x.id))), { title: t('del'), ariaLabel: t('del') })
+      ),
+      h('div', { className: 'scroll' }, h('table', {},
+        h('thead', {}, h('tr', {}, h('th', {}, t('minutes')), h('th', {}, t('price')), h('th', { colSpan: 2 }, t('trainerGets')), h('th'))),
+        h('tbody', {},
+          ...rates.filter((r) => r.trainer_id === x.id).map((r) => h('tr', {},
+            h('td', {}, String(r.minutes)),
+            h('td', {}, number(r.price, (v, el) => (v == null ? (el.value = r.price) : set('trainer_rates', r.id, { price: v })), { ariaLabel: t('price') })),
+            h('td', {}, number(r.pay_value, (v, el) => (v == null ? (el.value = r.pay_value) : set('trainer_rates', r.id, { pay_value: v })), { ariaLabel: t('trainerGets') })),
+            h('td', {}, select(KINDS, r.pay_kind, (v) => set('trainer_rates', r.id, { pay_kind: v }))),
+            h('td', { className: 'actions' }, sureButton('×', () => then(ok(db!.from('trainer_rates').delete().eq('id', r.id))), { title: t('del'), ariaLabel: t('del') }))
+          )),
+          h('tr', {}, h('td', {}, minutes), h('td', {}, price), h('td', {}, pay), h('td', {}, kind),
+            h('td', { className: 'actions' }, h('button', { type: 'button', textContent: t('addRate'), onclick: () => {
+              if (!(Number(minutes.value) > 0) || price.value === '') return;
+              then(ok(db!.from('trainer_rates').insert({ trainer_id: x.id, minutes: Number(minutes.value), price: Number(price.value), pay_kind: kind.value, pay_value: Number(pay.value) || 0 })));
+            } }))
+          )
+        )
+      ))
+    );
+  };
+  const newTrainer = h('input', { type: 'text', placeholder: t('name'), required: true });
+  const trainerForm = h('form', { className: 'row' }, newTrainer, h('button', { type: 'submit', textContent: t('addTrainer') }));
+  trainerForm.onsubmit = (e) => {
+    e.preventDefault();
+    then(ok(db!.from('trainers').insert({ full_name: newTrainer.value.trim() })));
+  };
+  const trainersCard = h('section', { className: 'card' },
+    h('h2', { textContent: t('ratesTitle') }),
+    h('p', { className: 'muted', textContent: t('ratesHint') }),
+    ...trainers.map(trainerBlock),
+    trainerForm
+  );
+
+  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, trainersCard, others, groupsCard, discounts, business);
 }

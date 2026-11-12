@@ -7,18 +7,21 @@ import { monthView } from './views/month';
 import { settingsView } from './views/settings';
 import { accountsView } from './views/accounts';
 import { debtsView, receiptView, reportsView } from './views/payments';
+import { lessonsView, trainersView } from './views/lessons';
 
 const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement>> = {
   clients: clientsView,
   client: clientView,
   month: monthView,
+  lessons: lessonsView,
+  trainersTab: trainersView,
   debts: debtsView,
   reports: reportsView,
   receipt: receiptView,
   settings: settingsView,
   accounts: accountsView,
 };
-const TABS: Key[] = ['clients', 'month', 'debts', 'reports', 'settings', 'accounts'];
+const TABS: Key[] = ['clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts'];
 
 const view = document.getElementById('view')!;
 const tabs = document.getElementById('nav')!;

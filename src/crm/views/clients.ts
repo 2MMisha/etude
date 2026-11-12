@@ -51,10 +51,11 @@ export async function clientsView() {
 export async function clientView(id?: string, tab?: string) {
   const client = await get<Row>(db!.from('clients').select('*').eq('id', id).single());
   await fillThisMonth();
-  const [students, groups, others] = await Promise.all([
+  const [students, groups, others, everyone] = await Promise.all([
     get<Row[]>(db!.from('students').select('*').eq('client_id', id).order('created_at')),
     get<Row[]>(db!.from('groups').select('id, name, archived').order('name')),
     get<Row[]>(db!.from('clients').select('id, full_name, phone').neq('id', id)),
+    get<Row[]>(db!.from('students').select('id, full_name').eq('archived', false).order('full_name')),
   ]);
   const ids = students.map((s) => s.id);
   const [enrollments, quotes, charges] = await Promise.all([
@@ -135,8 +136,8 @@ export async function clientView(id?: string, tab?: string) {
         if (await ok(db!.from('charges').update({ amount: Number(amount.value), manual: true, comment: note.value.trim() }).eq('id', c.id))) nav.refresh();
       };
       return h('tr', {},
-        h('td', {}, c.month ? h('a', { href: `#/month/${c.month.slice(0, 7)}`, textContent: c.month.slice(0, 7) }) : ''),
-        h('td', {}, ltr(c.description), c.manual && h('small', {}, t('byHand'))),
+        h('td', {}, c.month ? h('a', { href: `#/month/${c.month.slice(0, 7)}`, textContent: c.month.slice(0, 7) }) : ltr(c.day ?? '')),
+        h('td', {}, c.kind === 'private' && `${t('privateLesson')}: `, ltr(c.description), c.manual && h('small', {}, t('byHand'))),
         h('td', {}, amount),
         h('td', {}, note),
         h('td', { className: 'actions' },
@@ -170,7 +171,9 @@ export async function clientView(id?: string, tab?: string) {
         field(t('name'), nameInput('students', s)),
         field(t('birthDate'), input(s.birth_date, (v) => upd({ birth_date: v || null }), { type: 'date' })),
         field(t('phone'), input(s.phone, (v) => upd({ phone: v }), { type: 'tel' })),
-        field(t('level'), input(s.level, (v) => upd({ level: v })))
+        field(t('level'), input(s.level, (v) => upd({ level: v }))),
+        // A couple: the two point at each other, and a private lesson for one offers the other.
+        field(t('partner'), select([['', '—'], ...everyone.filter((x) => x.id !== s.id).map((x): [string, string] => [x.id, x.full_name])], s.partner_id ?? '', (v) => upd({ partner_id: v || null }, true)))
       ),
       field(t('notes'), input(s.notes, (v) => upd({ notes: v }))),
 
