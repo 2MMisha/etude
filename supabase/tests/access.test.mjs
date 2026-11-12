@@ -405,4 +405,65 @@ for (const who of ['trainer', 'client', 'nobody']) {
   await denied(as(who, 'insert into public.trainer_payouts (trainer_id, amount) values ($1, 1)', [roman.id]), /row-level security/);
 }
 
+// ── Stage 3b: a trainer in their own app ─────────────────────────────────────
+// The "trainer" login is linked to Misha. Everything goes through functions; the tables stay shut.
+await as('admin', 'update public.trainers set user_id = $1 where id = $2', [U.trainer, misha.id]);
+const rpc = (who, fn, args = []) => as(who, `select * from public.${fn}(${args.map((_, i) => `$${i + 1}`).join(', ')})`, args);
+const mineIn = async (d1, d2) => (await rpc('trainer', 'trainer_lessons', [d1, d2])).rows;
+// Sees their own lessons with the students' names — and nobody else's.
+const all = await mineIn('2026-01-01', '2027-12-31');
+assert.ok(all.length > 0 && all.every((l) => typeof l.students === 'string'));
+assert.equal(all.length, (await one('admin', 'select count(*)::int n from public.lessons where trainer_id = $1', [misha.id])).n);
+for (const who of ['client', 'nobody']) {
+  assert.equal((await rpc(who, 'trainer_lessons', ['2026-01-01', '2027-12-31'])).rows.length, 0);
+  assert.equal((await rpc(who, 'trainer_students')).rows.length, 0);
+  assert.equal((await rpc(who, 'trainer_summary')).rows[0].trainer_summary, null);
+  await denied(rpc(who, 'trainer_request_lesson', [JSON.stringify({ minutes: 45, held_on: '2027-06-01', start_time: '10:00' }), [a.id]]), /not linked to a trainer/);
+}
+await denied(as('anon', 'select * from public.trainer_students()'), /permission denied/);
+for (const table of ['lessons', 'students', 'lesson_requests', 'trainer_rates']) assert.equal(await count('trainer', table), 0, `the trainer still reads no table: ${table}`);
+// Names only, to choose from; and their own lesson lengths.
+assert.deepEqual(Object.keys((await rpc('trainer', 'trainer_students')).rows[0]).sort(), ['full_name', 'id', 'partner_id']);
+assert.deepEqual((await rpc('trainer', 'trainer_rates_mine')).rows.map((r) => r.minutes), [45, 60]);
+
+// Asking for a lesson: it is theirs whatever they send, at their own rate, and waits for the admin.
+const asked = (await rpc('trainer', 'trainer_request_lesson', [JSON.stringify({ trainer_id: roman.id, price: 1, trainer_pay: 9999, status: 'done', minutes: 45, held_on: '2027-06-01', start_time: '10:00' }), [a.id]])).rows[0].trainer_request_lesson;
+assert.deepEqual(await one('admin', 'select trainer_id, status, price::float, trainer_pay::float from public.lessons where id = $1', [asked]), { trainer_id: misha.id, status: 'requested', price: 150, trainer_pay: 100 });
+assert.equal((await as('admin', 'select 1 from public.charges where lesson_id = $1', [asked])).rows.length, 0);
+// They can take it back while it waits; once the admin has approved it, only by asking.
+const second = (await rpc('trainer', 'trainer_request_lesson', [JSON.stringify({ minutes: 45, held_on: '2027-06-02', start_time: '10:00' }), [a.id]])).rows[0].trainer_request_lesson;
+await rpc('trainer', 'trainer_withdraw', [second]);
+await as('admin', 'select public.set_lesson_status($1, $2)', [asked, 'planned']);
+await denied(rpc('trainer', 'trainer_withdraw', [asked]), /still waiting/);
+// A move goes to the admin; approving it moves the lesson, and the request is closed.
+const moveReq = (await rpc('trainer', 'trainer_request_change', [asked, 'move', '2027-06-03', '11:30', 'student asked'])).rows[0].trainer_request_change;
+assert.equal((await mineIn('2027-06-01', '2027-06-01'))[0].request.kind, 'move');
+await as('admin', 'select public.decide_lesson_request($1, true)', [moveReq]);
+assert.deepEqual(await one('admin', 'select held_on::text, start_time::text from public.lessons where id = $1', [asked]), { held_on: '2027-06-03', start_time: '11:30:00' });
+await denied(as('admin', 'select public.decide_lesson_request($1, true)', [moveReq]), /not waiting/);
+// A rejected cancellation changes nothing; an approved one cancels.
+const no = (await rpc('trainer', 'trainer_request_change', [asked, 'cancel', null, null, ''])).rows[0].trainer_request_change;
+await as('admin', 'select public.decide_lesson_request($1, false)', [no]);
+assert.equal((await one('admin', 'select status from public.lessons where id = $1', [asked])).status, 'planned');
+await denied(rpc('trainer', 'trainer_request_change', [asked, 'move', null, null, '']), /move_needs_when/);
+// Not someone else's lesson, in any way.
+const romans = (await one('admin', `select id from public.lessons where trainer_id = $1 and status = 'planned' limit 1`, [roman.id])).id;
+await denied(rpc('trainer', 'trainer_request_change', [romans, 'cancel', null, null, '']), /only your own/);
+await denied(rpc('trainer', 'trainer_confirm', [romans, 'done']), /only your own/);
+await denied(rpc('trainer', 'trainer_withdraw', [romans]), /only your own/);
+// Confirming: not before its day; after it, the student is charged and the trainer has earned it.
+await denied(rpc('trainer', 'trainer_confirm', [asked, 'done']), /on its day or after/);
+const past = (await lesson('admin', { trainer_id: misha.id, minutes: 45, held_on: '2026-11-02', start_time: '09:00' }, [a.id])).id;
+const earnedBefore = (await rpc('trainer', 'trainer_summary')).rows[0].trainer_summary.earned;
+await denied(rpc('trainer', 'trainer_confirm', [past, 'cancelled']), /unknown outcome/);
+await rpc('trainer', 'trainer_confirm', [past, 'done']);
+assert.equal((await one('admin', 'select amount::float from public.charges where lesson_id = $1', [past])).amount, 150);
+const summary = (await rpc('trainer', 'trainer_summary')).rows[0].trainer_summary;
+assert.deepEqual([summary.name, summary.earned - earnedBefore, summary.payouts.length], ['Misha', 100, 1]);
+await denied(rpc('trainer', 'trainer_confirm', [past, 'no_show']), /only your own planned/); // already confirmed
+// A trainer whose role is taken away is nobody again.
+await as('admin', `update public.profiles set roles = '{}' where id = $1`, [U.trainer]);
+assert.equal((await mineIn('2026-01-01', '2027-12-31')).length, 0);
+await denied(rpc('trainer', 'trainer_confirm', [asked, 'done']), /only your own/);
+
 console.log('access rules: all checks passed');
