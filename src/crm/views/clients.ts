@@ -137,7 +137,7 @@ export async function clientView(id?: string, tab?: string) {
       };
       return h('tr', {},
         h('td', {}, c.month ? h('a', { href: `#/month/${c.month.slice(0, 7)}`, textContent: c.month.slice(0, 7) }) : ltr(c.day ?? '')),
-        h('td', {}, c.kind === 'private' && `${t('privateLesson')}: `, ltr(c.description), c.manual && h('small', {}, t('byHand'))),
+        h('td', {}, c.kind === 'private' && `${t('privateLesson')}: `, c.kind === 'entry' && `${t('oneTimeEntry')}: `, ltr(c.description), c.manual && h('small', {}, t('byHand'))),
         h('td', {}, amount),
         h('td', {}, note),
         h('td', { className: 'actions' },

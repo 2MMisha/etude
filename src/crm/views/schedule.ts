@@ -9,6 +9,9 @@ import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
 
 const CHARGED = ['done', 'no_show', 'late_cancel'] as const;
+const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
+/** What was open before the last change, so the panel comes back after the redraw. */
+let picked = '';
 const MARK: Record<string, string> = { done: '✓ ', no_show: '✗ ', late_cancel: '✗ ' };
 const addDays = (iso: string, n: number) => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -27,7 +30,7 @@ const dayText = (iso: string) => fmt(iso, { weekday: 'short', day: 'numeric', mo
 /** "Sunday" … "Saturday" in the screen's language (1 January 2023 was a Sunday). */
 export const WEEKDAY = (n: number) => new Date(Date.UTC(2023, 0, 1 + n)).toLocaleDateString(LOCALE[getLang()], { weekday: 'long', timeZone: 'UTC' });
 
-interface Entry { item: TimetableItem; lesson?: Row; group?: Row; rental?: Row }
+interface Entry { key: string; item: TimetableItem; lesson?: Row; group?: Row; rental?: Row; event?: Row }
 type Part = HTMLElement | false | null | undefined | '';
 
 export async function scheduleView(arg?: string) {
@@ -35,7 +38,7 @@ export async function scheduleView(arg?: string) {
   const start = addDays(day, -weekdayOf(day));
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting] = await Promise.all([
+  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices] = await Promise.all([
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
@@ -45,7 +48,12 @@ export async function scheduleView(arg?: string) {
     get<Row[]>(db!.from('students').select('id, full_name, partner_id').eq('archived', false).order('full_name')),
     get<Row[]>(db!.from('settings').select('value').eq('id', 'halls')),
     get<Row[]>(db!.from('lessons').select('held_on').eq('status', 'planned').lt('held_on', today()).order('held_on').limit(100)),
+    get<Row[]>(db!.from('events').select('*').gte('held_on', start).lte('held_on', end)),
+    get<Row[]>(db!.from('entries').select('*, students(full_name, client_id)').gte('held_on', start).lte('held_on', end).order('created_at')),
+    get<Row[]>(db!.from('payments').select('amount, entry_id, rental_id').eq('voided', false).or('entry_id.not.is.null,rental_id.not.is.null')),
+    get<Row[]>(db!.from('prices').select('amount').eq('kind', 'entry')),
   ]);
+  const entryPrice = Number(entryPrices[0]?.amount ?? 0);
   const halls: string[] = settings[0]?.value ?? [];
   const hallOptions: [string, string][] = [['', '—'], ...halls.map((x): [string, string] => [x, x])];
   const trainerOptions = trainers.map((x): [string, string] => [x.id, x.full_name]);
@@ -55,13 +63,13 @@ export async function scheduleView(arg?: string) {
 
   // What goes on the grid: group classes as they really are that day, the
   // week's lessons that have a time and aren't cancelled, and the rentals.
-  const entries = new Map<string, Entry[]>(dates.map((d) => [d, [
+  const onGrid = new Map<string, Entry[]>(dates.map((d) => [d, [
     ...classes.filter((c) => c.held_on === d && !c.cancelled).map((c): Entry => ({
-      group: c,
+      group: c, key: `g:${c.slot_id}:${c.on_date}`,
       item: { start: hhmm(c.start_time), end: plus(c.start_time, c.minutes), title: `${c.changed ? '✎ ' : ''}${c.group_name}`, column: trainerName(c.trainer_id), hall: c.hall }, // ✎ = changed for this date
     })),
     ...lessons.filter((l) => l.held_on === d && l.start_time && l.status !== 'cancelled').map((l): Entry => ({
-      lesson: l,
+      lesson: l, key: `l:${l.id}`,
       item: {
         start: hhmm(l.start_time), end: plus(l.start_time, l.minutes), column: l.trainers.full_name, hall: l.hall,
         title: `${MARK[l.status] ?? (l.held_on < today() ? '⚠ ' : '')}${names(l)}`, // ⚠ = its day has passed and nobody said what happened
@@ -69,8 +77,12 @@ export async function scheduleView(arg?: string) {
     })),
     // The grid draws a card as a rental when its "column" says so (t('rent') does, in all three languages).
     ...rentals.filter((r) => r.held_on === d).map((r): Entry => ({
-      rental: r,
+      rental: r, key: `r:${r.id}`,
       item: { start: hhmm(r.start_time), end: plus(r.start_time, r.minutes), title: r.who, column: t('rent'), hall: r.hall },
+    })),
+    ...events.filter((e) => e.held_on === d).map((e): Entry => ({
+      event: e, key: `e:${e.id}`,
+      item: { start: hhmm(e.start_time), end: plus(e.start_time, e.minutes), title: `★ ${e.title}`, column: trainerName(e.trainer_id), hall: e.hall }, // ★ = a one-time group
     })),
   ]]));
 
@@ -79,7 +91,7 @@ export async function scheduleView(arg?: string) {
   // weekGrid() escapes every text it is given; the day heading below is built from the date alone.
   grid.innerHTML = weekGrid({
     dates,
-    byDate: new Map([...entries].map(([d, list]) => [d, list.map((e) => e.item)])),
+    byDate: new Map([...onGrid].map(([d, list]) => [d, list.map((e) => e.item)])),
     dayHead: (iso) => `<b>${fmt(iso, { weekday: 'short' })}</b> <span dir="ltr">${fmt(iso, { day: 'numeric', month: 'numeric' })}</span>`,
     hallName: (hall) => hall || '—',
     who: (item) => item.column,
@@ -90,6 +102,70 @@ export async function scheduleView(arg?: string) {
     noClasses: t('emptyList'),
   }) || `<p class="muted">${t('emptyList')}</p>`;
   setTimeout(() => fitCards(grid)); // once it is on the page and has a size
+
+  // ── Money from someone who is not a client: a method, an amount, and straight to the confirmation ──
+  const paidFor = (key: 'entry_id' | 'rental_id', id: string) => guestPaid.filter((p) => p[key] === id).reduce((s, p) => s + Number(p.amount), 0);
+  const guestPay = (payer: string, what: string, amount: number, ref: Row) => {
+    const method = select(METHODS.map((m): [string, string] => [m, t(m)]), 'cash', () => {});
+    const sum = h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: amount, ariaLabel: t('amount') });
+    return h('span', { className: 'row' }, method, sum, h('button', { type: 'button', className: 'primary', textContent: t('recordPayment'), onclick: async () => {
+      if (!(Number(sum.value) > 0)) return flash(t('needAmount'), true);
+      const id = await get<string>(db!.rpc('record_payment', { p: { payer_name: payer, what, amount: Number(sum.value), method: method.value, ...ref }, lines: [] }));
+      location.hash = `#/receipt/${id}`;
+    } }));
+  };
+
+  // ── One-time entries, to a one-time group or to a regular class on a date ──
+  // A client's student gets it on their account; a guest is a name and pays here.
+  const entriesBlock = (target: Row, defaultAmount: number, what: string): Part[] => {
+    const list = entries.filter((e) => (target.event_id ? e.event_id === target.event_id : e.group_id === target.group_id && e.held_on === target.held_on));
+    const guestName = h('input', { type: 'text', placeholder: t('name') });
+    const who = select([['', t('guest')], ...students.map((s): [string, string] => [s.id, s.full_name])], '', (v) => (guestName.hidden = !!v));
+    const amount = h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: defaultAmount, ariaLabel: t('amount') });
+    return [
+      h('h3', { textContent: `${t('entries')} (${list.length})` }),
+      ...list.map((e) => {
+        const paid = paidFor('entry_id', e.id);
+        return h('div', { className: 'row' },
+          h('span', { className: 'grow' },
+            e.students ? h('a', { href: `#/client/${e.students.client_id}/pay`, textContent: e.students.full_name }) : e.guest_name, ' · ', ltr(money(e.amount)),
+            e.students ? h('small', {}, t('onClientAccount')) : paid >= Number(e.amount) && h('small', {}, `✓ ${t('paid')}`)
+          ),
+          !e.students && paid < Number(e.amount) && guestPay(e.guest_name, what, Number(e.amount) - paid, { entry_id: e.id }),
+          sureButton('×', () => done(ok(db!.from('entries').delete().eq('id', e.id))), { title: t('del'), ariaLabel: t('del') })
+        );
+      }),
+      h('div', { className: 'row' }, who, guestName, amount, h('button', { type: 'button', textContent: t('addEntry'), onclick: async () => {
+        if (!who.value && !guestName.value.trim()) return flash(t('needName'), true);
+        await get(db!.rpc('add_entry', { e: { ...target, student_id: who.value, guest_name: who.value ? '' : guestName.value.trim(), amount: Number(amount.value) || 0 } }));
+        flash(t('saved'));
+        nav.refresh();
+      } })),
+    ];
+  };
+
+  // ── One-time groups (master classes) ──
+  const eventPanel = (e: Row): Part[] => {
+    const save = (patch: Row) => done(ok(db!.from('events').update(patch).eq('id', e.id)));
+    const onChange = (key: string, numeric = false) => (ev: Event) => {
+      const v = (ev.target as HTMLInputElement).value.trim();
+      if (v) save({ [key]: numeric ? Number(v) : v });
+    };
+    return [
+      h('p', { className: 'quote' }, `★ ${e.title} · `, ltr(`${dayText(e.held_on)} ${hhmm(e.start_time)}–${plus(e.start_time, e.minutes)}`), ` · ${e.hall || '—'} · ${trainerName(e.trainer_id) || '—'} · `, ltr(money(e.price))),
+      h('div', { className: 'grid' },
+        field(t('title'), h('input', { type: 'text', value: e.title, onchange: onChange('title') })),
+        field(t('date'), h('input', { type: 'date', value: e.held_on, onchange: onChange('held_on') })),
+        field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(e.start_time), onchange: onChange('start_time') })),
+        field(t('minutes'), h('input', { type: 'number', min: 1, className: 'num', value: e.minutes, onchange: onChange('minutes', true) })),
+        field(t('hall'), select(hallOptions, e.hall, (v) => save({ hall: v }))),
+        field(t('trainer'), select([['', '—'], ...trainerOptions], e.trainer_id ?? '', (v) => save({ trainer_id: v || null }))),
+        field(t('pricePerEntry'), h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: Number(e.price), onchange: onChange('price', true) }))
+      ),
+      ...entriesBlock({ event_id: e.id }, Number(e.price), `${e.title}, ${dayText(e.held_on)}`),
+      h('div', { className: 'row' }, sureButton(t('del'), () => done(ok(db!.from('events').delete().eq('id', e.id))))),
+    ];
+  };
 
   // ── Private lessons ──
   const setStatus = (l: Row, status: string) => done(ok(db!.rpc('set_lesson_status', { lid: l.id, new_status: status })));
@@ -155,6 +231,7 @@ export async function scheduleView(arg?: string) {
         field(t('hall'), select(hallOptions, slot.hall, (v) => always({ hall: v }))),
         field(t('trainer'), select([['', '—'], ...trainerOptions], slot.trainer_id ?? '', (v) => always({ trainer_id: v || null })))
       ),
+      ...entriesBlock({ group_id: c.group_id, held_on: c.held_on }, entryPrice, `${t('oneTimeEntry')}: ${c.group_name}, ${dayText(c.held_on)}`),
     ];
   };
 
@@ -163,6 +240,7 @@ export async function scheduleView(arg?: string) {
     const save = (patch: Row) => done(ok(db!.from('rentals').update(patch).eq('id', r.id)));
     const text = (key: string, type = 'text', props: Row = {}) =>
       h('input', { type, value: r[key] ?? '', ...props, onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value.trim(); if (v || key === 'price' || key === 'note') save({ [key]: key === 'price' ? (v === '' ? null : Number(v)) : key === 'minutes' ? Number(v) : v }); } });
+    const paid = paidFor('rental_id', r.id);
     return [
       h('p', { className: 'quote' }, `🔑 ${r.who} · `, ltr(`${dayText(r.held_on)} ${hhmm(r.start_time)}–${plus(r.start_time, r.minutes)}`), ` · ${r.hall || '—'}`, r.price != null && ' · ', r.price != null && ltr(money(r.price))),
       h('div', { className: 'grid' },
@@ -173,23 +251,36 @@ export async function scheduleView(arg?: string) {
         field(t('price'), text('price', 'number', { min: 0, step: 'any', className: 'num' })),
         field(t('comment'), text('note'), 'wide')
       ),
+      r.price != null && (paid >= Number(r.price)
+        ? h('p', { className: 'muted' }, `✓ ${t('paid')}: `, ltr(money(paid)))
+        : h('div', { className: 'row' }, h('span', {}, `${t('owed')}: `, ltr(money(Number(r.price) - paid))),
+            guestPay(r.who, `${t('rentals')}${r.hall ? `, ${r.hall}` : ''}, ${dayText(r.held_on)} ${hhmm(r.start_time)}–${plus(r.start_time, r.minutes)}`, Number(r.price) - paid, { rental_id: r.id }))),
       h('div', { className: 'row' }, sureButton(t('del'), () => done(ok(db!.from('rentals').delete().eq('id', r.id))))),
     ];
   };
 
   // The panel under the grid: what was clicked, and what can be done with it.
   const detail = h('div', { className: 'stack detail' });
+  const open = (d: string, n: number, scroll: boolean) => {
+    const e = onGrid.get(d)![n];
+    picked = e.key;
+    grid.querySelector('.is-picked')?.classList.remove('is-picked');
+    grid.querySelector(`[data-ev="${d}|${n}"]`)?.classList.add('is-picked');
+    const parts = e.lesson ? lessonPanel(e.lesson) : e.group ? classPanel(e.group) : e.event ? eventPanel(e.event) : rentalPanel(e.rental!);
+    detail.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
+    if (scroll) detail.scrollIntoView({ block: 'nearest' });
+  };
   grid.onclick = (ev) => {
     const card = (ev.target as Element).closest<HTMLElement>('[data-ev]');
     if (!card) return;
     const [d, n] = card.dataset.ev!.split('|');
-    const e = entries.get(d)![Number(n)];
-    grid.querySelector('.is-picked')?.classList.remove('is-picked');
-    card.classList.add('is-picked');
-    const parts = e.lesson ? lessonPanel(e.lesson) : e.group ? classPanel(e.group) : rentalPanel(e.rental!);
-    detail.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
-    detail.scrollIntoView({ block: 'nearest' });
+    open(d, Number(n), true);
   };
+  // After a change the screen redraws: bring back the panel that was open, if its card is still in this week.
+  for (const [d, list] of onGrid) {
+    const n = list.findIndex((e) => e.key === picked);
+    if (n >= 0) open(d, n, false);
+  }
 
   // ── Add a private lesson ──
   // Choosing a trainer offers that trainer's lesson lengths; the first student's
@@ -260,6 +351,28 @@ export async function scheduleView(arg?: string) {
     if (saved) goTo(rDate.value);
   };
 
+  // ── Add a one-time group (master class) ──
+  const eTitle = h('input', { type: 'text', required: true });
+  const eDate = h('input', { type: 'date', value: firstDay, required: true });
+  const eTime = h('input', { type: 'time', step: 300, required: true });
+  const eMinutes = h('input', { type: 'number', min: 1, value: 90, className: 'num', required: true });
+  const eHall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {});
+  const eTrainer = select([['', '—'], ...trainerOptions], '', () => {});
+  const ePrice = h('input', { type: 'number', min: 0, step: 'any', className: 'num', required: true });
+  const eventForm = h('form', { className: 'stack' },
+    h('h2', { textContent: t('addEvent') }),
+    h('div', { className: 'grid' },
+      field(t('title'), eTitle, 'wide'), field(t('date'), eDate), field(t('time'), eTime), field(t('minutes'), eMinutes),
+      field(t('hall'), eHall), field(t('trainer'), eTrainer), field(t('pricePerEntry'), ePrice)
+    ),
+    h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('addEvent') }))
+  );
+  eventForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const saved = await ok(db!.from('events').insert({ title: eTitle.value.trim(), held_on: eDate.value, start_time: eTime.value, minutes: Number(eMinutes.value), hall: eHall.value, trainer_id: eTrainer.value || null, price: Number(ePrice.value) || 0 }));
+    if (saved) goTo(eDate.value);
+  };
+
   // Under the grid: what is not on it — cancelled lessons and classes, lessons without a time.
   const offLessons = lessons.filter((l) => !l.start_time || l.status === 'cancelled');
   const offClasses = classes.filter((c) => c.cancelled);
@@ -290,6 +403,7 @@ export async function scheduleView(arg?: string) {
       )
     ),
     h('section', { className: 'card' }, lessonForm),
+    h('section', { className: 'card' }, eventForm),
     h('section', { className: 'card' }, rentalForm)
   );
 }

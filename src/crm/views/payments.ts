@@ -11,7 +11,7 @@ const dateText = (lang: Lang, iso: string) => new Date(`${iso}T12:00:00Z`).toLoc
 const sum = (rows: Row[], key = 'amount') => rows.reduce((s, r) => s + Number(r[key]), 0);
 /** What a charge is for, in a given language: "Kids 2×45, November 2026". */
 const chargeLabel = (lang: Lang, c: Row) =>
-  [c.kind === 'private' ? `${tIn(lang, 'privateLesson')}: ${c.description}` : c.description, c.month ? monthName(lang, c.month) : c.day && dateText(lang, c.day)].filter(Boolean).join(', ') || c.comment || '';
+  [c.kind === 'private' ? `${tIn(lang, 'privateLesson')}: ${c.description}` : c.kind === 'entry' ? `${tIn(lang, 'oneTimeEntry')}: ${c.description}` : c.description, c.month ? monthName(lang, c.month) : c.day && dateText(lang, c.day)].filter(Boolean).join(', ') || c.comment || '';
 /** A WhatsApp chat with the text ready. Israeli numbers are typed 05x…, WhatsApp wants 9725x…. */
 const waLink = (phone: string, text: string) => `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '972')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 const methodText = (lang: Lang, p: Row) =>
@@ -159,17 +159,20 @@ export async function receiptView(id?: string) {
     get<Row[]>(db!.from('settings').select('value').eq('id', 'business')),
   ]);
   const biz: Row = settings[0]?.value ?? {};
-  const L: Lang = p.clients.lang;
+  const L: Lang = p.clients?.lang ?? getLang(); // a guest's confirmation is in the language of the screen
+  const payer: string = p.clients?.full_name ?? p.payer_name;
   const refund = Number(p.amount) < 0;
   const lines: Row[] = p.payment_lines.map((l: Row) => ({ who: l.charges.students.full_name, what: chargeLabel(L, l.charges), amount: Math.abs(Number(l.amount)) }));
   const spare = Math.abs(Number(p.amount)) - sum(lines);
-  if (spare > 0.001 && !refund) lines.push({ who: '', what: tIn(L, 'onAccount'), amount: spare });
+  // From someone who is not a client there are no charges behind the payment: the line is what they paid for.
+  if (!p.clients && p.what) lines.push({ who: '', what: p.what, amount: Math.abs(Number(p.amount)) });
+  else if (spare > 0.001 && !refund) lines.push({ who: '', what: tIn(L, 'onAccount'), amount: spare });
   const title = `${tIn(L, refund ? 'rcRefund' : 'rcTitle')} № ${p.number}`;
   const total = money(Math.abs(Number(p.amount)));
 
   const facts: [string, string][] = [
     [tIn(L, 'date'), dateText(L, p.paid_on)],
-    [tIn(L, refund ? 'rcTo' : 'rcFrom'), p.clients.full_name],
+    [tIn(L, refund ? 'rcTo' : 'rcFrom'), payer],
     [tIn(L, 'method'), methodText(L, p)],
     ...(p.paper_doc ? [[tIn(L, 'paperDoc'), p.paper_doc] as [string, string]] : []),
     ...(p.comment ? [[tIn(L, 'comment'), p.comment] as [string, string]] : []),
@@ -207,13 +210,22 @@ export async function receiptView(id?: string) {
     if (navigator.canShare?.({ files: [file] })) return void navigator.share({ files: [file], title }).catch(() => {}); // closing the sheet is not an error
     h('a', { href: URL.createObjectURL(blob), download: file.name }).click();
     flash(t('shareHint'));
-    if (p.clients.phone) open(waLink(p.clients.phone, ''), '_blank', 'noopener');
+    if (p.clients?.phone) open(waLink(p.clients.phone, ''), '_blank', 'noopener');
   };
 
   return h('div', { className: 'stack sheets' },
     h('div', { className: 'row noprint' },
-      h('a', { href: `#/client/${p.clients.id}/pay`, textContent: `← ${p.clients.full_name}` }),
+      p.clients ? h('a', { href: `#/client/${p.clients.id}/pay`, textContent: `← ${p.clients.full_name}` }) : h('a', { href: `#/lessons/${p.paid_on}`, textContent: `← ${t('lessons')}` }),
       h('span', { className: 'grow' }),
+      // A payment from a non-client has no client page to void it from, so it is voided here.
+      !p.clients && !p.voided && h('button', { type: 'button', textContent: t('void'), onclick: (ev: Event) => {
+        const reason = h('input', { type: 'text', placeholder: t('voidReason') });
+        (ev.target as HTMLElement).replaceWith(reason, h('button', { type: 'button', className: 'danger', textContent: t('void'), onclick: async () => {
+          if (!reason.value.trim()) return flash(t('commentRequired'), true);
+          if (await ok(db!.from('payments').update({ voided: true, void_reason: reason.value.trim() }).eq('id', p.id))) nav.refresh();
+        } }));
+        reason.focus();
+      } }),
       h('button', { type: 'button', className: 'primary', textContent: t('print'), onclick: () => print() }),
       h('button', { type: 'button', textContent: t('sendWhatsApp'), onclick: send })
     ),
@@ -362,7 +374,8 @@ export async function reportsView(arg?: string) {
   const owed = charges.length ? sum(await get<Row[]>(db!.from('charge_balances').select('owed').in('charge_id', charges.map((c) => c.id))), 'owed') : 0;
   const live = payments.filter((p) => !p.voided);
   const lang = getLang();
-  const covers = (p: Row) => p.payment_lines.map((l: Row) => `${l.charges.students.full_name}: ${chargeLabel(lang, l.charges)} (${Number(l.amount)})`).join('; ');
+  const covers = (p: Row) => p.payment_lines.map((l: Row) => `${l.charges.students.full_name}: ${chargeLabel(lang, l.charges)} (${Number(l.amount)})`).join('; ') || p.what;
+  const payerOf = (p: Row): string => p.clients?.full_name ?? p.payer_name;
 
   // An expense always says what it was for.
   const spentOn = h('input', { type: 'date', value: today().slice(0, 7) === ym ? today() : `${ym}-01`, required: true, ariaLabel: t('date') });
@@ -378,7 +391,7 @@ export async function reportsView(arg?: string) {
   const exportExcel = async () => {
     const XLSX = await import('xlsx');
     const sheet = XLSX.utils.json_to_sheet(payments.map((p) => ({
-      [t('date')]: p.paid_on, '№': p.number, [t('paperDoc')]: p.paper_doc, [t('client')]: p.clients.full_name, [t('method')]: methodText(lang, p),
+      [t('date')]: p.paid_on, '№': p.number, [t('paperDoc')]: p.paper_doc, [t('client')]: payerOf(p), [t('method')]: methodText(lang, p),
       [t('amount')]: Number(p.amount), [t('covers')]: covers(p), [t('comment')]: p.comment, [t('voided')]: p.voided ? p.void_reason : '',
     })));
     const book = XLSX.utils.book_new();
@@ -417,7 +430,7 @@ export async function reportsView(arg?: string) {
           h('tbody', {}, ...payments.map((p) => h('tr', { className: p.voided ? 'off' : '' },
             h('td', {}, h('a', { href: `#/receipt/${p.id}`, textContent: `№ ${p.number}` })),
             h('td', {}, ltr(dateText(lang, p.paid_on))),
-            h('td', {}, p.clients.full_name),
+            h('td', {}, payerOf(p)),
             h('td', {}, methodText(lang, p)),
             h('td', {}, ltr(money(p.amount))),
             h('td', {}, covers(p), p.voided && h('small', {}, `${t('voided')}: ${p.void_reason}`))
