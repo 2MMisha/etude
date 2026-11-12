@@ -8,7 +8,7 @@ import { settingsView } from './views/settings';
 import { accountsView } from './views/accounts';
 import { debtsView, receiptView, reportsView } from './views/payments';
 
-const ROUTES: Record<string, (arg?: string) => Promise<HTMLElement>> = {
+const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement>> = {
   clients: clientsView,
   client: clientView,
   month: monthView,
@@ -92,7 +92,7 @@ function drawChrome(current: string) {
 }
 
 async function render() {
-  const [name = '', arg] = location.hash.replace(/^#\/?/, '').split('/');
+  const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
   const route = name in ROUTES ? name : 'clients';
   const staff = drawChrome(route);
   if (!db) return view.replaceChildren(card('notConnected'));
@@ -100,7 +100,7 @@ async function render() {
   if (!state.me) return view.replaceChildren(signInView());
   if (!staff) return view.replaceChildren(card('noAccess'));
   try {
-    view.replaceChildren(await ROUTES[route](arg));
+    view.replaceChildren(await ROUTES[route](arg, sub));
   } catch (e) {
     view.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
   }

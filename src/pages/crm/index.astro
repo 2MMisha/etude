@@ -50,6 +50,10 @@ import '../../styles/global.css';
       #nav a { padding: 0.6em 0.9em; text-decoration: none; color: var(--color-ink-soft); font-weight: 600; white-space: nowrap; border-block-end: 3px solid transparent; }
       #nav a[aria-current='page'] { color: var(--color-navy-900); border-block-end-color: var(--color-blue-600); }
 
+      .subtabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .subtabs a { padding: 0.45em 1em; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink); text-decoration: none; font-weight: 600; font-size: 0.92rem; }
+      .subtabs a[aria-current='page'] { background: var(--color-navy-900); border-color: var(--color-navy-900); color: #fff; }
+
       .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-sm); display: grid; gap: 0.9rem; }
       .card.off { opacity: 0.6; }
       .stack { display: grid; gap: var(--space-sm); }
@@ -91,6 +95,7 @@ import '../../styles/global.css';
       .quote button { margin-inline-start: 0.8rem; }
       .pick { padding: 0.35em 0.6em; border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
       .crm td.ok { color: #1f7a4d; font-weight: 700; }
+      .crm td.owes { color: #b3261e; font-weight: 700; }
       .crm td .row { flex-wrap: nowrap; justify-content: flex-end; }
 
       .receipt { max-width: 640px; margin-inline: auto; padding: var(--space-md); position: relative; }
@@ -104,10 +109,19 @@ import '../../styles/global.css';
       .receipt tfoot th { font-size: 1.05rem; color: var(--color-navy-900); border-block-end: 0; }
       .receipt.void { opacity: 0.6; }
       .receipt .stamp { margin: 0; color: #b3261e; font-weight: 700; font-size: 1.2rem; text-transform: uppercase; }
+      .receipt.copy { display: none; }
+      /* On paper: one A4 sheet, the same confirmation on each half, a dashed line to cut along. */
       @media print {
+        @page { size: A4 portrait; margin: 0; }
         body { background: #fff; }
         .crm-top, #nav, .noprint, .status { display: none !important; }
-        .receipt { border: 0; max-width: none; }
+        .crm { max-width: none; padding: 0; }
+        .sheets { gap: 0; }
+        .receipt, .receipt.copy {
+          display: grid; align-content: start; box-sizing: border-box; height: 148.5mm; max-width: none; margin: 0;
+          padding: 12mm 16mm; border: 0; border-radius: 0; overflow: hidden; break-inside: avoid; font-size: 10.5pt;
+        }
+        .receipt.copy { border-block-start: 1px dashed #999; }
       }
 
       .sign { max-width: 380px; margin: 10vh auto 0; }

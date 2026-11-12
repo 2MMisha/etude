@@ -32,6 +32,8 @@ export function flash(text: string, bad = false) {
 type Result<T> = PromiseLike<{ data: T; error: { message: string; code?: string } | null }>;
 /** The database refusing a delete because other records point at the row. */
 const FOREIGN_KEY = '23503';
+/** …or an insert because the same thing is already there (a second charge for one month). */
+const DUPLICATE = '23505';
 /** Read: the rows, or the error on screen (and thrown, so the view stops). */
 export async function get<T>(call: Result<unknown>): Promise<T> {
   const { data, error } = await call;
@@ -44,7 +46,7 @@ export async function get<T>(call: Result<unknown>): Promise<T> {
 /** Write: true and "Saved", or false and the database's refusal on screen. */
 export async function ok(call: Result<unknown>): Promise<boolean> {
   const { error } = await call;
-  flash(error ? (error.code === FOREIGN_KEY ? t('inUse') : error.message) : t('saved'), !!error);
+  flash(error ? (error.code === FOREIGN_KEY ? t('inUse') : error.code === DUPLICATE ? t('duplicate') : error.message) : t('saved'), !!error);
   return !error;
 }
 
@@ -85,6 +87,22 @@ export function sureButton(label: string, action: () => void, props: Record<stri
   return b;
 }
 
+/** Today in Israel, as YYYY-MM-DD. */
+export const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
+/**
+ * Once a month, the first time the Month tab or a client page opens: put the
+ * month's fee on every active student who has a price. Only once, so a line
+ * deleted on purpose stays deleted; someone who joins later is added from
+ * their own page, or with the button on the Month tab.
+ */
+export async function fillThisMonth() {
+  const ym = today().slice(0, 7);
+  const { data } = await db!.from('settings').select('value').eq('id', 'filled_month').maybeSingle();
+  if (data?.value === ym) return;
+  const { error } = await db!.rpc('create_month_charges', { m: `${ym}-01` });
+  if (error) return flash(error.message, true);
+  await db!.from('settings').upsert({ id: 'filled_month', value: ym });
+}
 export const money = (n: unknown) => (n == null ? '—' : `${Number(n)} ₪`);
 /** A formula or amount that must read left to right inside Hebrew text. */
 export const ltr = (text: string) => h('bdi', { dir: 'ltr', textContent: text });

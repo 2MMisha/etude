@@ -2,7 +2,7 @@
 // discounts, suggested monthly price and charges.
 import { t, LANGS } from '../i18n';
 import { paymentsCard } from './payments';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, type Row } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
@@ -48,8 +48,9 @@ export async function clientsView() {
   );
 }
 
-export async function clientView(id?: string) {
+export async function clientView(id?: string, tab?: string) {
   const client = await get<Row>(db!.from('clients').select('*').eq('id', id).single());
+  await fillThisMonth();
   const [students, groups, others] = await Promise.all([
     get<Row[]>(db!.from('students').select('*').eq('client_id', id).order('created_at')),
     get<Row[]>(db!.from('groups').select('id, name, archived').order('name')),
@@ -118,6 +119,52 @@ export async function clientView(id?: string) {
       : h('span', {}, ltr(`${q.description}: ${money(q.list_amount)}${pct ? ` − ${pct}%` : ''} = ${money(q.amount)}`), ` ${t('perMonth')}`);
 
     const lines = charges.filter((c) => c.student_id === s.id);
+    const byPriceList = q?.amount != null && { amount: q.amount, description: q.description, list_amount: q.list_amount, discounts: q.discounts, manual: false, comment: '' };
+
+    // A charge: its amount can be changed by hand (a reason is then required),
+    // put back to the price list, or deleted — unless a payment already covers it.
+    const chargeRow = (c: Row) => {
+      const amount = number(c.amount, () => save());
+      const note = input(c.comment, () => save(), { placeholder: t('comment'), ariaLabel: t('comment') });
+      const save = async () => {
+        if (amount.value === '') return void (amount.value = c.amount);
+        if (!note.value.trim()) {
+          flash(t('commentRequired'), true);
+          return note.focus();
+        }
+        if (await ok(db!.from('charges').update({ amount: Number(amount.value), manual: true, comment: note.value.trim() }).eq('id', c.id))) nav.refresh();
+      };
+      return h('tr', {},
+        h('td', {}, c.month ? h('a', { href: `#/month/${c.month.slice(0, 7)}`, textContent: c.month.slice(0, 7) }) : ''),
+        h('td', {}, ltr(c.description), c.manual && h('small', {}, t('byHand'))),
+        h('td', {}, amount),
+        h('td', {}, note),
+        h('td', { className: 'actions' },
+          byPriceList && c.kind === 'membership' && h('button', { type: 'button', textContent: '↺', title: t('recalc'), ariaLabel: t('recalc'), onclick: async () => {
+            if (await ok(db!.from('charges').update(byPriceList).eq('id', c.id))) nav.refresh();
+          } }),
+          sureButton('×', async () => { if (await ok(db!.from('charges').delete().eq('id', c.id))) nav.refresh(); }, { title: t('del'), ariaLabel: t('del') })
+        )
+      );
+    };
+
+    // Charge one month: by the price list if the amount is left as suggested, else by hand with a reason.
+    const newMonth = h('input', { type: 'month', value: today().slice(0, 7), required: true, ariaLabel: t('month') });
+    const newAmount = h('input', { type: 'number', step: 'any', min: 0, className: 'num', value: q?.amount ?? '', required: true, ariaLabel: t('amount') });
+    const newNote = h('input', { type: 'text', placeholder: t('comment') });
+    const addCharge = h('form', { className: 'row' }, newMonth, newAmount, newNote, h('button', { type: 'submit', textContent: t('addCharge') }));
+    addCharge.onsubmit = async (e) => {
+      e.preventDefault();
+      const value = Number(newAmount.value);
+      const listed = byPriceList && value === Number(q!.amount) && !newNote.value.trim();
+      if (!listed && !newNote.value.trim()) {
+        flash(t('commentRequired'), true);
+        return newNote.focus();
+      }
+      const line = listed ? byPriceList : { amount: value, manual: true, comment: newNote.value.trim(), description: q?.description ?? '', list_amount: q?.list_amount ?? null };
+      if (await ok(db!.from('charges').insert({ student_id: s.id, kind: 'membership', month: `${newMonth.value}-01`, ...line }))) nav.refresh();
+    };
+
     return h('section', { className: `card${s.archived ? ' off' : ''}` },
       h('div', { className: 'grid' },
         field(t('name'), nameInput('students', s)),
@@ -156,13 +203,9 @@ export async function clientView(id?: string) {
 
       h('h3', { textContent: t('charges') }),
       lines.length
-        ? h('div', { className: 'scroll' }, h('table', {}, h('tbody', {}, ...lines.map((c) => h('tr', {},
-            h('td', {}, c.month ? h('a', { href: `#/month/${c.month.slice(0, 7)}`, textContent: c.month.slice(0, 7) }) : ''),
-            h('td', {}, ltr(c.description)),
-            h('td', {}, ltr(money(c.amount))),
-            h('td', { className: 'muted' }, c.comment)
-          )))))
+        ? h('div', { className: 'scroll' }, h('table', {}, h('tbody', {}, ...lines.map(chargeRow))))
         : h('p', { className: 'muted', textContent: t('noCharges') }),
+      addCharge,
       h('div', { className: 'row spread' },
         tick(t('archived'), checkbox(s.archived, (v) => upd({ archived: v }, true))),
         sureButton(t('del'), async () => { if (await ok(db!.from('students').delete().eq('id', s.id))) nav.refresh(); })
@@ -182,13 +225,18 @@ export async function clientView(id?: string) {
     addStudent({ full_name: newName.value.trim() });
   };
 
+  // Three tabs, so the page isn't one long scroll: details, money, students.
+  const TABS: [string, string][] = [['info', t('tabInfo')], ['pay', t('payments')], ['students', `${t('students')} (${students.length})`]];
+  const current = TABS.some(([k]) => k === tab) ? tab : 'info';
+  const body =
+    current === 'pay' ? [await paymentsCard(client, students, charges)]
+    : current === 'students' ? [...students.map(studentCard), h('section', { className: 'card' }, addForm)]
+    : [clientCard];
+
   return h('div', { className: 'stack' },
     h('a', { href: '#/clients', textContent: t('back') }),
     h('h1', { textContent: client.full_name }),
-    clientCard,
-    await paymentsCard(client, students, charges),
-    h('h2', { textContent: t('students') }),
-    ...students.map(studentCard),
-    h('section', { className: 'card' }, addForm)
+    h('nav', { className: 'subtabs' }, ...TABS.map(([k, label]) => h('a', { href: `#/client/${client.id}/${k}`, textContent: label, ariaCurrent: k === current ? 'page' : null }))),
+    ...body
   );
 }

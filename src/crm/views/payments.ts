@@ -2,10 +2,9 @@
 // void, refund), the printable confirmation, the Debts list and the monthly
 // report with its Excel export.
 import { getLang, t, tIn, LOCALE, type Key, type Lang } from '../i18n';
-import { db, h, get, ok, nav, input, select, field, flash, money, ltr, type Row } from '../ui';
+import { db, h, get, ok, nav, input, select, field, flash, money, ltr, today, type Row } from '../ui';
 
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
-const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
 const monthName = (lang: Lang, iso: string) =>
   new Date(`${iso.slice(0, 7)}-01T12:00:00Z`).toLocaleDateString(LOCALE[lang], { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const dateText = (lang: Lang, iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE[lang], { timeZone: 'UTC' });
@@ -13,7 +12,7 @@ const sum = (rows: Row[], key = 'amount') => rows.reduce((s, r) => s + Number(r[
 /** What a charge is for, in a given language: "Kids 2×45, November 2026". */
 const chargeLabel = (lang: Lang, c: Row) => [c.description, c.month && monthName(lang, c.month)].filter(Boolean).join(', ') || c.comment || '';
 /** A WhatsApp chat with the text ready. Israeli numbers are typed 05x…, WhatsApp wants 9725x…. */
-const waLink = (phone: string, text: string) => `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '972')}?text=${encodeURIComponent(text)}`;
+const waLink = (phone: string, text: string) => `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '972')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 const methodText = (lang: Lang, p: Row) =>
   tIn(lang, p.method as Key) + (p.method === 'cheque' ? [` ${p.cheque_number}`, p.cheque_bank, p.cheque_date && dateText(lang, p.cheque_date)].filter(Boolean).join(', ') : '');
 
@@ -149,7 +148,7 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
   );
 }
 
-// ── The confirmation: printed, saved as PDF or sent as text, in the client's language ──
+// ── The confirmation: printed (two per A4 sheet), saved as PDF or sent as a picture, in the client's language ──
 export async function receiptView(id?: string) {
   const [p, settings] = await Promise.all([
     get<Row>(db!.from('payments').select('*, clients(id, full_name, phone, lang), payment_lines(amount, charges(description, month, comment, students(full_name)))').eq('id', id).single()),
@@ -164,21 +163,18 @@ export async function receiptView(id?: string) {
   const title = `${tIn(L, refund ? 'rcRefund' : 'rcTitle')} № ${p.number}`;
   const total = money(Math.abs(Number(p.amount)));
 
-  const text = [
-    biz.name, title, dateText(L, p.paid_on),
-    `${tIn(L, refund ? 'rcTo' : 'rcFrom')}: ${p.clients.full_name}`,
-    ...lines.map((l) => `• ${[l.who, l.what].filter(Boolean).join(': ')} — ${money(l.amount)}`),
-    `${tIn(L, 'total')}: ${total} (${methodText(L, p)})`,
-  ].filter(Boolean).join('\n');
+  const facts: [string, string][] = [
+    [tIn(L, 'date'), dateText(L, p.paid_on)],
+    [tIn(L, refund ? 'rcTo' : 'rcFrom'), p.clients.full_name],
+    [tIn(L, 'method'), methodText(L, p)],
+    ...(p.paper_doc ? [[tIn(L, 'paperDoc'), p.paper_doc] as [string, string]] : []),
+    ...(p.comment ? [[tIn(L, 'comment'), p.comment] as [string, string]] : []),
+  ];
+  const forWhat = (l: Row) => [l.who, l.what].filter(Boolean).join(': ');
 
-  return h('div', { className: 'stack' },
-    h('div', { className: 'row noprint' },
-      h('a', { href: `#/client/${p.clients.id}`, textContent: `← ${p.clients.full_name}` }),
-      h('span', { className: 'grow' }),
-      h('button', { type: 'button', className: 'primary', textContent: t('print'), onclick: () => print() }),
-      p.clients.phone && h('a', { className: 'btn', href: waLink(p.clients.phone, text), target: '_blank', rel: 'noopener', textContent: t('sendWhatsApp') })
-    ),
-    h('article', { className: `card receipt${p.voided ? ' void' : ''}`, lang: L, dir: L === 'he' ? 'rtl' : 'ltr' },
+  /** The confirmation itself. Made twice: on paper the A4 sheet carries two identical halves, one to keep and one to give. */
+  const sheet = (copy: boolean) =>
+    h('article', { className: `card receipt${p.voided ? ' void' : ''}${copy ? ' copy' : ''}`, lang: L, dir: L === 'he' ? 'rtl' : 'ltr' },
       h('header', {},
         h('img', { src: '/images/brand/icon.svg', alt: '' }),
         h('div', {},
@@ -190,20 +186,131 @@ export async function receiptView(id?: string) {
       ),
       h('h1', { textContent: title }),
       p.voided && h('p', { className: 'stamp', textContent: tIn(L, 'voided') }),
-      h('dl', {},
-        h('dt', {}, tIn(L, 'date')), h('dd', {}, ltr(dateText(L, p.paid_on))),
-        h('dt', {}, tIn(L, refund ? 'rcTo' : 'rcFrom')), h('dd', {}, p.clients.full_name),
-        h('dt', {}, tIn(L, 'method')), h('dd', {}, methodText(L, p)),
-        p.paper_doc && h('dt', {}, tIn(L, 'paperDoc')), p.paper_doc && h('dd', {}, ltr(p.paper_doc)),
-        p.comment && h('dt', {}, tIn(L, 'comment')), p.comment && h('dd', {}, p.comment)
-      ),
+      h('dl', {}, ...facts.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])),
       h('table', {},
         h('thead', {}, h('tr', {}, h('th', {}, tIn(L, 'rcFor')), h('th', { className: 'sum' }, tIn(L, 'amount')))),
-        h('tbody', {}, ...lines.map((l) => h('tr', {}, h('td', {}, [l.who, l.what].filter(Boolean).join(': ')), h('td', { className: 'sum' }, ltr(money(l.amount)))))),
+        h('tbody', {}, ...lines.map((l) => h('tr', {}, h('td', {}, forWhat(l)), h('td', { className: 'sum' }, ltr(money(l.amount)))))),
         h('tfoot', {}, h('tr', {}, h('th', {}, tIn(L, 'total')), h('th', { className: 'sum' }, ltr(total))))
       )
-    )
+    );
+
+  // WhatsApp gets the confirmation as a picture. A web page can't drop a file
+  // into a chosen chat by itself: on a phone the share sheet does it; on a
+  // computer the picture is saved and the client's chat opens, to attach it.
+  const send = async () => {
+    const blob = await receiptImage({ L, biz, title, voided: p.voided ? tIn(L, 'voided') : '', facts, lines: lines.map((l) => [forWhat(l), money(l.amount)]), total: [tIn(L, 'total'), total], businessNo: tIn(L, 'businessNo') });
+    const file = new File([blob], `etude-${p.number}.png`, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) return void navigator.share({ files: [file], title }).catch(() => {}); // closing the sheet is not an error
+    h('a', { href: URL.createObjectURL(blob), download: file.name }).click();
+    flash(t('shareHint'));
+    if (p.clients.phone) open(waLink(p.clients.phone, ''), '_blank', 'noopener');
+  };
+
+  return h('div', { className: 'stack sheets' },
+    h('div', { className: 'row noprint' },
+      h('a', { href: `#/client/${p.clients.id}/pay`, textContent: `← ${p.clients.full_name}` }),
+      h('span', { className: 'grow' }),
+      h('button', { type: 'button', className: 'primary', textContent: t('print'), onclick: () => print() }),
+      h('button', { type: 'button', textContent: t('sendWhatsApp'), onclick: send })
+    ),
+    sheet(false),
+    sheet(true)
   );
+}
+
+interface ReceiptImage { L: Lang; biz: Row; title: string; voided: string; facts: [string, string][]; lines: [string, string][]; total: [string, string]; businessNo: string }
+
+/** The confirmation drawn as a PNG (canvas text handles Hebrew by itself). */
+async function receiptImage(d: ReceiptImage): Promise<Blob> {
+  const W = 720, P = 40, SCALE = 2, rtl = d.L === 'he';
+  const NAVY = '#17224a', INK = '#1b2132', SOFT = '#4a5367', LINE = '#dfe3ec';
+  const font = (px: number, weight = 400) => `${weight} ${px}px Montserrat, Heebo, Arial, sans-serif`;
+  await document.fonts.ready;
+  const logo = new Image();
+  logo.src = '/images/brand/icon.svg';
+  await logo.decode().catch(() => {});
+
+  // Drawn on a tall canvas first, then cut to the height actually used.
+  const tall = Object.assign(document.createElement('canvas'), { width: W * SCALE, height: 3000 * SCALE });
+  const g = tall.getContext('2d')!;
+  g.scale(SCALE, SCALE);
+  g.fillStyle = '#fff';
+  g.fillRect(0, 0, W, 3000);
+  g.direction = rtl ? 'rtl' : 'ltr';
+  const start = rtl ? W - P : P; // where a line of text begins…
+  const end = rtl ? P : W - P; // …and where the amounts line up
+  const into = (x: number, by: number) => x + (rtl ? -by : by); // "by" pixels further along the reading direction
+  const put = (text: string, x: number, y: number, f: string, color: string, align: CanvasTextAlign = 'start') => {
+    g.font = f;
+    g.fillStyle = color;
+    g.textAlign = align;
+    g.fillText(text, x, y);
+  };
+  const rule = (y: number) => {
+    g.fillStyle = LINE;
+    g.fillRect(P, y, W - 2 * P, 1);
+  };
+  /** Break a text into lines no wider than maxW. */
+  const wrap = (text: string, maxW: number, f: string) => {
+    g.font = f;
+    const out: string[] = [];
+    let line = '';
+    for (const word of text.split(' ')) {
+      if (line && g.measureText(`${line} ${word}`).width > maxW) {
+        out.push(line);
+        line = word;
+      } else line = line ? `${line} ${word}` : word;
+    }
+    return [...out, line];
+  };
+
+  let y = P;
+  if (logo.naturalWidth) g.drawImage(logo, rtl ? W - P - 52 : P, y, 52, 52);
+  const hx = into(start, 68);
+  put(d.biz.name ?? '', hx, y + 20, font(20, 700), NAVY);
+  let hy = y + 42;
+  for (const text of [d.biz.address, d.biz.phone, d.biz.number && `${d.businessNo} ${d.biz.number}`]) {
+    if (!text) continue;
+    put(text, hx, hy, font(14), SOFT);
+    hy += 20;
+  }
+  y = Math.max(y + 52, hy - 8) + 44;
+  put(d.title, start, y, font(24, 700), NAVY);
+  y += 20;
+  if (d.voided) {
+    put(d.voided.toUpperCase(), start, y + 22, font(20, 700), '#b3261e');
+    y += 30;
+  }
+  y += 20;
+  for (const [k, v] of d.facts) {
+    put(k, start, y, font(14), SOFT);
+    for (const part of wrap(v, W - 2 * P - 170, font(15, 600))) {
+      put(part, into(start, 170), y, font(15, 600), INK);
+      y += 24;
+    }
+    y += 4;
+  }
+  y += 8;
+  rule(y);
+  y += 26;
+  for (const [what, amount] of d.lines) {
+    put(amount, end, y, font(15, 600), INK, 'end');
+    for (const part of wrap(what, W - 2 * P - 130, font(15))) {
+      put(part, start, y, font(15), INK);
+      y += 22;
+    }
+    y += 6;
+    rule(y - 12);
+    y += 14;
+  }
+  y += 8;
+  put(d.total[0], start, y, font(19, 700), NAVY);
+  put(d.total[1], end, y, font(19, 700), NAVY, 'end');
+  y += P;
+
+  const out = Object.assign(document.createElement('canvas'), { width: W * SCALE, height: Math.ceil(y) * SCALE });
+  out.getContext('2d')!.drawImage(tall, 0, 0);
+  return new Promise((resolve, reject) => out.toBlob((b) => (b ? resolve(b) : reject(new Error('could not draw the confirmation'))), 'image/png'));
 }
 
 // ── Debts: every family that owes, with a ready WhatsApp reminder ────────────
@@ -222,7 +329,7 @@ export async function debtsView() {
       ? h('div', { className: 'scroll' }, h('table', {},
           h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('owes')), h('th'))),
           h('tbody', {}, ...rows.map((r) => h('tr', {},
-            h('td', {}, h('a', { href: `#/client/${r.id}`, textContent: r.full_name })),
+            h('td', {}, h('a', { href: `#/client/${r.id}/pay`, textContent: r.full_name })),
             h('td', {}, ltr(r.phone ?? '')),
             h('td', {}, ltr(money(r.owed))),
             h('td', { className: 'actions' }, r.phone && h('a', { className: 'btn', target: '_blank', rel: 'noopener', textContent: t('remind'),
