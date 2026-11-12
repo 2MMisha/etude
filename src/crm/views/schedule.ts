@@ -93,13 +93,13 @@ export async function scheduleView(arg?: string) {
   const show = (e: Entry) => {
     if (e.slot) {
       return detail.replaceChildren(h('p', { className: 'quote' },
-        `${e.slot.groups.name} · ${fmt('2023-01-01', {}) && WEEKDAY(e.slot.weekday)} `, ltr(`${e.item.start}–${e.item.end}`),
+        `${e.slot.groups.name} · ${WEEKDAY(e.slot.weekday)} `, ltr(`${e.item.start}–${e.item.end}`),
         ` · ${e.slot.hall || '—'} · ${e.slot.trainers?.full_name ?? '—'} · `, h('a', { href: '#/settings', textContent: t('editInSettings') })
       ));
     }
     const l = e.lesson!;
     const move = (patch: Row) => ok(db!.from('lessons').update(patch).eq('id', l.id)).then((done) => { if (done) nav.refresh(); });
-    detail.replaceChildren(
+    const parts = [
       h('p', { className: 'quote' },
         `${names(l)} · ${l.trainers.full_name} ${l.minutes}′ · `, ltr(money(l.price)), ` (${t('trainerGets')}: `, ltr(money(l.trainer_pay)), `) · ${t(l.status as Key)}`,
         l.note && h('small', {}, l.note)
@@ -110,8 +110,9 @@ export async function scheduleView(arg?: string) {
         h('input', { type: 'time', step: 300, value: hhmm(l.start_time), ariaLabel: t('time'), onchange: (ev: Event) => move({ start_time: (ev.target as HTMLInputElement).value }) }),
         select([['', '—'], ...halls.map((x): [string, string] => [x, x])], l.hall, (v) => move({ hall: v }), { ariaLabel: t('hall') })
       ),
-      h('div', { className: 'row' }, ...actions(l))
-    );
+      h('div', { className: 'row' }, ...actions(l)),
+    ];
+    detail.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
     detail.scrollIntoView({ block: 'nearest' });
   };
   grid.onclick = (ev) => {

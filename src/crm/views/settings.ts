@@ -1,18 +1,20 @@
 // Settings: the price list (programmes at 1–3 classes a week, unlimited,
 // one-time entry, private lessons, rentals), the groups and the discount sizes.
 import { t } from '../i18n';
+import { WEEKDAY } from './schedule';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, type Row } from '../ui';
 
 const PER_WEEK = [1, 2, 3];
 
 export async function settingsView() {
-  const [programs, prices, groups, settings, trainers, rates] = await Promise.all([
+  const [programs, prices, groups, settings, trainers, rates, slots] = await Promise.all([
     get<Row[]>(db!.from('programs').select('*').order('sort').order('name')),
     get<Row[]>(db!.from('prices').select('*').order('sort').order('label')),
     get<Row[]>(db!.from('groups').select('*').order('name')),
     get<Row[]>(db!.from('settings').select('*')),
     get<Row[]>(db!.from('trainers').select('*').order('full_name')),
     get<Row[]>(db!.from('trainer_rates').select('*').order('minutes')),
+    get<Row[]>(db!.from('group_slots').select('*').order('weekday').order('start_time')),
   ]);
   const set = (table: string, id: string, patch: Row) => ok(db!.from(table).update(patch).eq('id', id));
   /** After a change that adds or removes a row: redraw. */
@@ -165,5 +167,44 @@ export async function settingsView() {
     trainerForm
   );
 
-  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, trainersCard, others, groupsCard, discounts, business);
+  // When each group meets: these rows are the group classes on the weekly schedule table.
+  const halls: string[] = settings.find((x) => x.id === 'halls')?.value ?? [];
+  const dayOptions = [0, 1, 2, 3, 4, 5, 6].map((n): [string, string] => [String(n), WEEKDAY(n)]);
+  const hallOptions: [string, string][] = [['', '—'], ...halls.map((x): [string, string] => [x, x])];
+  const trainerOptions: [string, string][] = [['', '—'], ...trainers.filter((x) => !x.archived).map((x): [string, string] => [x.id, x.full_name])];
+  const liveGroups = groups.filter((g) => !g.archived);
+  const slotGroup = select(liveGroups.map((g): [string, string] => [g.id, g.name]), '', (v) => {
+    const g = groups.find((x) => x.id === v);
+    slotMinutes.value = String(programs.find((p) => p.id === g?.program_id)?.minutes ?? 60);
+  });
+  const slotDay = select(dayOptions, '0', () => {});
+  const slotTime = h('input', { type: 'time', step: 300, required: true, ariaLabel: t('time') });
+  const slotMinutes = h('input', { type: 'number', min: 1, className: 'num', ariaLabel: t('minutes'), value: programs.find((p) => p.id === liveGroups[0]?.program_id)?.minutes ?? 60 });
+  const slotHall = select(hallOptions, halls[0] ?? '', () => {});
+  const slotTrainer = select(trainerOptions, '', () => {});
+  const slotsCard = h('section', { className: 'card' },
+    h('h2', { textContent: t('slotsTitle') }),
+    h('div', { className: 'scroll' }, h('table', {},
+      h('thead', {}, h('tr', {}, ...[t('groupsTitle'), t('weekday'), t('time'), t('minutes'), t('hall'), t('trainer'), ''].map((x) => h('th', {}, x)))),
+      h('tbody', {},
+        ...slots.map((x) => h('tr', { className: groups.find((g) => g.id === x.group_id)?.archived ? 'off' : '' },
+          h('td', {}, groups.find((g) => g.id === x.group_id)?.name ?? '?'),
+          h('td', {}, select(dayOptions, String(x.weekday), (v) => then(set('group_slots', x.id, { weekday: Number(v) })), { ariaLabel: t('weekday') })),
+          h('td', {}, h('input', { type: 'time', step: 300, value: x.start_time.slice(0, 5), ariaLabel: t('time'), onchange: (e: Event) => { const v = (e.target as HTMLInputElement).value; if (v) then(set('group_slots', x.id, { start_time: v })); } })),
+          h('td', {}, number(x.minutes, (v, el) => (v ? set('group_slots', x.id, { minutes: v }) : (el.value = x.minutes)), { ariaLabel: t('minutes') })),
+          h('td', {}, select(hallOptions, x.hall, (v) => set('group_slots', x.id, { hall: v }), { ariaLabel: t('hall') })),
+          h('td', {}, select(trainerOptions, x.trainer_id ?? '', (v) => set('group_slots', x.id, { trainer_id: v || null }), { ariaLabel: t('trainer') })),
+          h('td', { className: 'actions' }, sureButton('×', () => then(ok(db!.from('group_slots').delete().eq('id', x.id))), { title: t('del'), ariaLabel: t('del') }))
+        )),
+        liveGroups.length > 0 && h('tr', {}, h('td', {}, slotGroup), h('td', {}, slotDay), h('td', {}, slotTime), h('td', {}, slotMinutes), h('td', {}, slotHall), h('td', {}, slotTrainer),
+          h('td', { className: 'actions' }, h('button', { type: 'button', textContent: t('addSlot'), onclick: () => {
+            if (!slotTime.value || !(Number(slotMinutes.value) > 0)) return;
+            then(ok(db!.from('group_slots').insert({ group_id: slotGroup.value, weekday: Number(slotDay.value), start_time: slotTime.value, minutes: Number(slotMinutes.value), hall: slotHall.value, trainer_id: slotTrainer.value || null })));
+          } }))
+        )
+      )
+    ))
+  );
+
+  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, trainersCard, others, groupsCard, slotsCard, discounts, business);
 }

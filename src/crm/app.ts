@@ -7,13 +7,14 @@ import { monthView } from './views/month';
 import { settingsView } from './views/settings';
 import { accountsView } from './views/accounts';
 import { debtsView, receiptView, reportsView } from './views/payments';
-import { lessonsView, trainersView } from './views/lessons';
+import { trainersView } from './views/lessons';
+import { scheduleView } from './views/schedule';
 
 const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement>> = {
   clients: clientsView,
   client: clientView,
   month: monthView,
-  lessons: lessonsView,
+  lessons: scheduleView,
   trainersTab: trainersView,
   debts: debtsView,
   reports: reportsView,
