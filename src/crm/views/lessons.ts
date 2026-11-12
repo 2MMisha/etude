@@ -45,7 +45,7 @@ export async function lessonsView(arg?: string) {
       field(t('student'), first), field(t('secondStudent'), second), field(t('status'), status),
       field(t('price'), price), field(t('comment'), note, 'wide')
     ),
-    h('p', { className: 'muted', textContent: t('priceHint') }),
+    h('p', { className: 'muted', textContent: t('lessonPriceHint') }),
     h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('recordLesson') }))
   );
   form.onsubmit = async (e) => {
