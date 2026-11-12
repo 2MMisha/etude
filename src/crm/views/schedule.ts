@@ -99,7 +99,7 @@ export async function scheduleView(arg?: string) {
     }
     const l = e.lesson!;
     const move = (patch: Row) => ok(db!.from('lessons').update(patch).eq('id', l.id)).then((done) => { if (done) nav.refresh(); });
-    const parts = [
+    const parts: (HTMLElement | false)[] = [
       h('p', { className: 'quote' },
         `${names(l)} · ${l.trainers.full_name} ${l.minutes}′ · `, ltr(money(l.price)), ` (${t('trainerGets')}: `, ltr(money(l.trainer_pay)), `) · ${t(l.status as Key)}`,
         l.note && h('small', {}, l.note)
