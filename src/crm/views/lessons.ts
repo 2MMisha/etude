@@ -1,5 +1,5 @@
 // Private lessons and the trainers' money: the month's lessons with a form to
-// schedule one (a couple is two students, each charged half), and the
+// schedule one (up to four students share it, the price split evenly), and the
 // Trainers tab — what each has earned, what was given, what is still to give.
 import { getLang, t, LOCALE, type Key } from '../i18n';
 import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, type Row } from '../ui';
@@ -38,21 +38,23 @@ export async function lessonsView(arg?: string) {
     showRate();
   }, { required: true });
   minutes.onchange = showRate;
-  const second = select([['', '—'], ...studentOptions], '', () => {});
-  const first = select([['', '—'], ...studentOptions], '', (v) => (second.value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true });
+  // Up to four students share a lesson; the first one's dance partner is offered as the second.
+  const others = [1, 2, 3].map((n) => select([['', '—'], ...studentOptions], '', () => {}, { ariaLabel: `${t('student')} ${n + 1}` }));
+  const first = select([['', '—'], ...studentOptions], '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true });
   const note = h('input', { type: 'text' });
   const form = h('form', { className: 'stack' },
     h('h2', { textContent: t('scheduleLesson') }),
     h('div', { className: 'grid' },
       field(t('date'), date), field(t('time'), time), field(t('trainer'), trainer), field(t('minutes'), minutes),
-      field(t('student'), first), field(t('secondStudent'), second), field(t('price'), price), field(t('comment'), note)
+      field(t('student'), first), field(t('price'), price), field(t('comment'), note, 'wide'),
+      field(t('secondStudent'), h('div', { className: 'row' }, ...others), 'full')
     ),
     h('p', { className: 'muted', textContent: t('lessonPriceHint') }),
     h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('scheduleLesson') }))
   );
   form.onsubmit = async (e) => {
     e.preventDefault();
-    const pair = [first.value, second.value].filter((id, i, all) => id && all.indexOf(id) === i);
+    const pair = [first.value, ...others.map((o) => o.value)].filter((id, i, all) => id && all.indexOf(id) === i);
     await get(db!.rpc('record_lesson', {
       l: { trainer_id: trainer.value, held_on: date.value, start_time: time.value, minutes: Number(minutes.value), price: price.value, note: note.value.trim() },
       student_ids: pair,

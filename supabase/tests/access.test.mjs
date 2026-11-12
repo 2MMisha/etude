@@ -243,8 +243,17 @@ await lesson('admin', { trainer_id: misha.id, minutes: 60, price: 300, status: '
 assert.equal((await earned(misha)).earned, 280);
 // Refused: no rate for that length, no students, three students.
 await denied(lesson('admin', { trainer_id: roman.id, minutes: 90 }, [a.id]), /no price/);
-await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one or two students/);
-await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id, b.id, partner.id]), /one or two students/);
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one to four students/);
+const fourth = await ins('students', { client_id: stranger.id, full_name: 'Fourth' });
+const fifth = await ins('students', { client_id: stranger.id, full_name: 'Fifth' });
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id, b.id, partner.id, fourth.id, fifth.id]), /one to four students/);
+// Three or four share the price; the parts always add up to it exactly.
+const trio = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-11-11', status: 'done' }, [fourth.id, fifth.id, partner.id])).id;
+const parts = (await as('admin', 'select amount::float from public.charges where lesson_id = $1 order by amount desc', [trio])).rows.map((r) => r.amount);
+assert.deepEqual(parts, [83.34, 83.33, 83.33]);
+const quartet = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-11-12', status: 'done' }, [a.id, fourth.id, fifth.id, partner.id])).id;
+assert.deepEqual((await as('admin', 'select amount::float from public.charges where lesson_id = $1', [quartet])).rows.map((r) => r.amount), [62.5, 62.5, 62.5, 62.5]);
+await as('admin', 'delete from public.lessons where id in ($1, $2)', [trio, quartet]); // keep the sums below as they were
 // Deleting a lesson takes its charges with it - unless one is already paid.
 const l4 = (await lesson('admin', { trainer_id: roman.id, minutes: 45, status: 'done' }, [a.id])).id;
 await as('admin', 'delete from public.lessons where id = $1', [l4]);
