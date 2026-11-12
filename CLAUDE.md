@@ -52,7 +52,8 @@ Brand tokens are in `src/styles/global.css` (`--color-navy-900 #17224a`, `--colo
 - Membership: per student, per calendar month. Price = price-table row for the programme at N classes a week; several programmes = sum; or the Unlimited price. The "minutes per week" scale on the price sheet is illustration only — never use it. Last year's price column is never used.
 - Admin may change any price; a hand-set price requires a comment.
 - Discounts add up: second child (goes to the second child), full-year prepayment, Olim (size per student), custom (comment required). Only on full-month memberships.
-- Private lessons: charged per lesson by type; a couple splits the price; can be owed; late cancel / no-show is charged. One-time group entry can be recorded by admin or trainer.
+- Private lessons are priced and named by trainer, not by dance type (owner, 2026-11-12): Roman and Evgeniia at the "standard" rate, Tomer at the "Latin" rate, Misha at the "assistant" rate; each in 45 and 60 minutes. The price sheet's Standard / Latin / Assistant rows are those three tiers.
+- Private lessons: charged per lesson; a couple splits the price; can be owed; late cancel / no-show is charged. One-time group entry can be recorded by admin or trainer.
 - Payments: cash, transfer, Bit, cheque (record number, bank, date), standing order. One payment can cover many lines; each line shown separately.
 - Receipts: the CRM issues its own numbered payment confirmation, not a tax document; a field holds the paper document number.
 - Trainer pay differs per trainer and lesson type: fixed amount, percentage, or typed by hand. Trainers see their own earnings; admin sees owed/paid, records payouts and expenses (comment required).
