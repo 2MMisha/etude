@@ -293,6 +293,19 @@ for (const who of ['trainer', 'client', 'nobody']) {
   assert.deepEqual(await lessonCharges(next), [], `${who} cannot confirm a lesson`);
 }
 
+// The weekly table: a group's slot blocks its own trainer at that hour on that weekday, and only then.
+const slot = await ins('group_slots', { group_id: kidsBeg.id, weekday: 3, start_time: '18:15', minutes: 45, hall: 'Small Hall', trainer_id: misha.id }); // Wednesdays
+await denied(lesson('admin', { trainer_id: misha.id, minutes: 45, held_on: '2026-12-02', start_time: '18:30' }, [a.id]), /has a group class/); // a Wednesday
+await lesson('admin', { trainer_id: misha.id, minutes: 45, held_on: '2026-12-03', start_time: '18:30', hall: 'Big Hall' }, [a.id]); // Thursday: free
+await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-12-02', start_time: '18:30' }, [a.id]); // another trainer: free
+assert.equal((await one('admin', `select hall from public.lessons where held_on = '2026-12-03' and trainer_id = $1`, [misha.id])).hall, 'Big Hall');
+await denied(as('anon', 'select * from public.group_slots'), /permission denied/);
+for (const who of ['trainer', 'client', 'nobody']) {
+  assert.equal(await count(who, 'group_slots'), 0);
+  await denied(as(who, `insert into public.group_slots (group_id, weekday, start_time, minutes) values ($1, 1, '10:00', 45)`, [kidsBeg.id]), /row-level security/);
+}
+await as('admin', 'delete from public.group_slots where id = $1', [slot.id]);
+
 // Dance partners always point at each other, and changing one side lets the old partner go.
 const partnerOf = async (s) => (await one('admin', 'select partner_id from public.students where id = $1', [s.id])).partner_id;
 await as('admin', 'update public.students set partner_id = $1 where id = $2', [partner.id, b.id]);
