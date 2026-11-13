@@ -68,6 +68,15 @@ await denied(setRoles('admin', 'admin', '{admin,owner}'), /only the owner/);
 await denied(as('admin', 'delete from public.activity_log'), /permission denied/);
 await denied(as('admin', `update public.activity_log set action = 'x'`), /permission denied/);
 
+// The only owner cannot give up the role or be switched off: the school would be locked out.
+await denied(setRoles('owner', 'owner', '{trainer}'), /at least one owner/);
+await denied(as('owner', 'update public.profiles set active = false where id = $1', [U.owner]), /at least one owner/);
+// With a second owner it is allowed again.
+await setRoles('owner', 'nobody', '{owner}');
+await setRoles('owner', 'owner', '{admin}');
+await setRoles('nobody', 'owner', '{owner}');
+await setRoles('owner', 'nobody', '{}');
+
 // Owner: can do both.
 await setRoles('owner', 'trainer', '{trainer}');
 await as('owner', 'update public.profiles set active = false where id = $1', [U.admin]);

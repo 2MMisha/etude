@@ -19,7 +19,7 @@ export async function accountsView() {
     const tr = h('tr', { className: p.active ? '' : 'off' },
       h('td', {}, input(p.full_name, (v) => save(p, { full_name: v }), { disabled: locked, ariaLabel: t('name') }), h('small', { dir: 'ltr' }, p.email)),
       h('td', {}, h('div', { className: 'chips' }, ...ROLES.map((r) => {
-        const b = h('button', { type: 'button', textContent: t(r as Key), ariaPressed: String(p.roles.includes(r)), disabled: locked || (r === 'owner' && !iAmOwner), onclick: async () => {
+        const b = h('button', { type: 'button', textContent: t(r as Key), ariaPressed: String(p.roles.includes(r)), disabled: locked || (r === 'owner' && (!iAmOwner || p.id === me.id)), onclick: async () => {
           const roles = p.roles.includes(r) ? p.roles.filter((x) => x !== r) : [...p.roles, r];
           if (await save(p, { roles })) b.ariaPressed = String(roles.includes(r));
         } });
