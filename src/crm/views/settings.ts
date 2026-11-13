@@ -185,10 +185,11 @@ export async function settingsView() {
   const slotMinutes = h('input', { type: 'number', min: 1, className: 'num', ariaLabel: t('minutes'), value: programs.find((p) => p.id === liveGroups[0]?.program_id)?.minutes ?? 60 });
   const slotHall = select(hallOptions, halls[0] ?? '', () => {});
   const slotTrainer = select(trainerOptions, '', () => {});
+  const slotPay = h('input', { type: 'number', min: 0, step: 'any', className: 'num', ariaLabel: t('classPay') });
   const slotsCard = h('section', { className: 'card' },
     h('h2', { textContent: t('slotsTitle') }),
     h('div', { className: 'scroll' }, h('table', {},
-      h('thead', {}, h('tr', {}, ...[t('groupsTitle'), t('weekday'), t('time'), t('minutes'), t('hall'), t('trainer'), ''].map((x) => h('th', {}, x)))),
+      h('thead', {}, h('tr', {}, ...[t('groupsTitle'), t('weekday'), t('time'), t('minutes'), t('hall'), t('trainer'), t('classPay'), ''].map((x) => h('th', {}, x)))),
       h('tbody', {},
         ...slots.map((x) => h('tr', { className: groups.find((g) => g.id === x.group_id)?.archived ? 'off' : '' },
           h('td', {}, groups.find((g) => g.id === x.group_id)?.name ?? '?'),
@@ -197,12 +198,13 @@ export async function settingsView() {
           h('td', {}, number(x.minutes, (v, el) => (v ? set('group_slots', x.id, { minutes: v }) : (el.value = x.minutes)), { ariaLabel: t('minutes') })),
           h('td', {}, select(hallOptions, x.hall, (v) => set('group_slots', x.id, { hall: v }), { ariaLabel: t('hall') })),
           h('td', {}, select(trainerOptions, x.trainer_id ?? '', (v) => set('group_slots', x.id, { trainer_id: v || null }), { ariaLabel: t('trainer') })),
+          h('td', {}, number(x.class_pay, (v) => set('group_slots', x.id, { class_pay: v ?? 0 }), { ariaLabel: t('classPay') })),
           h('td', { className: 'actions' }, sureButton('×', () => then(ok(db!.from('group_slots').delete().eq('id', x.id))), { title: t('del'), ariaLabel: t('del') }))
         )),
-        liveGroups.length > 0 && h('tr', {}, h('td', {}, slotGroup), h('td', {}, slotDay), h('td', {}, slotTime), h('td', {}, slotMinutes), h('td', {}, slotHall), h('td', {}, slotTrainer),
+        liveGroups.length > 0 && h('tr', {}, h('td', {}, slotGroup), h('td', {}, slotDay), h('td', {}, slotTime), h('td', {}, slotMinutes), h('td', {}, slotHall), h('td', {}, slotTrainer), h('td', {}, slotPay),
           h('td', { className: 'actions' }, h('button', { type: 'button', textContent: t('addSlot'), onclick: () => {
             if (!slotTime.value || !(Number(slotMinutes.value) > 0)) return;
-            then(ok(db!.from('group_slots').insert({ group_id: slotGroup.value, weekday: Number(slotDay.value), start_time: slotTime.value, minutes: Number(slotMinutes.value), hall: slotHall.value, trainer_id: slotTrainer.value || null })));
+            then(ok(db!.from('group_slots').insert({ group_id: slotGroup.value, weekday: Number(slotDay.value), start_time: slotTime.value, minutes: Number(slotMinutes.value), hall: slotHall.value, trainer_id: slotTrainer.value || null, class_pay: Number(slotPay.value) || 0 })));
           } }))
         )
       )
