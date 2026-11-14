@@ -597,7 +597,9 @@ await denied(rpc('anon', 'submit_student_form', [tok, 'f2', JSON.stringify({ x: 
 assert.equal((await rpc('anon', 'public_docs')).rows[0].public_docs.doc_offer, '', 'the documents can be read before signing in');
 assert.ok(!('second_child_pct' in (await rpc('anon', 'public_docs')).rows[0].public_docs), 'but no other setting');
 const states = (await rpc('anon', 'student_by_token', [tok])).rows[0].student_by_token.forms;
-assert.ok(states.f2.at && !('answers' in states.f2) && !JSON.stringify(states).includes('limits'), 'the link shows that a form is done, not what it says');
+assert.ok(states.f2.at && !('answers' in states.f2) && !JSON.stringify(states).includes('limits'), 'the states say that a form is done, not what it says');
+// The newest answers come back too, to start a yearly renewal from them.
+assert.equal((await rpc('anon', 'student_by_token', [tok])).rows[0].student_by_token.last.f2.limits, 'no');
 await denied(as('anon', 'select * from public.student_forms'), /permission denied/);
 await denied(rpc('anon', 'family_me'), /permission denied/);
 // Refusing an online family removes it and switches its login off.

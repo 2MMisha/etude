@@ -407,6 +407,11 @@ export function answered(q: Q, v: any) {
   return typeof v === 'string' ? v.trim() !== '' : v != null;
 }
 
+/** On a repeat filling, these start empty again: confirmations and the signature. */
+export const resigned = (f: Form, q: Q) => q.type === 'all' || q.type === 'tick' || q.id === f.signer || q.id === 'confirm';
+/** A date as dd.mm.yyyy. */
+export const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
+
 /** The required questions without an answer. */
 export const missing = (f: Form, a: Answers, c: Ctx) =>
   visible(f, a, c).flatMap(({ qs }) => qs.filter((q) => truthy(q.req, a, c) && !answered(q, a[q.id])));
@@ -422,10 +427,16 @@ export const flags = (f: Form, a: Answers, c: Ctx) =>
 // --- statuses -----------------------------------------------------------------
 export type State = 'none' | 'done' | 'update' | 'ask' | 'notNeeded';
 export interface Sent { at: string; signed_by: string; needs_update: boolean; ask: string | null; clarified: boolean }
+/** A form is valid for 12 months; then it is filled in again (from the previous answers). */
+export const expired = (at: string, now = new Date()) => {
+  const until = new Date(at);
+  until.setFullYear(until.getFullYear() + 1);
+  return until <= now;
+};
 export function stateOf(code: string, needed: string[], sent?: Sent): State {
   if (!needed.includes(code)) return 'notNeeded';
   if (!sent) return 'none';
-  if (sent.needs_update) return 'update';
+  if (sent.needs_update || expired(sent.at)) return 'update';
   if (sent.ask === '1' && !sent.clarified) return 'ask';
   return 'done';
 }
@@ -444,6 +455,9 @@ export const W = {
   askForm: l('{name}, {form}: администратор должен связаться с вами', '{name}, {form}: המנהלת צריכה ליצור איתך קשר', '{name}, {form}: the administrator needs to contact you'),
   unanswered: l('Нет ответа: {q}', 'אין תשובה: {q}', 'No answer: {q}'),
   signedBy: l('Подтвердил(а)', 'אישר/ה', 'Confirmed by'),
+  signedOn: l('Дата', 'תאריך', 'Date'),
+  renewal: l('Прошёл год с прошлого заполнения. Ответы прошлого раза уже подставлены — проверьте их, отметьте подтверждения и подпишите заново.', 'עברה שנה מהמילוי הקודם. התשובות מהפעם הקודמת כבר מולאו — בדקו אותן, סמנו את האישורים וחתמו מחדש.', 'A year has passed since this was filled in. Last time\u2019s answers are already in — check them, tick the confirmations and sign again.'),
+  validUntil: l('действует до {date}', 'בתוקף עד {date}', 'valid until {date}'),
   he: l('на иврите', 'בעברית', 'in Hebrew'),
   en: l('на английском', 'באנגלית', 'in English'),
   yes: YES,

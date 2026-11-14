@@ -3,6 +3,7 @@
 import { t, LANGS } from '../i18n';
 import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord } from './registration';
+import { exportCard } from './export';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
@@ -44,11 +45,14 @@ export async function clientsView() {
     location.hash = `#/client/${row.id}`;
   };
 
-  return h('section', { className: 'card' },
-    h('h1', { textContent: t('clients') }),
-    form,
-    h('div', { className: 'row' }, search, tick(t('showArchived'), archived)),
-    h('div', { className: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('students')))), body))
+  return h('div', { className: 'stack' },
+    h('section', { className: 'card' },
+      h('h1', { textContent: t('clients') }),
+      form,
+      h('div', { className: 'row' }, search, tick(t('showArchived'), archived)),
+      h('div', { className: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('students')))), body))
+    ),
+    exportCard()
   );
 }
 

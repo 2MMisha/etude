@@ -6,9 +6,9 @@
 // own documents. Every call goes through database functions that work out
 // whose family it is (supabase/migrations/20261126000000_family_registration.sql).
 import { LANGS, getLang, setLang, t as crmT } from './i18n';
-import { db, h, flash } from './ui';
+import { db, h, flash, today } from './ui';
 import { signInView, newPasswordView } from './auth';
-import { FORMS, PRIVACY, W, STUDENT_REL, STATE_WORD, formOf, missing, stopped, flags, visible, stateOf, pick, type Answers, type Ctx, type Form, type L, type Q, type Sent } from './forms';
+import { FORMS, PRIVACY, W, STUDENT_REL, STATE_WORD, formOf, missing, stopped, flags, visible, stateOf, resigned, dmy, expired, pick, type Answers, type Ctx, type Form, type L, type Q, type Sent } from './forms';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
 const T = {
@@ -304,6 +304,7 @@ function formList(s: Answers, token: string) {
     return h('li', { className: `doc-row is-${state}` },
       h('span', {}, h('strong', { textContent: `${tr(W.appendix)}${f.num}` }), ` ${tr(f.title)}`),
       h('span', { className: `pill ${state}`, textContent: tr(STATE_WORD[state]) }),
+      state === 'done' && sent && h('small', { className: 'muted', textContent: fill(tr(W.validUntil), { date: dmy(new Date(new Date(sent.at).setFullYear(new Date(sent.at).getFullYear() + 1)).toISOString().slice(0, 10)) }) }),
       state !== 'notNeeded' && h('a', { className: 'btn', href: `#/s/${token}/${f.code}`, textContent: state === 'none' ? t('fill') : t('again') })
     );
   }));
@@ -430,11 +431,14 @@ function formView(token: string, page: Answers, f: Form) {
   const c: Ctx = { adult: page.adult, student: page, holder: page.holder, groups: page.groups ?? [], docs: page.docs ?? {} };
   const key = `${token}/${f.code}`;
   if (!stash[key]) {
-    // Start from what is already known: names, dates, contacts.
+    // Start from the last time this form was sent (all but the confirmations and the signature),
+    // then fill what is still empty from what is already known: names, dates, contacts.
     const a: Answers = {};
+    const before: Answers = page.last?.[f.code] ?? {};
     for (const s of f.sections) for (const q of s.qs) {
+      if (before[q.id] !== undefined && !resigned(f, q)) a[q.id] = before[q.id];
       const v = q.prefill?.(c);
-      if (v && (typeof v !== 'object' || v.he || v.en)) a[q.id] = v;
+      if (a[q.id] === undefined && v && (typeof v !== 'object' || v.he || v.en)) a[q.id] = v;
     }
     stash[key] = a;
   }
@@ -455,6 +459,7 @@ function formView(token: string, page: Answers, f: Form) {
         ...qs.map((q) => h('div', { className: `q${holes.has(q.id) ? ' need' : ''}` },
           q.type !== 'tick' && h('p', { className: 'q-label' }, tr(q.label), !q.req && h('small', { textContent: ` (${t('optional')})` })),
           control(q, a, c, draw),
+          q.id === f.signer && h('p', { className: 'sign-date' }, `${tr(W.signedOn)}: `, h('strong', { dir: 'ltr', textContent: dmy(today()) })),
           q.hint && h('small', { className: 'q-hint', textContent: tr(q.hint) }),
           q.stop && a[q.id] === q.stop[0] && note(tr(q.stop[1]), 'warn'),
           q.flag && a[q.id] === q.flag[0] && note(tr(q.flag[1]), 'warn')
@@ -473,6 +478,7 @@ function formView(token: string, page: Answers, f: Form) {
       const sent: Answers = {};
       for (const { qs } of visible(f, a, c)) for (const q of qs) if (a[q.id] !== undefined) sent[q.id] = a[q.id];
       sent._signed_by = sent[f.signer];
+      sent._signed_on = today();
       if (flags(f, a, c).length) sent._ask = '1';
       const { error } = await db!.rpc('submit_student_form', { tok: token, f: f.code, answers: sent, lang: getLang() });
       if (error) {
@@ -499,7 +505,8 @@ function formView(token: string, page: Answers, f: Form) {
     };
     box.replaceChildren(
       card(h('p', { className: 'muted', textContent: `${page.full_name} · ${tr(W.appendix)}${f.num}` }), h('h1', { textContent: tr(f.title) }), f.intro && note(tr(f.intro)),
-        page.adult && note(fill(t('adultHere'), { name: page.full_name }), 'warn')),
+        page.adult && note(fill(t('adultHere'), { name: page.full_name }), 'warn'),
+        page.forms[f.code] && expired(page.forms[f.code].at) && note(tr(W.renewal), 'warn')),
       form
     );
   };

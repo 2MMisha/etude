@@ -5,7 +5,7 @@
 // family that registered online and is already in the CRM: join the two.
 import { getLang, t } from '../i18n';
 import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, type Row } from '../ui';
-import { FORMS, W, visible, missing, flags, answered, stateOf, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
+import { FORMS, W, visible, missing, flags, answered, stateOf, dmy, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
 
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
@@ -56,13 +56,14 @@ function shown(q: Q, v: any): string {
   return q.opts ? opt(v) : String(v);
 }
 
-function answersOf(f: Form, a: Row, c: Ctx) {
+function answersOf(f: Form, a: Row, c: Ctx, sentAt = '') {
+  const signedOn = a._signed_on ?? sentAt.slice(0, 10);
   return h('div', { className: 'stack' }, ...visible(f, a, c).filter(({ qs }) => qs.length).map(({ s, qs }) => h('div', {},
     s.title && h('h4', { textContent: tr(s.title) }),
     h('dl', { className: 'answers' }, ...qs.flatMap((q) => {
       const empty = !answered(q, a[q.id]);
       const required = typeof q.req === 'function' ? q.req(a, c) : !!q.req;
-      return [h('dt', { textContent: tr(q.label) }), h('dd', { className: empty && required ? 'need' : '', textContent: empty ? (required ? tr(W.unanswered).replace('{q}', '').trim() : '—') : shown(q, a[q.id]) })];
+      return [h('dt', { textContent: tr(q.label) }), h('dd', { className: empty && required ? 'need' : '', textContent: empty ? (required ? tr(W.unanswered).replace('{q}', '').trim() : '—') : q.id === f.signer && signedOn ? `${shown(q, a[q.id])} · ${tr(W.signedOn)}: ${dmy(signedOn)}` : shown(q, a[q.id]) })];
     }))
   )));
 }
@@ -132,7 +133,7 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
             tick(tr(S.needsUpdate), checkbox(row.needs_update, async (v) => { if (await ok(db!.from('student_forms').update({ needs_update: v }).eq('id', row.id))) nav.refresh(); })),
             asks.length > 0 && tick(tr(S.clarified), checkbox(row.clarified, async (v) => { if (await ok(db!.from('student_forms').update({ clarified: v }).eq('id', row.id))) nav.refresh(); }))
           ),
-          answersOf(f, row.answers, c)
+          answersOf(f, row.answers, c, row.submitted_at)
         )
       );
     });

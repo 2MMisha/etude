@@ -184,3 +184,5 @@ body.embed .crm { max-width: none; }
   .q { padding-block: 0.5rem; }
   .choices .tick { padding: 0.4rem 0; }
 }
+
+.sign-date { margin: 0; font-size: 0.9rem; color: var(--color-ink-soft); }
