@@ -11,8 +11,10 @@ import { FORMS, W, visible, missing, flags, answered, stateOf, pick, STUDENT_REL
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
 const S = {
   title: l('Регистрация', 'רישום', 'Registration'),
-  online: l('Семья зарегистрировалась онлайн, сотрудники ещё не проверили.', 'המשפחה נרשמה באינטרנט ועדיין לא נבדקה.', 'This family registered online and has not been checked yet.'),
-  checked: l('Проверено', 'נבדק', 'Checked'),
+  online: l('Семья зарегистрировалась онлайн и ждёт решения: впустить её или нет. Если эта семья уже есть в системе, соедините её с существующим клиентом (это тоже впускает).', 'המשפחה נרשמה באינטרנט וממתינה להחלטה אם לאשר אותה. אם המשפחה כבר קיימת במערכת, אחדו אותה עם הלקוח הקיים (גם זה מאשר).', 'This family registered online and is waiting for a decision: let it in or not. If it is already in the system, join it to the existing client (that lets it in too).'),
+  waiting: l('ждёт подтверждения', 'ממתין לאישור', 'waiting for approval'),
+  approve: l('Впустить', 'לאשר', 'Let in'),
+  refuse: l('Отказать', 'לדחות', 'Refuse'),
   joinTitle: l('Эта семья уже есть в системе?', 'המשפחה כבר קיימת במערכת?', 'Is this family already in the system?'),
   joinHint: l('Сначала для каждого ученика выберите, кто он из уже существующих (если он уже есть), потом соедините семьи. Оплаты и история остаются у существующего клиента, ссылки семьи продолжают работать.', 'קודם בחרו לכל תלמיד/ה מי הוא/היא מבין הקיימים (אם קיים/ת), ואז אחדו את המשפחות. התשלומים וההיסטוריה נשארים אצל הלקוח הקיים, והקישורים של המשפחה ממשיכים לעבוד.', 'First, for each student, choose who they are among those already there (if they are), then join the families. Payments and history stay with the existing client; the family’s links keep working.'),
   joinInto: l('Соединить с клиентом…', 'איחוד עם לקוח…', 'Join with client…'),
@@ -78,7 +80,9 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
     h('h2', { textContent: tr(S.title) }),
     client.online && h('div', { className: 'stack' },
       h('p', { className: 'warn', textContent: tr(S.online) }),
-      h('div', { className: 'row' }, h('button', { type: 'button', textContent: tr(S.checked), onclick: async () => { if (await ok(db!.from('clients').update({ online: false }).eq('id', client.id))) nav.refresh(); } })),
+      h('div', { className: 'row' },
+        h('button', { type: 'button', className: 'primary', textContent: tr(S.approve), onclick: async () => { if (await ok(db!.rpc('approve_family', { cid: client.id }))) nav.refresh(); } }),
+        sureButton(tr(S.refuse), async () => { if (await ok(db!.rpc('refuse_family', { cid: client.id }))) location.hash = '#/clients'; })),
       h('h3', { textContent: tr(S.joinTitle) }),
       h('p', { className: 'muted', textContent: tr(S.joinHint) }),
       select([['', tr(S.joinInto)], ...clients.filter((c) => c.id !== client.id && !c.user_id).map((c): [string, string] => [c.id, `${c.full_name}${c.phone ? ` · ${c.phone}` : ''}`])], '', async (into) => {

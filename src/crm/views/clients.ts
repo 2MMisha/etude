@@ -25,7 +25,7 @@ export async function clientsView() {
     const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.full_name_en} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q)));
     body.replaceChildren(
       ...rows.map((c) => h('tr', { className: c.archived ? 'off' : '' },
-        h('td', {}, h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) }), c.online && h('small', { textContent: ` 🆕 ${regWord('title')}` })),
+        h('td', {}, h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) }), c.online && h('small', { textContent: ` 🆕 ${regWord('waiting')}` })),
         h('td', {}, ltr(c.phone)),
         h('td', {}, kids(c.id))
       ))

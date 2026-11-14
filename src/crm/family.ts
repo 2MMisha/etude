@@ -75,6 +75,7 @@ const T = {
   inEn: l('на английском', 'באנגלית', 'in English'),
   choose: l('— выберите —', '— בחירה —', '— choose —'),
   born: l('род.', 'נולד/ה', 'born'),
+  waiting: l('Спасибо! Ваша регистрация получена и ожидает подтверждения Студии. После подтверждения здесь можно будет добавить учеников и заполнить документы.', 'תודה! ההרשמה התקבלה וממתינה לאישור הסטודיו. לאחר האישור תוכלו להוסיף כאן תלמידים ולמלא את המסמכים.', 'Thank you! Your registration has been received and is waiting for the studio to approve it. Once approved, you can add students and fill in the documents here.'),
   error: l('Что-то пошло не так. Попробуйте ещё раз.', 'משהו השתבש. נסו שוב.', 'Something went wrong. Please try again.'),
 };
 const t = (k: keyof typeof T) => pick(T[k], getLang());
@@ -293,6 +294,13 @@ async function homeView() {
   const email = (await db!.auth.getUser()).data.user?.email ?? '';
   if (!me || editing === 'holder') return holderForm(me?.holder ?? null, email);
   const { holder, students } = me as { holder: Answers; students: Answers[] };
+  // A new family waits until the studio lets it in.
+  if (!me.approved) return h('div', { className: 'stack' },
+    card(
+      h('div', { className: 'row spread' }, h('h1', { textContent: holder.full_name }), h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = 'holder'; render(); } })),
+      note(parts(holder.full_name_en, holder.phone, holder.email).join(' · ')),
+      note(t('waiting'), 'warn')
+    ));
   if (editing === 'new' || !students.length) return h('div', { className: 'stack' },
     card(h('h1', { textContent: t('studentsTitle') }), note(t('studentsIntro'))),
     studentForm(null, holder, () => { editing = ''; render(); }));

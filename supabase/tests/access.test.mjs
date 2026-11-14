@@ -565,6 +565,11 @@ await denied(rpc('client', 'family_save_student', [null, JSON.stringify({ full_n
 await denied(rpc('client', 'family_save', [JSON.stringify({ full_name: 'הורה', full_name_en: '', phone: '0501234567', relation: 'parent' })]), /Hebrew and in English/);
 const famId = (await rpc('client', 'family_save', [JSON.stringify({ full_name: 'הורה אחד', full_name_en: 'Parent One', phone: '050-1234567', relation: 'parent' })])).rows[0].family_save;
 assert.equal((await rpc('client', 'family_save', [JSON.stringify({ full_name: 'הורה אחד', full_name_en: 'Parent One', phone: '050-1234567', relation: 'parent', address: 'x' })])).rows[0].family_save, famId, 'saving again keeps one family');
+// A new online family waits for staff: no students, nothing in family_me, until approved.
+await denied(rpc('client', 'family_save_student', [null, JSON.stringify({ full_name: 'ילד', full_name_en: 'Kid', birth_date: '2015-03-01', relation: 'son' })]), /not approved/);
+assert.equal((await fam('client')).approved, false);
+await denied(rpc('client', 'approve_family', [famId]), /staff only/);
+await rpc('admin', 'approve_family', [famId]);
 const kid = (await rpc('client', 'family_save_student', [null, JSON.stringify({ full_name: 'ילד', full_name_en: 'Kid', birth_date: '2015-03-01', relation: 'son' })])).rows[0].family_save_student;
 const grown = (await rpc('client', 'family_save_student', [null, JSON.stringify({ full_name: 'הורה אחד', full_name_en: 'Parent One', birth_date: '1985-03-01', is_holder: true })])).rows[0].family_save_student;
 const reg = await fam("client");
@@ -575,7 +580,7 @@ assert.deepEqual(reg.students.find((s) => s.id === grown).needed, ['f1', 'f2', '
 assert.equal(await fam('nobody'), null);
 await denied(rpc('nobody', 'family_save_student', [kid, JSON.stringify({ full_name: 'x y', full_name_en: 'x y', birth_date: '2015-03-01', relation: 'son' })]), /your own details first/);
 await rpc('nobody', 'family_save', [JSON.stringify({ full_name: 'משפחה שנייה', full_name_en: 'Second Family', phone: '0529999999', relation: 'self' })]);
-await denied(rpc('nobody', 'family_save_student', [kid, JSON.stringify({ full_name: 'x y', full_name_en: 'x y', birth_date: '2015-03-01', relation: 'son' })]), /not a student of your family/);
+await denied(rpc('nobody', 'family_save_student', [kid, JSON.stringify({ full_name: 'x y', full_name_en: 'x y', birth_date: '2015-03-01', relation: 'son' })]), /not approved/);
 for (const t of ['clients', 'students', 'student_forms', 'student_notes']) assert.equal(await count('client', t), 0, `a family reads no ${t} table`);
 // The student's link: no login needed; the forms that apply, no answers.
 const tok = reg.students.find((s) => s.id === kid).token;
@@ -595,6 +600,14 @@ const states = (await rpc('anon', 'student_by_token', [tok])).rows[0].student_by
 assert.ok(states.f2.at && !('answers' in states.f2) && !JSON.stringify(states).includes('limits'), 'the link shows that a form is done, not what it says');
 await denied(as('anon', 'select * from public.student_forms'), /permission denied/);
 await denied(rpc('anon', 'family_me'), /permission denied/);
+// Refusing an online family removes it and switches its login off.
+const refused = (await one('admin', `select id from public.clients where user_id = $1`, [U.nobody])).id;
+await denied(rpc('client', 'refuse_family', [refused]), /staff only/);
+await rpc('admin', 'refuse_family', [refused]);
+assert.equal(await fam('nobody'), null);
+await denied(rpc('nobody', 'family_save', [JSON.stringify({ full_name: 'משפחה שנייה', full_name_en: 'Second Family', phone: '0529999999', relation: 'self' })]), /not allowed/);
+await denied(rpc('admin', 'refuse_family', [famId]), /only an online/);
+await as('admin', 'update public.profiles set active = true where id = $1', [U.nobody]);
 // Staff read the answers, and join an online family to the one already in the CRM.
 assert.equal((await one('admin', `select answers ->> 'limits' l from public.student_forms where student_id = $1`, [kid])).l, 'no');
 await denied(rpc('client', 'merge_client', [famId, famId]), /staff only/);
