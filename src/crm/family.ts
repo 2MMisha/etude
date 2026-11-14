@@ -106,7 +106,23 @@ const call = async <T>(fn: string, args: Record<string, unknown> = {}): Promise<
   }
   return data as T;
 };
-const linkFor = (token: string) => `${location.origin}/family/#/s/${token}`;
+/** A student's link opens their documents inside the students' app. */
+const linkFor = (token: string) => `${location.origin}/student/#family/s/${token}`;
+// Inside the students' app this page runs in a frame (/family/?embed): it tells the app its height,
+// and that the family was let in (the app then opens without the studio code).
+const embedded = new URLSearchParams(location.search).has('embed') && parent !== window;
+const tellApp = (msg: Record<string, unknown>) => { if (embedded) parent.postMessage({ etude: true, ...msg }, location.origin); };
+if (embedded) {
+  document.body.classList.add('embed');
+  new ResizeObserver(() => tellApp({ height: document.documentElement.scrollHeight })).observe(document.body);
+  addEventListener('message', (e) => {
+    if (e.origin === location.origin && e.data?.etude && LANGS.includes(e.data.lang)) { setLang(e.data.lang); render(); }
+  });
+} else if (!/access_token|error_description/.test(location.hash)) {
+  // Opened on its own (an old link): the registration lives in the app now.
+  const rest = location.hash.replace(/^#\/?/, '');
+  location.replace(`/student/#family${rest ? `/${rest}` : ''}`);
+}
 const age18 = (birth: string) => {
   const d = new Date(`${birth}T12:00:00Z`);
   d.setUTCFullYear(d.getUTCFullYear() + 18);
@@ -164,7 +180,7 @@ async function createView() {
     msg.className = 'msg bad';
     if (pass.value !== pass2.value) return void (msg.textContent = t('notSame'));
     button.disabled = true;
-    const { data, error } = await db!.auth.signUp({ email: email.value.trim(), password: pass.value, options: { emailRedirectTo: `${location.origin}/family/` } });
+    const { data, error } = await db!.auth.signUp({ email: email.value.trim(), password: pass.value, options: { emailRedirectTo: `${location.origin}/student/#family` } });
     button.disabled = false;
     if (error) return void (msg.textContent = error.message);
     // With email confirmation on, there is no session until the link in the email is opened.
@@ -298,6 +314,7 @@ async function homeView() {
   if (!me || editing === 'holder') return holderForm(me?.holder ?? null, email);
   const { holder, students } = me as { holder: Answers; students: Answers[] };
   // A new family waits until the studio lets it in.
+  tellApp({ approved: !!me.approved });
   if (!me.approved) return h('div', { className: 'stack' },
     card(
       h('div', { className: 'row spread' }, h('h1', { textContent: holder.full_name }), h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = 'holder'; render(); } })),
@@ -489,7 +506,7 @@ async function render() {
 
 setLang(getLang());
 signOutBtn.onclick = () => db?.auth.signOut();
-addEventListener('hashchange', () => { editing = ''; render().then(() => scrollTo(0, 0)); });
+addEventListener('hashchange', () => { editing = ''; render().then(() => { scrollTo(0, 0); tellApp({ top: true }); }); });
 db!.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') recovering = true;
   const who = session?.user.id ?? null;

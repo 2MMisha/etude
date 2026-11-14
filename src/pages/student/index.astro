@@ -174,6 +174,8 @@ const data = {
       <label for="code" id="codeLabel"></label>
       <input id="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" />
       <p class="sa-bad" id="codeBad" hidden></p>
+      <p class="hint sa-reg-hint" id="regHint"></p>
+      <a class="btn btn--ghost" href="#family" id="regBtn"></a>
     </form>
 
     <main class="sa-main" id="app" hidden>
@@ -255,6 +257,11 @@ const data = {
         <div class="sa-done" id="sent"></div>
       </section>
 
+      <!-- The family's account: registration, students and their documents (the page /family/ in a frame). -->
+      <section data-tab="family" hidden>
+        <iframe id="famFrame" class="sa-frame" title="ETUDE"></iframe>
+      </section>
+
       <section data-tab="studio" hidden>
         <h1 id="rulesTitle"></h1>
         <ol class="rules" id="rules"></ol>
@@ -272,6 +279,7 @@ const data = {
       <a href="#schedule" data-go="schedule"><Fragment set:html={icon('calendar')} /><b></b></a>
       <a href="#classes" data-go="classes"><Fragment set:html={icon('dance')} /><b></b></a>
       <a href="#request" data-go="request"><Fragment set:html={icon('request')} /><b></b></a>
+      <a href="#family" data-go="family"><Fragment set:html={icon('user')} /><b></b></a>
       <a href="#studio" data-go="studio"><Fragment set:html={icon('info')} /><b></b></a>
     </nav>
 
@@ -304,7 +312,7 @@ const data = {
       const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const L = {
         he: {
-          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו',
+          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו', family: 'החשבון', register: 'הרשמה / כניסה לחשבון', registerHint: 'אין לכם קוד? הירשמו כמשפחה — אחרי אישור הסטודיו האפליקציה תיפתח בלי קוד.',
           hello: 'שלום!', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו בלוח הזמנים את הקבוצות או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
           noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה או שם',
           all: 'הכול', mine: 'לעקוב', isMine: 'במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
@@ -328,7 +336,7 @@ const data = {
           sentTitle: 'הבקשה נשלחה!', sentText: 'תודה! זו עדיין בקשה בלבד — ניצור איתכם קשר בטלפון או בוואטסאפ כדי לאשר.', newReq: 'בקשה חדשה',
         },
         en: {
-          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio',
+          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio', family: 'Account', register: 'Register / sign in', registerHint: 'No code? Register your family — once the studio approves, the app opens without a code.',
           hello: 'Hi!', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Follow your groups or names in the schedule — as many as you like — and your next classes show up here.',
           noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group or name',
           all: 'All', mine: 'Follow', isMine: 'Following', unmine: 'Remove', noMatch: 'No classes found',
@@ -352,7 +360,7 @@ const data = {
           sentTitle: 'Request sent!', sentText: "Thank you! This is just a request for now — we'll contact you by phone or WhatsApp to confirm.", newReq: 'New request',
         },
         ru: {
-          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия',
+          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия', family: 'Кабинет', register: 'Регистрация / вход в кабинет', registerHint: 'Нет кода? Зарегистрируйте семью — после подтверждения Студии приложение будет открываться без кода.',
           hello: 'Привет!', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте в расписании свои группы или имена — можно несколько — и здесь появятся ваши следующие занятия.',
           noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа или имя',
           all: 'Все', mine: 'Следить', isMine: 'Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
@@ -969,6 +977,9 @@ const data = {
         document.querySelectorAll<HTMLButtonElement>('.sa-langs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
         $('codeLabel').textContent = t.code;
         $('codeBad').textContent = t.bad;
+        $('regBtn').textContent = t.register;
+        $('regHint').textContent = t.registerHint;
+        tellFrame();
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => (a.querySelector('b')!.textContent = t[a.dataset.go as 'home']));
         renderAlerts();
         renderHome();
@@ -986,7 +997,7 @@ const data = {
       }
 
       // ----- Tabs via #hash, so the back button works -----
-      const TABS = ['home', 'schedule', 'news', 'classes', 'request', 'sent', 'studio', 'notice', 'events'];
+      const TABS = ['home', 'schedule', 'news', 'classes', 'request', 'sent', 'studio', 'notice', 'events', 'family'];
       const NAV_OF: Record<string, string> = { news: 'home', post: 'home', notice: 'home', events: 'home', event: 'home', sent: 'request' };
       function showTab() {
         const [name, id] = location.hash.slice(1).split('/');
@@ -998,6 +1009,7 @@ const data = {
         if (tab === 'notice' && !data.notice) tab = 'home';
         if (post) renderNews();
         if (eventId) renderEvents();
+        if (tab === 'family') openFamily();
         document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
         const navTab = NAV_OF[tab] ?? tab;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
@@ -1037,12 +1049,46 @@ const data = {
         b.addEventListener('click', () => { lang = b.dataset.lang as Lang; t = L[lang]; store.set('etude-lang', lang); push?.User.setLanguage?.(lang); render(); })
       );
 
+      // ----- The family's account (the page /family/ in a frame) -----
+      // #family opens it; #family/s/<token>/<form> opens one student's documents
+      // (the link a family sends to the other parent or to an adult student).
+      // Neither needs the studio code; a family the studio approved unlocks the app.
+      const frame = $('famFrame') as HTMLIFrameElement;
+      let frameFor = '';
+      function openFamily() {
+        const rest = location.hash.slice(1).split('/').slice(1).join('/');
+        const want = `/family/?embed#/${rest}`;
+        if (want === frameFor) return;
+        frameFor = want;
+        frame.src = want;
+      }
+      const tellFrame = () => frame.contentWindow?.postMessage({ etude: true, lang }, location.origin);
+      frame.addEventListener('load', tellFrame);
+      addEventListener('message', (e) => {
+        if (e.origin !== location.origin || e.source !== frame.contentWindow || !e.data?.etude) return;
+        if (e.data.height) frame.style.blockSize = `${Math.max(Number(e.data.height), 300)}px`;
+        if (e.data.top) $('app').scrollTo(0, 0);
+        if (e.data.approved && store.get('etude-student') !== CODE) { store.set('etude-student', CODE); unlock(); }
+      });
+      const familyLink = () => location.hash.startsWith('#family');
+      /** The account tab on its own, before the code: no menu to the rest of the app. */
+      function familyOnly() {
+        $('lock').hidden = true;
+        $('gate').hidden = true;
+        $('app').hidden = false;
+        $('nav').hidden = store.get('etude-student') !== CODE;
+        $('alerts').hidden = $('updated').hidden = store.get('etude-student') !== CODE;
+        showTab();
+      }
+      addEventListener('hashchange', () => { if (familyLink() && $('app').hidden) familyOnly(); });
+
       // ----- Code lock (the hash is remembered on this phone) -----
       async function sha256(s: string) {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
         return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
       }
       function unlock() {
+        $('alerts').hidden = $('updated').hidden = false;
         $('lock').hidden = true;
         $('app').hidden = false;
         $('nav').hidden = false;
@@ -1133,7 +1179,8 @@ const data = {
       $('lock').addEventListener('submit', (e) => e.preventDefault());
 
       render();
-      if (!installed && !preview) $('gate').hidden = false;
+      if (familyLink() && store.get('etude-student') !== CODE) familyOnly();
+      else if (!installed && !preview && !familyLink()) $('gate').hidden = false;
       else if (store.get('etude-student') === CODE) unlock();
       else { $('lock').hidden = false; code.focus(); }
       // Keep "next class" and the payment countdown right if the app stays open.
@@ -1190,6 +1237,8 @@ const data = {
       }
       .sa-lock input:focus { outline: none; border-color: var(--color-blue-600); }
       .sa-bad { color: #b3261e; font-weight: 600; }
+      .sa-reg-hint { max-inline-size: 26em; text-align: center; margin-block-start: 18px !important; }
+      .sa-frame { display: block; inline-size: 100%; block-size: 70vh; border: 0; background: transparent; }
 
       .sa-main {
         flex: 1; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
@@ -1273,13 +1322,13 @@ const data = {
       .sa-install b { color: var(--color-navy-900); }
       .sa-install .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
       .sa-nav {
-        flex: none; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
+        flex: none; z-index: 5; display: grid; grid-template-columns: repeat(6, 1fr);
         background: #fff; border-block-start: 1px solid var(--color-line); padding-block-end: env(safe-area-inset-bottom);
       }
       .sa-nav[hidden] { display: none; }
       .sa-nav a { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; min-block-size: 56px; box-sizing: border-box; text-decoration: none; color: var(--color-ink-soft); font-size: 0.75rem; }
       .sa-nav .ic { inline-size: 28px; block-size: 28px; }
-      .sa-nav b { font-weight: 600; white-space: nowrap; }
+      .sa-nav b { font-weight: 600; white-space: nowrap; font-size: 0.68rem; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
       .sa-nav a[aria-current] { color: var(--color-navy-900); }
       .sa-nav a[aria-current] b { text-decoration: underline; text-underline-offset: 3px; }
       .sa-nav a[aria-current] .ic { color: var(--color-blue-600); }

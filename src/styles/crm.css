@@ -161,3 +161,11 @@ fieldset.choice legend { font-weight: 600; margin-block-end: 0.3rem; }
   .subtabs, .table-tools { display: none !important; }
   #view > .stack:not(:has(.sheets)), #view > section.card { padding: 10mm; border: 0; }
 }
+
+/* The family page inside the students' app (/family/?embed): no top bar of its own, no page padding. */
+body.embed { background: transparent; }
+body.embed .crm { padding: 0; }
+body.embed .crm-top img, body.embed .crm-top strong, body.embed #langs { display: none; }
+body.embed .crm-top { justify-content: flex-end; margin: 0; }
+body.embed .crm-top:not(:has(#signOut:not([hidden]))) { display: none; }
+body.embed .sign { margin-block-start: 0; }

@@ -73,7 +73,7 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
     get<Row[]>(db!.from('student_forms').select('*').in('student_id', ids).order('submitted_at', { ascending: false })),
     get<Row[]>(db!.from('student_notes').select('*').in('student_id', ids).order('created_at', { ascending: false })),
   ]);
-  const familyLink = `${location.origin}/family/`;
+  const familyLink = `${location.origin}/student/#family`;
   const holder = { full_name: client.full_name, full_name_en: client.full_name_en, phone: client.phone, email: client.email, relation: client.relation, address: client.address };
 
   const top = h('section', { className: 'card' },
@@ -109,7 +109,7 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
     const mine = forms.filter((f) => f.student_id === s.id);
     const latest = (code: string) => mine.find((f) => f.form === code); // newest first
     const rel = STUDENT_REL.find(([v]) => v === s.relation)?.[1];
-    const link = `${location.origin}/family/#/s/${s.form_token}`;
+    const link = `${location.origin}/student/#family/s/${s.form_token}`;
 
     const rows = FORMS.map((f) => {
       const row = latest(f.code);

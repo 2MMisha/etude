@@ -255,7 +255,7 @@ export async function settingsView() {
     h('h2', { textContent: say('Документы для регистрации семей', 'מסמכים לרישום משפחות', 'Documents for family registration') }),
     h('p', { className: 'muted', textContent: say('Файлы (PDF, Word или фото, до 10 МБ), которые семьи открывают на странице регистрации.', 'קבצים (PDF, וורד או תמונה, עד 10MB) שהמשפחות פותחות בדף ההרשמה.', 'Files (PDF, Word or a photo, up to 10 MB) that families open on the registration page.') }),
     ...DOCS.map(docRow),
-    h('p', { className: 'muted' }, say('Ссылка на регистрацию для всех семей: ', 'קישור ההרשמה לכל המשפחות: ', 'Registration link for every family: '), h('bdi', { dir: 'ltr', textContent: `${location.origin}/family/` }))
+    h('p', { className: 'muted' }, say('Ссылка на регистрацию для всех семей: ', 'קישור ההרשמה לכל המשפחות: ', 'Registration link for every family: '), h('bdi', { dir: 'ltr', textContent: `${location.origin}/student/#family` }))
   );
 
   return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, trainersCard, others, groupsCard, slotsCard, discounts, business, docs);
