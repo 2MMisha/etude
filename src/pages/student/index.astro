@@ -315,7 +315,7 @@ const data = {
       const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const L = {
         he: {
-          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו', family: 'החשבון', onlyYours: 'מוצגים רק השיעורים שלכם (אתם מחוברים לחשבון).', register: 'הרשמה / כניסה לחשבון', registerHint: 'אין לכם קוד? הירשמו כמשפחה — אחרי אישור הסטודיו האפליקציה תיפתח בלי קוד.',
+          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו', family: 'החשבון', onlyYours: 'מוצגים רק השיעורים שלכם (אתם מחוברים לחשבון).', signInFirst: 'היכנסו לחשבון כדי לראות את מערכת השעות שלכם.', myNext: 'השיעור הקרוב שלכם', register: 'הרשמה / כניסה לחשבון', registerHint: 'אין לכם קוד? הירשמו כמשפחה — אחרי אישור הסטודיו האפליקציה תיפתח בלי קוד.',
           hello: 'שלום!', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו בלוח הזמנים את הקבוצות או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
           noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה או שם',
           all: 'הכול', mine: 'לעקוב', isMine: 'במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
@@ -339,7 +339,7 @@ const data = {
           sentTitle: 'הבקשה נשלחה!', sentText: 'תודה! זו עדיין בקשה בלבד — ניצור איתכם קשר בטלפון או בוואטסאפ כדי לאשר.', newReq: 'בקשה חדשה',
         },
         en: {
-          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio', family: 'Account', onlyYours: 'Only your lessons are shown (you are signed in to your account).', register: 'Register / sign in', registerHint: 'No code? Register your family — once the studio approves, the app opens without a code.',
+          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio', family: 'Account', onlyYours: 'Only your lessons are shown (you are signed in to your account).', signInFirst: 'Sign in to your account to see your schedule.', myNext: 'Your next class', register: 'Register / sign in', registerHint: 'No code? Register your family — once the studio approves, the app opens without a code.',
           hello: 'Hi!', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Follow your groups or names in the schedule — as many as you like — and your next classes show up here.',
           noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group or name',
           all: 'All', mine: 'Follow', isMine: 'Following', unmine: 'Remove', noMatch: 'No classes found',
@@ -363,7 +363,7 @@ const data = {
           sentTitle: 'Request sent!', sentText: "Thank you! This is just a request for now — we'll contact you by phone or WhatsApp to confirm.", newReq: 'New request',
         },
         ru: {
-          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия', family: 'Кабинет', onlyYours: 'Показаны только ваши уроки (вы вошли в кабинет).', register: 'Регистрация / вход в кабинет', registerHint: 'Нет кода? Зарегистрируйте семью — после подтверждения Студии приложение будет открываться без кода.',
+          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия', family: 'Кабинет', onlyYours: 'Показаны только ваши уроки (вы вошли в кабинет).', signInFirst: 'Войдите в личный кабинет, чтобы видеть своё расписание.', myNext: 'Ваше ближайшее занятие', register: 'Регистрация / вход в кабинет', registerHint: 'Нет кода? Зарегистрируйте семью — после подтверждения Студии приложение будет открываться без кода.',
           hello: 'Привет!', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте в расписании свои группы или имена — можно несколько — и здесь появятся ваши следующие занятия.',
           noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа или имя',
           all: 'Все', mine: 'Следить', isMine: 'Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
@@ -415,6 +415,10 @@ const data = {
         contact: { phone: string; phoneDisplay: string; whatsapp: string; instagram: string; google: string; waze: string; street: string; city: Loc };
       }
       const data: Data = JSON.parse(document.getElementById('sa-data')!.textContent || '{}');
+      // The timetable comes from the CRM, for a signed-in family only (loadTimetable).
+      data.days = [];
+      data.groups = [];
+      data.names = [];
       const CODE: string = JSON.parse(document.getElementById('sa-code')!.textContent || '""');
       const $ = (id: string) => document.getElementById(id)!;
       const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -560,10 +564,10 @@ const data = {
             ? `<p class="day">${esc(dayName(next.date))}</p><ul class="evs">${itemHtml(next.items[0])}</ul>`
             : `<p class="hint">${t.noNext}</p>`;
         };
-        $('next').innerHTML = follows.length
-          ? `<div class="sa-head"><h2>${t.myClasses}</h2><a href="#schedule" data-mine-view>${icon('edit')}${t.edit}</a></div>` +
-            follows.map((f) => `<div class="card"><h3 class="follow" dir="auto">${STAR}${esc(f)}</h3>${nextHtml((i) => matches(i, f))}</div>`).join('')
-          : `<div class="card"><h2>${t.nextAll}</h2>${nextHtml(() => true)}<p class="hint">${t.pickMine}</p><a class="btn" href="#schedule">${icon('star')}${t.choose}</a></div>`;
+        // Only the family's own lessons, and only once signed in to the account.
+        $('next').innerHTML = ownOnly
+          ? `<div class="card"><h2>${t.myNext}</h2>${nextHtml(() => true)}</div>`
+          : `<div class="card"><p class="hint">${t.signInFirst}</p><a class="btn" href="#family">${icon('user')}${t.register}</a></div>`;
         // Birthdays: today's, and the next 7 days.
         const now = new Date();
         const inDays = (n: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + n);
@@ -635,8 +639,11 @@ const data = {
 
       function renderSchedule() {
         $('schedTitle').textContent = t.schedule;
-        $('schedMine').textContent = t.onlyYours;
-        $('schedMine').hidden = !ownOnly;
+        $('schedMine').innerHTML = ownOnly ? esc(t.onlyYours) : `${esc(t.signInFirst)}<br><a class="btn" href="#family">${icon('user')}${t.register}</a>`;
+        $('schedMine').hidden = false;
+        for (const id of ['q', 'chips', 'mineRow', 'cal']) $(id).hidden = true;
+        $('days').hidden = !ownOnly;
+        $('days').hidden = !ownOnly;
         const q = $('q') as HTMLInputElement;
         q.placeholder = t.search;
         if (document.activeElement !== q) q.value = mineView ? '' : query;
@@ -667,7 +674,7 @@ const data = {
           .map((f) => `<div class="feed"><b dir="auto">${esc(f.name)}</b>${calButtons(`${data.siteUrl}/student/cal/${encodeURIComponent(`${f.slug}-${alarm}`)}.ics`)}</div>`)
           .join('');
 
-        const days = upcoming(mineView ? matchesAny : (i) => matches(i, query));
+        const days = upcoming(() => true);
         // Each day as a time grid with a lane per hall (src/lib/weekGrid.ts), like the trainers' pages.
         $('days').innerHTML = days.length
           ? weekGrid({
@@ -1115,9 +1122,13 @@ const data = {
           ownOnly = !!fam?.approved;
           familyUser = ownOnly ? signed!.user.id : null;
           linkPush();
-          const { data: rows, error } = ownOnly
-            ? await crm.rpc('family_schedule', { d1, d2: plus(27) })
-            : await crm.rpc('public_timetable', { d1, d2: plus(27) });
+          if (!ownOnly) {
+            data.days = [];
+            data.groups = [];
+            data.names = [];
+            return render();
+          }
+          const { data: rows, error } = await crm.rpc('family_schedule', { d1, d2: plus(27) });
           if (error || !Array.isArray(rows)) return;
           const end = (start: string, minutes: number) => { const x = Math.min(toMin(start) + minutes, 24 * 60 - 1); return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
           const byDate = new Map<string, TimetableItem[]>();
