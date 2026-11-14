@@ -186,3 +186,14 @@ body.embed .crm { max-width: none; }
 }
 
 .sign-date { margin: 0; font-size: 0.9rem; color: var(--color-ink-soft); }
+
+/* The "Important" screen. */
+.attention h2 { display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+.attention .count { min-width: 1.6em; padding: 0.05em 0.5em; border-radius: 999px; background: var(--color-blue-100); color: var(--color-navy-900); font-size: 0.85rem; text-align: center; }
+.attention.urgent { border-color: #e0a800; box-shadow: inset 4px 0 0 #e0a800; }
+[dir='rtl'] .attention.urgent { box-shadow: inset -4px 0 0 #e0a800; }
+.attention.urgent .count { background: #fff4d6; color: #6b4e00; }
+.imp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.imp-list a { display: block; padding: 0.45rem 0.2rem; border-block-end: 1px solid var(--color-line); color: var(--color-ink); text-decoration: none; }
+.imp-list a:hover { background: var(--color-ground); }
+.chips a.chip { text-decoration: none; color: var(--color-navy-900); padding: 0.3em 0.8em; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-surface); font-size: 0.88rem; }

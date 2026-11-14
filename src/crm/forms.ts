@@ -153,9 +153,9 @@ const f1: Form = {
 // asked about the student. Any "yes" there means a doctor's certificate before training.
 // Part 2 is what a dance studio needs to know, each a yes/no with details only on "yes".
 const CERT = l(
-  'Ответ «да» в этом разделе: до начала занятий нужна справка от врача, что занятия не опасны для здоровья ученика (выданная не ранее чем за 3 месяца).',
-  'תשובה "כן" בחלק זה: לפני תחילת האימונים יש להמציא אישור רפואי מרופא שאין סיכון לבריאות התלמיד/ה באימון (שהונפק עד 3 חודשים לפני כן).',
-  "A \"yes\" in this part: before classes start, a doctor's certificate is needed that training is no risk to the student's health (issued within the last 3 months)."
+  'Вы ответили «да» в этом разделе. Пожалуйста, принесите в Студию справку от врача о том, что ученику можно заниматься танцами (выданную не ранее чем за 3 месяца). Без справки ученик не сможет начать занятия. Администратор свяжется с вами.',
+  'עניתם "כן" בחלק זה. נא להביא לסטודיו אישור רפואי מרופא שהתלמיד/ה רשאי/ת לרקוד (שהונפק עד 3 חודשים לפני כן). ללא האישור התלמיד/ה לא יוכל/תוכל להתחיל בשיעורים. המנהלת תיצור איתכם קשר.',
+  "You answered \"yes\" in this part. Please bring the studio a doctor's certificate that the student may dance (issued within the last 3 months). Without it the student cannot start classes. The administrator will contact you."
 );
 const med = (id: string, ru: string, he: string, en: string): Q => ({ id, type: 'yesno', req: true, label: l(ru, he, en), flag: ['yes', CERT] });
 const details = (id: string, of: string, ru: string, he: string, en: string, hint?: L): Q => ({ id, type: 'long', show: is(of, 'yes'), req: is(of, 'yes'), label: l(ru, he, en), hint });

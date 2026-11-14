@@ -10,8 +10,10 @@ import { accountsView } from './views/accounts';
 import { debtsView, receiptView, reportsView } from './views/payments';
 import { trainersView } from './views/lessons';
 import { scheduleView } from './views/schedule';
+import { homeView } from './views/home';
 
 const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement>> = {
+  home: homeView,
   clients: clientsView,
   client: clientView,
   month: monthView,
@@ -23,7 +25,7 @@ const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement
   settings: settingsView,
   accounts: accountsView,
 };
-const TABS: Key[] = ['clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts'];
+const TABS: Key[] = ['home', 'clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts'];
 
 const view = document.getElementById('view')!;
 const tabs = document.getElementById('nav')!;
@@ -51,7 +53,7 @@ function drawChrome(current: string) {
 
 async function render() {
   const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
-  const route = name in ROUTES ? name : 'clients';
+  const route = name in ROUTES ? name : 'home';
   const staff = drawChrome(route);
   if (!db) return view.replaceChildren(card('notConnected'));
   if (recovering) return view.replaceChildren(newPasswordView(() => { recovering = false; render(); }));
