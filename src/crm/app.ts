@@ -1,7 +1,7 @@
 // The CRM shell: sign-in, password reset, language, navigation and routing
 // (location.hash → a view function that returns the screen).
 import { LANGS, getLang, setLang, storedLang, t, type Key, type Lang } from './i18n';
-import { db, h, nav, state, type Profile } from './ui';
+import { db, h, nav, state, addTableTools, type Profile } from './ui';
 import { signInView, newPasswordView } from './auth';
 import { clientsView, clientView } from './views/clients';
 import { monthView } from './views/month';
@@ -59,6 +59,7 @@ async function render() {
   if (!staff) return view.replaceChildren(card('noAccess'));
   try {
     view.replaceChildren(await ROUTES[route](arg, sub));
+    addTableTools(view);
   } catch (e) {
     view.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
   }

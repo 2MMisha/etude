@@ -6,7 +6,7 @@
 // came. Every call goes through the trainer_* functions in the database, which
 // work out who is asking; this page cannot reach anyone else's data.
 import { LANGS, LOCALE, getLang, setLang, t, type Key } from './i18n';
-import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, type Row } from './ui';
+import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, addTableTools, type Row } from './ui';
 import { signInView, newPasswordView } from './auth';
 import { attendanceBlock } from './attendance';
 import { weekGrid, fitCards } from '../lib/weekGrid';
@@ -217,6 +217,7 @@ async function render() {
   if (!signedIn) return view.replaceChildren(signInView());
   try {
     view.replaceChildren(await home());
+    addTableTools(view);
   } catch (e) {
     view.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
   }

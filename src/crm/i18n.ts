@@ -39,6 +39,7 @@ const en = {
   label: 'Name', groupsTitle: 'Groups', programme: 'Programme', discountsTitle: 'Discounts, %',
   historyHint: 'A change applies to new charges only. Charges already made keep their price.',
   // stage 3: trainers, private lessons, expenses
+  printShort: "Print",
   accountsOffline: "The accounts service is not installed or not reachable. Nothing was changed.",
   changeEmail: "Change email",
   newPasswordFor: "New password",
@@ -174,6 +175,7 @@ const ru: Record<Key, string> = {
   label: 'Название', groupsTitle: 'Группы', programme: 'Программа', discountsTitle: 'Скидки, %',
   historyHint: 'Изменение действует только на новые начисления. Уже сделанные сохраняют свою цену.',
   // stage 3: trainers, private lessons, expenses
+  printShort: "Печать",
   accountsOffline: "Служба учётных записей не установлена или недоступна. Ничего не изменено.",
   changeEmail: "Изменить почту",
   newPasswordFor: "Новый пароль",
@@ -308,6 +310,7 @@ const he: Record<Key, string> = {
   label: 'שם', groupsTitle: 'קבוצות', programme: 'תוכנית', discountsTitle: 'הנחות, %',
   historyHint: 'שינוי חל רק על חיובים חדשים. חיובים שכבר נוצרו שומרים על המחיר שלהם.',
   // stage 3: trainers, private lessons, expenses
+  printShort: "הדפסה",
   accountsOffline: "שירות החשבונות אינו מותקן או אינו זמין. דבר לא שונה.",
   changeEmail: "שינוי אימייל",
   newPasswordFor: "סיסמה חדשה",

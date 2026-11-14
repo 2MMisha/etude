@@ -3,7 +3,7 @@
 // confirmed it and when, the required answers that are missing, anything the
 // family asked the studio to contact them about, and staff comments. For a
 // family that registered online and is already in the CRM: join the two.
-import { getLang } from '../i18n';
+import { getLang, t } from '../i18n';
 import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, type Row } from '../ui';
 import { FORMS, W, visible, missing, flags, answered, stateOf, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
 
@@ -77,7 +77,12 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
   const holder = { full_name: client.full_name, full_name_en: client.full_name_en, phone: client.phone, email: client.email, relation: client.relation, address: client.address };
 
   const top = h('section', { className: 'card' },
-    h('h2', { textContent: tr(S.title) }),
+    h('div', { className: 'row spread' }, h('h2', { textContent: tr(S.title) }),
+      // Everything open, then the browser's print (or save as PDF); menus and buttons are hidden on paper.
+      h('button', { type: 'button', className: 'noprint', textContent: `🖨 ${t('printShort')}`, onclick: () => {
+        document.querySelectorAll('details').forEach((d) => (d.open = true));
+        print();
+      } })),
     client.online && h('div', { className: 'stack' },
       h('p', { className: 'warn', textContent: tr(S.online) }),
       h('div', { className: 'row' },
