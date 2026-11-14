@@ -148,7 +148,45 @@ const f1: Form = {
 };
 
 // --- Appendix 2 -----------------------------------------------------------
-const limited = is('limits', 'yes');
+// Part 1 follows the health questionnaire set by Israeli regulations (תקנות מכוני כושר
+// (רישוי ופיקוח) (הצהרת בריאות ותעודה רפואית), התשע"ו-2015, first schedule, part A),
+// asked about the student. Any "yes" there means a doctor's certificate before training.
+// Part 2 is what a dance studio needs to know, each a yes/no with details only on "yes".
+const CERT = l(
+  'Ответ «да» в этом разделе: до начала занятий нужна справка от врача, что занятия не опасны для здоровья ученика (выданная не ранее чем за 3 месяца).',
+  'תשובה "כן" בחלק זה: לפני תחילת האימונים יש להמציא אישור רפואי מרופא שאין סיכון לבריאות התלמיד/ה באימון (שהונפק עד 3 חודשים לפני כן).',
+  "A \"yes\" in this part: before classes start, a doctor's certificate is needed that training is no risk to the student's health (issued within the last 3 months)."
+);
+const med = (id: string, ru: string, he: string, en: string): Q => ({ id, type: 'yesno', req: true, label: l(ru, he, en), flag: ['yes', CERT] });
+const details = (id: string, of: string, ru: string, he: string, en: string, hint?: L): Q => ({ id, type: 'long', show: is(of, 'yes'), req: is(of, 'yes'), label: l(ru, he, en), hint });
+const HEALTH: Q[] = [
+  med('h1', 'Говорил ли врач, что у ученика болезнь сердца?', 'האם רופא אמר שהתלמיד/ה סובל/ת ממחלת לב?', 'Has a doctor said the student has a heart condition?'),
+  med('h2a', 'Бывают ли у ученика боли в груди в покое?', 'האם התלמיד/ה חש/ה כאבים בחזה בזמן מנוחה?', 'Does the student have chest pain at rest?'),
+  med('h2b', 'Бывают ли у ученика боли в груди при обычных повседневных делах?', 'האם התלמיד/ה חש/ה כאבים בחזה במהלך פעילויות שגרה ביום-יום?', 'Does the student have chest pain during everyday activities?'),
+  med('h2c', 'Бывают ли у ученика боли в груди во время физической нагрузки?', 'האם התלמיד/ה חש/ה כאבים בחזה בזמן פעילות גופנית?', 'Does the student have chest pain during physical exercise?'),
+  { ...med('h3a', 'За последний год терял(а) ли ученик равновесие из-за головокружения?', 'האם במהלך השנה החולפת איבד/ה התלמיד/ה שיווי משקל עקב סחרחורת?', 'In the past year, has the student lost balance because of dizziness?'),
+    hint: l('Ответьте «нет», если головокружение было от учащённого дыхания (в том числе при интенсивной нагрузке).', 'סמנו "לא" אם הסחרחורת נבעה מנשימת יתר (כולל במהלך פעילות גופנית נמרצת).', 'Answer "no" if the dizziness came from over-breathing (including during hard exercise).') },
+  med('h3b', 'За последний год терял(а) ли ученик сознание?', 'האם במהלך השנה החולפת איבד/ה התלמיד/ה את הכרתו/ה?', 'In the past year, has the student lost consciousness?'),
+  med('h4a', 'Есть ли у ученика астма, по поводу которой за последние 3 месяца понадобились лекарства?', 'האם רופא אבחן אסתמה, ובשלושת החודשים האחרונים התלמיד/ה נזקק/ה לטיפול תרופתי?', 'Has the student been diagnosed with asthma and needed medication for it in the last 3 months?'),
+  med('h4b', 'Есть ли у ученика астма, из-за которой за последние 3 месяца была одышка или хрипы?', 'האם רופא אבחן אסתמה, ובשלושת החודשים האחרונים התלמיד/ה סבל/ה מקוצר נשימה או צפצופים?', 'Has the student been diagnosed with asthma and had shortness of breath or wheezing in the last 3 months?'),
+  med('h5a', 'Умер ли кто-то из ближайших родственников (родители, братья, сёстры) от болезни сердца?', 'האם אחד מבני המשפחה מדרגת קרבה ראשונה נפטר ממחלת לב?', 'Has a first-degree relative died of heart disease?'),
+  med('h5b', 'Умер ли кто-то из ближайших родственников внезапно в раннем возрасте (мужчина до 55 лет, женщина до 65)?', 'האם אחד מבני המשפחה מדרגת קרבה ראשונה נפטר ממוות פתאומי בגיל מוקדם (גבר לפני 55, אישה לפני 65)?', 'Has a first-degree relative died suddenly at an early age (a man before 55, a woman before 65)?'),
+  med('h6', 'Говорил ли врач за последние 5 лет, что ученику можно заниматься только под медицинским наблюдением?', 'האם רופא אמר ב-5 השנים האחרונות שהתלמיד/ה רשאי/ת לבצע פעילות גופנית רק תחת השגחה רפואית?', 'In the last 5 years, has a doctor said the student may exercise only under medical supervision?'),
+  med('h7', 'Есть ли у ученика хроническое заболевание, не названное выше, которое может мешать или ограничивать физическую нагрузку?', 'האם התלמיד/ה סובל/ת ממחלה כרונית שלא נזכרה לעיל ועשויה למנוע או להגביל ביצוע פעילות גופנית?', 'Does the student have a chronic condition not named above that may prevent or limit physical activity?'),
+  { ...med('h8', 'Для беременных: определена ли эта или прошлая беременность как беременность с риском? (Если неприменимо — «нет».)', 'לנשים בהיריון: האם ההיריון הזה או היריון קודם הוגדר היריון בסיכון? (אם לא רלוונטי — "לא".)', 'If pregnant: has this or an earlier pregnancy been defined as high-risk? (If not relevant, "no".)'), show: (_a, c) => c.adult },
+];
+const STUDIO: Q[] = [
+  { id: 'd_allergy', type: 'yesno', req: true, label: l('Есть ли у ученика аллергия (еда, лекарства, укусы и т. д.)?', 'האם לתלמיד/ה יש אלרגיה (מזון, תרופות, עקיצות וכו׳)?', 'Does the student have an allergy (food, medicines, stings, etc.)?') },
+  details('allergy', 'd_allergy', 'На что аллергия, как проявляется и что делать', 'למה האלרגיה, איך היא מתבטאת ומה יש לעשות', 'What to, how it shows and what to do', l('Например: орехи — сыпь, отёк; EpiPen в рюкзаке', 'למשל: אגוזים — פריחה, נפיחות; אפיפן בתיק', 'For example: nuts — rash, swelling; EpiPen in the bag')),
+  { id: 'd_condition', type: 'yesno', req: true, label: l('Есть ли эпилепсия, диабет или другое состояние, о котором тренер должен знать?', 'האם יש אפילפסיה, סוכרת או מצב אחר שהמאמן/ת צריך/ה לדעת עליו?', 'Is there epilepsy, diabetes or another condition the trainer should know about?') },
+  details('conditions', 'd_condition', 'Какое состояние и что делать, если станет плохо', 'איזה מצב ומה לעשות אם מרגישים לא טוב', 'Which condition, and what to do if they feel unwell'),
+  { id: 'd_injury', type: 'yesno', req: true, label: l('Были ли за последние 12 месяцев травмы, боли или ограничения движений (спина, колени, суставы)?', 'האם ב-12 החודשים האחרונים היו פציעות, כאבים או הגבלה בתנועה (גב, ברכיים, מפרקים)?', 'In the last 12 months, any injuries, pain or limited movement (back, knees, joints)?') },
+  details('injuries', 'd_injury', 'Что именно и чего нельзя делать на занятиях', 'מה בדיוק ומה אסור לעשות בשיעור', 'What exactly, and what must be avoided in class'),
+  { id: 'd_meds', type: 'yesno', req: true, label: l('Принимает ли ученик лекарства постоянно или должен иметь их при себе (ингалятор, EpiPen, инсулин)?', 'האם התלמיד/ה נוטל/ת תרופות באופן קבוע או צריך/ה להחזיק אותן (משאף, אפיפן, אינסולין)?', 'Does the student take regular medication or need to carry it (inhaler, EpiPen, insulin)?') },
+  details('meds', 'd_meds', 'Какие лекарства и что делать в экстренной ситуации', 'אילו תרופות ומה לעשות במצב חירום', 'Which medicines, and what to do in an emergency'),
+  { id: 'd_doctor', type: 'yesno', req: true, label: l('Есть ли рекомендации врача по нагрузке (что можно и что нельзя)?', 'האם יש המלצות רופא לגבי מאמץ (מה מותר ומה אסור)?', "Are there doctor's recommendations about exertion (what is and isn't allowed)?") },
+  details('doctor_recs', 'd_doctor', 'Какие рекомендации', 'אילו המלצות', 'Which recommendations'),
+];
 const f2: Form = {
   code: 'f2', num: '2', signer: 'signer',
   title: l('Декларация здоровья и разрешение на экстренную помощь', 'הצהרת בריאות והרשאה לטיפול חירום', 'Health declaration and permission for emergency care'),
@@ -159,17 +197,16 @@ const f2: Form = {
       qs: [who(), studentName(), birth(), { id: 'f_phone', type: 'tel', label: l('Телефон лица, заполняющего форму', 'טלפון הממלא/ת את הטופס', 'Phone of the person filling in'), req: true, prefill: (c) => (c.adult ? c.student.phone : c.holder.phone) }],
     },
     {
-      title: l('Состояние здоровья', 'מצב בריאותי', 'Health'),
+      title: l('Медицинский опросник', 'שאלון רפואי', 'Medical questionnaire'),
+      text: [l('Вопросы по форме декларации здоровья, установленной правилами в Израиле. Отвечайте о самом ученике.', 'השאלות לפי טופס הצהרת הבריאות שנקבע בתקנות. ענו לגבי התלמיד/ה.', 'The questions of the health declaration set by Israeli regulations. Answer about the student.')],
+      qs: HEALTH,
+    },
+    {
+      title: l('Что важно знать тренеру', 'מה חשוב שהמאמן/ת ידע/תדע', 'What the trainer should know'),
       qs: [
-        { id: 'limits', type: 'one', label: l('Есть ли известные ограничения для участия в танцевальных занятиях, репетициях, выступлениях, соревнованиях, поездках или учебно-тренировочных сборах?', 'האם ידועות מגבלות להשתתפות בשיעורי ריקוד, חזרות, הופעות, תחרויות, נסיעות או מחנות אימון?', 'Are there any known limits to taking part in dance classes, rehearsals, performances, competitions, trips or training camps?'), req: true,
-          opts: opts(['no', l('Нет известных ограничений', 'אין מגבלות ידועות', 'No known limits')], ['yes', l('Да, имеются особенности или ограничения', 'כן, יש מגבלות או צרכים מיוחדים', 'Yes, there are conditions or limits')]) },
-        { id: 'allergy', type: 'long', show: limited, req: limited, label: l('Аллергии и известные реакции', 'אלרגיות ותגובות ידועות', 'Allergies and known reactions'), hint: l('Укажите аллерген, признаки реакции и необходимые действия', 'ציינו את האלרגן, סימני התגובה ומה יש לעשות', 'Say what causes it, the signs and what to do') },
-        { id: 'conditions', type: 'long', show: limited, req: limited, label: l('Астма, эпилепсия, диабет или другие состояния', 'אסתמה, אפילפסיה, סוכרת או מצבים אחרים', 'Asthma, epilepsy, diabetes or other conditions') },
-        { id: 'injuries', type: 'long', show: limited, req: limited, label: l('Недавние травмы, боль или ограничения движений', 'פציעות אחרונות, כאב או הגבלה בתנועה', 'Recent injuries, pain or limited movement') },
-        { id: 'meds', type: 'long', show: limited, label: l('Лекарства или медицинские средства, важные для экстренной помощи', 'תרופות או אמצעים רפואיים החשובים לטיפול חירום', 'Medicines or medical aids that matter in an emergency'), hint: l('Укажите только необходимую информацию и порядок действий', 'ציינו רק את המידע הנחוץ ואת אופן הפעולה', 'Give only what is needed and what to do') },
-        { id: 'doctor_recs', type: 'long', show: limited, label: l('Рекомендации врача или функциональные ограничения', 'המלצות רופא/ה או מגבלות תפקודיות', "Doctor's advice or functional limits") },
-        { id: 'kupah', type: 'select', show: limited, label: l('Купат холим', 'קופת חולים', 'Health fund (kupat holim)'), opts: opts(['clalit', l('Клалит', 'כללית', 'Clalit')], ['maccabi', l('Маккаби', 'מכבי', 'Maccabi')], ['meuhedet', l('Меухедет', 'מאוחדת', 'Meuhedet')], ['leumit', l('Леумит', 'לאומית', 'Leumit')], ['other', l('Другое', 'אחר', 'Other')], ['none', l('Предпочитаю не указывать', 'מעדיף/ה לא לציין', 'Prefer not to say')]) },
-        { id: 'doctor', type: 'text', show: limited, label: l('Лечащий врач и телефон', 'רופא/ה מטפל/ת וטלפון', "Doctor's name and phone") },
+        ...STUDIO,
+        { id: 'kupah', type: 'select', req: true, label: l('Купат холим', 'קופת חולים', 'Health fund (kupat holim)'), opts: opts(['clalit', l('Клалит', 'כללית', 'Clalit')], ['maccabi', l('Маккаби', 'מכבי', 'Maccabi')], ['meuhedet', l('Меухедет', 'מאוחדת', 'Meuhedet')], ['leumit', l('Леумит', 'לאומית', 'Leumit')], ['other', l('Другое', 'אחר', 'Other')], ['none', l('Предпочитаю не указывать', 'מעדיף/ה לא לציין', 'Prefer not to say')]) },
+        { id: 'doctor', type: 'text', label: l('Лечащий врач и телефон', 'רופא/ה מטפל/ת וטלפון', "Doctor's name and phone") },
       ],
     },
     {
@@ -422,7 +459,7 @@ export const stopped = (f: Form, a: Answers, c: Ctx) =>
 
 /** Answers that mean the studio has to get in touch. */
 export const flags = (f: Form, a: Answers, c: Ctx) =>
-  visible(f, a, c).flatMap(({ qs }) => qs.filter((q) => q.flag && a[q.id] === q.flag[0]).map((q) => q.flag![1]));
+  [...new Set(visible(f, a, c).flatMap(({ qs }) => qs.filter((q) => q.flag && a[q.id] === q.flag[0]).map((q) => q.flag![1])))];
 
 // --- statuses -----------------------------------------------------------------
 export type State = 'none' | 'done' | 'update' | 'ask' | 'notNeeded';
