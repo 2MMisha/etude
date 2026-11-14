@@ -79,11 +79,11 @@ const f1: Form = {
       qs: [
         studentName(),
         birth(),
-        { id: 's_id', type: 'text', label: l('Номер удостоверения личности ученика или иной идентификатор', 'מספר תעודת זהות של התלמיד/ה או מזהה אחר', "Student's ID number or other identifier"), hint: l('Только если требуется для страхования или учёта', 'רק אם נדרש לביטוח או לרישום', 'Only if needed for insurance or records'), prefill: (c) => c.student.id_number },
-        { id: 's_address', type: 'text', label: l('Адрес проживания ученика', 'כתובת המגורים של התלמיד/ה', "Student's home address"), hint: l('Только если действительно необходим', 'רק אם באמת נחוץ', 'Only if really needed'), prefill: (c) => c.student.address || c.holder.address },
+        { id: 's_id', type: 'text', label: l('Номер удостоверения личности ученика или иной идентификатор', 'מספר תעודת זהות של התלמיד/ה או מזהה אחר', "Student's ID number or other identifier"), req: true, prefill: (c) => c.student.id_number },
+        { id: 's_address', type: 'text', label: l('Адрес проживания ученика', 'כתובת המגורים של התלמיד/ה', "Student's home address"), req: true, prefill: (c) => c.student.address || c.holder.address },
         holderName(l('Полное имя родителя или законного представителя', 'שם מלא של ההורה או האפוטרופוס/ית', 'Full name of the parent or legal guardian')),
         { id: 'p_status', type: 'select', label: l('Статус по отношению к ученику', 'הקשר לתלמיד/ה', 'Relation to the student'), req: true, opts: opts(['mother', l('Мать', 'אם', 'Mother')], ['father', l('Отец', 'אב', 'Father')], ['guardian', l('Опекун', 'אפוטרופוס/ית', 'Guardian')], ['custodian', l('Попечитель', 'משמורן/ית', 'Custodian')], ['other', l('Иной законный представитель', 'נציג/ה חוקי/ת אחר/ת', 'Other legal representative')]) },
-        { id: 'p_id', type: 'text', label: l('Номер удостоверения личности представителя', 'מספר תעודת זהות של הנציג/ה', "Representative's ID number"), hint: l('Только при подтверждённой необходимости', 'רק כשיש בכך צורך מוכח', 'Only when there is a confirmed need') },
+        { id: 'p_id', type: 'text', label: l('Номер удостоверения личности представителя', 'מספר תעודת זהות של הנציג/ה', "Representative's ID number"), req: true },
         { id: 'p_phone', type: 'tel', label: l('Телефон представителя', 'טלפון הנציג/ה', "Representative's phone"), req: true, prefill: (c) => c.holder.phone },
         { id: 'p_email', type: 'email', label: l('Электронная почта представителя', 'אימייל הנציג/ה', "Representative's email"), req: true, prefill: (c) => c.holder.email },
         { id: 'p_right', type: 'one', label: l('Имеете ли вы право принимать условия оферты от имени ученика?', 'האם את/ה מוסמך/ת לקבל את תנאי ההצעה בשם התלמיד/ה?', 'Are you entitled to accept the offer on behalf of the student?'), req: true, opts: opts(['yes', YES], ['no', NO]),
@@ -96,8 +96,8 @@ const f1: Form = {
       qs: [
         studentName(),
         birth('a_birth', l('Дата рождения', 'תאריך לידה', 'Date of birth')),
-        { id: 'a_id', type: 'text', label: l('Номер удостоверения личности или иной идентификатор', 'מספר תעודת זהות או מזהה אחר', 'ID number or other identifier'), hint: l('Только если требуется', 'רק אם נדרש', 'Only if needed'), prefill: (c) => c.student.id_number },
-        { id: 'a_address', type: 'text', label: l('Адрес проживания', 'כתובת מגורים', 'Home address'), prefill: (c) => c.student.address },
+        { id: 'a_id', type: 'text', label: l('Номер удостоверения личности или иной идентификатор', 'מספר תעודת זהות או מזהה אחר', 'ID number or other identifier'), req: true, prefill: (c) => c.student.id_number },
+        { id: 'a_address', type: 'text', label: l('Адрес проживания', 'כתובת מגורים', 'Home address'), req: true, prefill: (c) => c.student.address || (c.student.is_holder ? c.holder.address : '') },
         { id: 'a_phone', type: 'tel', label: l('Телефон', 'טלפון', 'Phone'), req: true, prefill: (c) => c.student.phone || (c.student.is_holder ? c.holder.phone : '') },
         { id: 'a_email', type: 'email', label: l('Электронная почта', 'אימייל', 'Email'), req: true, prefill: (c) => c.student.email || (c.student.is_holder ? c.holder.email : '') },
       ],
@@ -206,7 +206,6 @@ const f2: Form = {
       qs: [
         ...STUDIO,
         { id: 'kupah', type: 'select', req: true, label: l('Купат холим', 'קופת חולים', 'Health fund (kupat holim)'), opts: opts(['clalit', l('Клалит', 'כללית', 'Clalit')], ['maccabi', l('Маккаби', 'מכבי', 'Maccabi')], ['meuhedet', l('Меухедет', 'מאוחדת', 'Meuhedet')], ['leumit', l('Леумит', 'לאומית', 'Leumit')], ['other', l('Другое', 'אחר', 'Other')], ['none', l('Предпочитаю не указывать', 'מעדיף/ה לא לציין', 'Prefer not to say')]) },
-        { id: 'doctor', type: 'text', label: l('Лечащий врач и телефон', 'רופא/ה מטפל/ת וטלפון', "Doctor's name and phone") },
       ],
     },
     {

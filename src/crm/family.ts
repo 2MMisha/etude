@@ -203,7 +203,7 @@ function holderForm(holder: Answers | null, email: string) {
   const names = nameFields(t('first'), t('last'), holder?.full_name ?? '', holder?.full_name_en ?? '');
   const phone = h('input', { type: 'tel', required: true, value: holder?.phone ?? '', autocomplete: 'tel', dir: 'ltr' });
   const birth = h('input', { type: 'date', value: holder?.birth_date ?? '' });
-  const address = text({ value: holder?.address ?? '', autocomplete: 'street-address' });
+  const address = text({ value: holder?.address ?? '', autocomplete: 'street-address', required: true });
   const rel = choose(HOLDER_REL, holder?.relation ?? '', { required: true });
   const form = h('form', { className: 'card' },
     h('h1', { textContent: t('holderTitle') }), note(t('holderIntro')),
@@ -212,7 +212,7 @@ function holderForm(holder: Answers | null, email: string) {
       h('label', { className: 'field' }, t('phone'), phone),
       h('label', { className: 'field' }, t('email'), h('input', { type: 'email', value: email, disabled: true, dir: 'ltr' })),
       h('label', { className: 'field' }, req(t('birth'), true), birth),
-      h('label', { className: 'field' }, req(t('address'), true), address)),
+      h('label', { className: 'field' }, t('address'), address)),
     h('label', { className: 'field' }, t('relation'), rel),
     h('div', { className: 'row' }, h('button', { className: 'primary', type: 'submit', textContent: holder ? t('save') : t('continue') }),
       holder && h('button', { type: 'button', textContent: t('cancel'), onclick: () => { editing = ''; render(); } }))
@@ -234,7 +234,7 @@ function studentForm(s: Answers | null, holder: Answers, done: (newId?: string) 
   const no = h('input', { type: 'radio', name: 'holder', value: 'no', checked: !!s && !s.is_holder, required: true });
   const rel = choose(STUDENT_REL, s?.relation ?? '');
   const relBox = h('label', { className: 'field' }, t('studentRel'), rel);
-  const id = text({ value: s?.id_number ?? '', dir: 'ltr', maxLength: 20 });
+  const id = text({ value: s?.id_number ?? '', dir: 'ltr', maxLength: 20, required: true });
   const address = text({ value: s?.address ?? '' });
   const phone = h('input', { type: 'tel', value: s?.phone ?? '', dir: 'ltr' });
   const email = h('input', { type: 'email', value: s?.email ?? '', dir: 'ltr' });
@@ -264,7 +264,7 @@ function studentForm(s: Answers | null, holder: Answers, done: (newId?: string) 
     h('div', { className: 'grid' },
       h('label', { className: 'field' }, t('birth'), birth),
       relBox,
-      h('label', { className: 'field' }, req(t('idNumber'), true), id),
+      h('label', { className: 'field' }, t('idNumber'), id),
       h('label', { className: 'field' }, req(t('address'), true), address),
       h('label', { className: 'field' }, t('studentPhone'), phone),
       h('label', { className: 'field' }, t('studentEmail'), email, emailHint)),
