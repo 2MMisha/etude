@@ -113,17 +113,17 @@
   },
   "notice": {
     "active": true,
-    "mode": "popup",
-    "until": "2026-11-02",
+    "mode": "banner",
+    "until": "",
     "title": {
-      "he": "מזל טוב למיכאל וסופיה! מקום 12 באליפות העולם 🎉",
-      "ru": "Поздравляем Мишу и Софию! 12-е место на чемпионате мира 🎉",
-      "en": "Congratulations, Michael and Sofia! 12th at the World Championship 🎉"
+      "he": "מערכת השעות עוברת למערכת חדשה",
+      "ru": "Расписание переезжает в новую систему",
+      "en": "The schedule is moving to a new system"
     },
     "body": {
-      "he": "בס״ד\nמזל טוב גדול למיכאל וסופיה! 🎉\nבאליפות העולם בקלוז׳ הם עלו לחצי הגמר וסיימו ב**מקום ה-12** מתוך **58 זוגות** מ-**34 מדינות**.\nאנחנו גאים בכם מאוד! 💛\nתודה לכל מי שהחזיק אצבעות וצפה בשידור.\n\n[תוצאות מלאות](https://live.pocketcamps.com/?lang=en&eventId=wdsf-transylvanian-grand-prix-2026-2026-10-31&participant=DLS-C00001455)",
-      "ru": "Поздравляем Мишу и Софию! 🎉\nНа чемпионате мира в Клуже они дошли до полуфинала и заняли **12-е место** среди **58 пар** из **34 стран**.\nМы очень гордимся вами! 💛\nСпасибо всем, кто болел и смотрел трансляцию.\n\n[Полные результаты](https://live.pocketcamps.com/?lang=en&eventId=wdsf-transylvanian-grand-prix-2026-2026-10-31&participant=DLS-C00001455)",
-      "en": "Congratulations to Michael and Sofia! 🎉\nAt the World Championship in Cluj they reached the Semi-Final and finished **12th** out of **58 couples** from **34 countries**.\nWe are so proud of you! 💛\nThank you to everyone who cheered and watched the live stream.\n\n[Full Results](https://live.pocketcamps.com/?lang=en&eventId=wdsf-transylvanian-grand-prix-2026-2026-10-31&participant=DLS-C00001455)"
+      "he": "בזמן הקרוב ייתכנו תקלות במערכת השעות באפליקציה. מערכת השעות העדכנית — בקישור: [מערכת השעות של ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
+      "ru": "В ближайшее время расписание в приложении может работать с ошибками. Актуальное расписание — по ссылке: [Расписание ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
+      "en": "For a while, the schedule in the app may show mistakes. The current schedule is here: [ETUDE schedule](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)"
     }
   },
   "payment": {
