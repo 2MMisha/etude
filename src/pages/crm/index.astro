@@ -28,7 +28,10 @@ import '../../styles/crm.css';
       <div class="crm-top">
         <img src="/images/brand/icon.svg" alt="" />
         <strong>ETUDE — CRM</strong>
-        <a class="bell" id="bell" href="#/home" hidden></a>
+        <span class="bell-wrap">
+          <button type="button" class="bell" id="bell" aria-expanded="false" aria-controls="bellPanel" hidden></button>
+          <div class="bell-panel" id="bellPanel" role="dialog" hidden></div>
+        </span>
         <span class="langs" id="langs"></span>
         <button id="signOut" hidden></button>
       </div>

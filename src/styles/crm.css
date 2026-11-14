@@ -202,3 +202,19 @@ body.embed .crm { max-width: none; }
 .crm-top .bell { position: relative; display: grid; place-items: center; inline-size: 2.4rem; block-size: 2.4rem; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); text-decoration: none; font-size: 1.15rem; }
 .crm-top .bell[aria-current='page'] { border-color: var(--color-blue-500); background: var(--color-blue-100); }
 .crm-top .bell b { position: absolute; inset-block-start: -0.35rem; inset-inline-end: -0.35rem; min-inline-size: 1.25rem; padding: 0 0.3rem; box-sizing: border-box; border-radius: 999px; background: #c62828; color: #fff; font-size: 0.72rem; line-height: 1.25rem; text-align: center; }
+
+/* The bell's window: drops down under the bell, scrolls inside, fits a phone. */
+.bell-wrap { position: relative; }
+.crm-top button.bell { position: relative; display: grid; place-items: center; inline-size: 2.4rem; block-size: 2.4rem; padding: 0; border-radius: 999px; font-size: 1.15rem; }
+.crm-top button.bell[aria-expanded='true'] { border-color: var(--color-blue-500); background: var(--color-blue-100); }
+.crm-top button.bell b { position: absolute; inset-block-start: -0.35rem; inset-inline-end: -0.35rem; min-inline-size: 1.25rem; padding: 0 0.3rem; box-sizing: border-box; border-radius: 999px; background: #c62828; color: #fff; font-size: 0.72rem; line-height: 1.25rem; text-align: center; }
+.bell-panel {
+  position: absolute; z-index: 20; inset-block-start: calc(100% + 0.5rem); inset-inline-end: -4rem;
+  inline-size: min(26rem, calc(100vw - 1.5rem)); max-block-size: min(70vh, 34rem); overflow-y: auto; box-sizing: border-box;
+  padding: 0.9rem; background: var(--color-ground); border: 1px solid var(--color-line); border-radius: var(--radius-md);
+  box-shadow: 0 14px 40px rgba(23, 34, 74, 0.22);
+}
+.bell-panel h1 { font-size: 1.25rem; margin: 0; }
+.bell-panel .card { padding: 0.7rem; }
+.bell-panel .attention h2 { font-size: 1rem; }
+@media (max-width: 600px) { .bell-panel { position: fixed; inset-inline: 0.75rem; inset-block-start: 3.6rem; inline-size: auto; } }

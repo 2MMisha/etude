@@ -51,9 +51,37 @@ function drawChrome(current: string) {
   return staff;
 }
 
-// The bell in the top bar: how many things wait (the "Important" screen), checked on
-// sign-in, after every change and every 5 minutes; a tap opens the list.
+// The bell in the top bar: how many things wait (the "Important" list), checked on
+// sign-in, after every change and every 5 minutes; a tap opens the list in a small
+// window under it, which closes on a choice, a tap outside or Escape.
 let bellCount = 0;
+const bellPanel = document.getElementById('bellPanel')!;
+const bellButton = document.getElementById('bell') as HTMLButtonElement;
+function closeBell() {
+  bellPanel.hidden = true;
+  bellButton.ariaExpanded = 'false';
+}
+bellButton.onclick = async (e) => {
+  e.stopPropagation();
+  if (!bellPanel.hidden) return closeBell();
+  bellPanel.hidden = false;
+  bellButton.ariaExpanded = 'true';
+  bellPanel.replaceChildren(h('p', { className: 'muted', textContent: '…' }));
+  try {
+    const list = await homeView();
+    bellCount = Number(list.dataset.total ?? 0);
+    bellPanel.replaceChildren(list);
+    drawBell();
+  } catch {
+    closeBell();
+  }
+};
+bellPanel.onclick = (e) => {
+  if ((e.target as HTMLElement).closest('a[href^="#/"]')) closeBell(); // a line was chosen: go there
+  e.stopPropagation();
+};
+document.addEventListener('click', () => { if (!bellPanel.hidden) closeBell(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeBell(); });
 async function updateBell() {
   if (!state.me || tabs.hidden) return; // staff only
   try {
@@ -68,7 +96,6 @@ function drawBell() {
   const bell = document.getElementById('bell')!;
   bell.hidden = tabs.hidden;
   bell.title = bell.ariaLabel = `${t('home')}${bellCount ? `: ${bellCount}` : ''}`;
-  bell.ariaCurrent = location.hash.startsWith('#/home') ? 'page' : null;
   bell.replaceChildren(h('span', { ariaHidden: 'true', textContent: '🔔' }), ...(bellCount > 0 ? [h('b', { textContent: bellCount > 99 ? '99+' : String(bellCount) })] : []));
 }
 setInterval(updateBell, 5 * 60 * 1000);
@@ -83,7 +110,6 @@ async function render() {
   if (!staff) return view.replaceChildren(card('noAccess'));
   try {
     view.replaceChildren(await ROUTES[route](arg, sub));
-    if (route === 'home') bellCount = Number(view.firstElementChild?.getAttribute('data-total') ?? bellCount);
     drawBell();
     addTableTools(view);
   } catch (e) {
