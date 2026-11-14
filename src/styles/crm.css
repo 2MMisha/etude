@@ -169,3 +169,18 @@ body.embed .crm-top img, body.embed .crm-top strong, body.embed #langs { display
 body.embed .crm-top { justify-content: flex-end; margin: 0; }
 body.embed .crm-top:not(:has(#signOut:not([hidden]))) { display: none; }
 body.embed .sign { margin-block-start: 0; }
+
+/* The family page on a phone: big, easy buttons; fields one under another; nothing wider than the screen. */
+.crm .btn.big, .crm button.big { display: block; width: 100%; box-sizing: border-box; text-align: center; padding: 0.85em 1em; font-weight: 700; font-size: 1rem; }
+.crm a.btn.primary { background: var(--color-navy-900); border-color: var(--color-navy-900); color: #fff; }
+body.embed .crm { max-width: none; }
+@media (max-width: 600px) {
+  body.embed .grid, .sign.wide .grid { grid-template-columns: 1fr; }
+  .field.wide { grid-column: auto; }
+  .doc-row { align-items: stretch; }
+  .doc-row > .btn { flex: 1 1 100%; text-align: center; }
+  .crm input, .crm select, .crm textarea { font-size: 16px; } /* no zoom-in on iPhone */
+  .crm .card { padding: 14px; }
+  .q { padding-block: 0.5rem; }
+  .choices .tick { padding: 0.4rem 0; }
+}

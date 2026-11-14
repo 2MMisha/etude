@@ -672,4 +672,22 @@ assert.equal(await count('client', 'push_log'), 0, 'a family cannot read the log
 await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::jsonb)`, [oldKid]), /permission denied/);
 }
 
+// Birthdays from the CRM: first name and day/month for a family that is in; nothing for others.
+{
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const logged = async () => (await as('admin', 'select * from public.push_log order by id')).rows;
+  await as('admin', `update public.students set birth_date = $1, full_name_en = 'Dana Levi' where id = $2`, [`2015-${today.slice(5)}`, oldKid]);
+  const list = (await rpc('client', 'school_birthdays')).rows[0].school_birthdays;
+  const kidDay = list.find((b) => b.en === 'Dana');
+  assert.ok(kidDay && kidDay.day === Number(today.slice(8)) && !('year' in kidDay) && !JSON.stringify(kidDay).includes('2015'), 'first name and day, never the year');
+  assert.deepEqual((await rpc('nobody', 'school_birthdays')).rows[0].school_birthdays, [], 'no family, no birthdays');
+  await denied(rpc('anon', 'school_birthdays'), /permission denied/);
+  const before = (await logged()).length;
+  await db.query('select public.birthday_push()');
+  const sent = (await logged()).slice(before);
+  assert.equal(sent.length, 1, 'one morning push for everyone');
+  assert.ok(sent[0].body.includes('Dana') && sent[0].lang === 'all', 'with the names');
+  await denied(as('client', 'select public.birthday_push()'), /permission denied/);
+}
+
 console.log('access rules: all checks passed');

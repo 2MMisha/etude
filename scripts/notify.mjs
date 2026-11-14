@@ -122,9 +122,5 @@ const payDay = Math.min(28, Math.max(1, Math.round(Number(pay.day ?? 10)) || 10)
 if (morning && pay.active !== false && Number(today.slice(8)) === payDay)
   await send(`pay-${today.slice(0, 7)}`, LABEL.pay, PAY_TODAY, '#studio');
 
-// Today's birthdays (the list from /admin/, the same as the card in the app).
-const names = (app.birthdays ?? []).filter((b) => b.day === Number(today.slice(8)) && b.month === Number(today.slice(5, 7))).map((b) => b.name);
-if (morning && names.length) {
-  const list = names.join(', ');
-  await send(`bday-${today}`, LABEL.bday, { he: `מזל טוב ל${list}! 🎉`, ru: `Поздравляем: ${list}! 🎉`, en: `Happy birthday, ${list}! 🎉` }, '#home');
-}
+// Today's birthdays: sent by the database every morning from the students in the CRM
+// (birthday_push, supabase/migrations/20261131000000_birthdays.sql), no longer from here.

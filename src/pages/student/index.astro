@@ -149,6 +149,7 @@ const data = {
   </head>
   <body class="sa">
     <header class="sa-top">
+      <button type="button" class="sa-burger" id="menuBtn" aria-controls="nav" aria-expanded="false" hidden><Fragment set:html={icon('menu')} /></button>
       <img src="/images/brand/logo-full-white.svg" alt="ETUDE" width="96" height="40" />
       <div class="sa-langs" role="group" aria-label="Language">
         <button type="button" data-lang="he" lang="he">עב</button>
@@ -275,6 +276,7 @@ const data = {
       <p class="hint sa-updated" id="updated"></p>
     </main>
 
+    <div class="sa-shade" id="menuShade" hidden></div>
     <nav class="sa-nav" id="nav" hidden>
       <a href="#home" data-go="home"><Fragment set:html={icon('home')} /><b></b></a>
       <a href="#schedule" data-go="schedule"><Fragment set:html={icon('calendar')} /><b></b></a>
@@ -419,6 +421,7 @@ const data = {
       data.days = [];
       data.groups = [];
       data.names = [];
+      data.birthdays = [];
       const CODE: string = JSON.parse(document.getElementById('sa-code')!.textContent || '""');
       const $ = (id: string) => document.getElementById(id)!;
       const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -571,7 +574,7 @@ const data = {
         // Birthdays: today's, and the next 7 days.
         const now = new Date();
         const inDays = (n: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + n);
-        const bdays = (d: Date) => data.birthdays.filter((b) => b.day === d.getDate() && b.month === d.getMonth() + 1).map((b) => b.name);
+        const bdays = (d: Date) => data.birthdays.filter((b) => b.day === d.getDate() && b.month === d.getMonth() + 1).map((b: any) => (lang === 'he' ? b.he : b.en || b.he) || b.name);
         const todays = bdays(now);
         const soon = [1, 2, 3, 4, 5, 6, 7].flatMap((n) => bdays(inDays(n)).map((name) => ({ name, d: inDays(n) })));
         $('bday').innerHTML =
@@ -1038,6 +1041,17 @@ const data = {
       }
       addEventListener('hashchange', showTab);
 
+      // ----- The menu (hamburger): opens over the page, closes on a choice or a tap outside -----
+      const menu = (open: boolean) => {
+        $('nav').classList.toggle('open', open);
+        $('menuBtn').setAttribute('aria-expanded', String(open));
+        $('menuShade').hidden = !open;
+      };
+      $('menuBtn').addEventListener('click', () => menu(!$('nav').classList.contains('open')));
+      $('menuShade').addEventListener('click', () => menu(false));
+      $('nav').addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('a')) menu(false); });
+      addEventListener('keydown', (e) => { if (e.key === 'Escape') menu(false); });
+
       // ----- Events -----
       // The schedule may be drawn while its tab is hidden: refit the card text when it shows.
       new ResizeObserver(() => fitCards($('days'))).observe($('days'));
@@ -1098,7 +1112,7 @@ const data = {
         $('lock').hidden = true;
         $('gate').hidden = true;
         $('app').hidden = false;
-        $('nav').hidden = store.get('etude-student') !== CODE;
+        $('nav').hidden = $('menuBtn').hidden = store.get('etude-student') !== CODE;
         $('alerts').hidden = $('updated').hidden = store.get('etude-student') !== CODE;
         showTab();
       }
@@ -1126,8 +1140,13 @@ const data = {
             data.days = [];
             data.groups = [];
             data.names = [];
+            data.birthdays = [];
             return render();
           }
+          // Birthdays of the school's students (first names, day and month), from the CRM.
+          const bd = await crm.rpc('school_birthdays');
+          if (Array.isArray(bd.data))
+            data.birthdays = bd.data.map((b: any) => ({ name: (lang === 'he' ? b.he : b.en || b.he) || b.he, he: b.he, en: b.en, day: b.day, month: b.month }));
           const { data: rows, error } = await crm.rpc('family_schedule', { d1, d2: plus(27) });
           if (error || !Array.isArray(rows)) return;
           const end = (start: string, minutes: number) => { const x = Math.min(toMin(start) + minutes, 24 * 60 - 1); return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
@@ -1157,7 +1176,7 @@ const data = {
         $('alerts').hidden = $('updated').hidden = false;
         $('lock').hidden = true;
         $('app').hidden = false;
-        $('nav').hidden = false;
+        $('nav').hidden = $('menuBtn').hidden = false;
         showTab();
         if (maybePop()) return;
         if (!installed && !preview && !store.get('etude-install-seen')) setTimeout(openInstall, 1500);
@@ -1388,16 +1407,27 @@ const data = {
       .sa-install ol { margin: 0; padding-inline-start: 1.4em; display: grid; gap: 8px; line-height: 1.45; }
       .sa-install b { color: var(--color-navy-900); }
       .sa-install .share { inline-size: 1.15em; block-size: 1.15em; vertical-align: -0.2em; color: #0a84ff; }
-      .sa-nav {
-        flex: none; z-index: 5; display: grid; grid-template-columns: repeat(6, 1fr);
-        background: #fff; border-block-start: 1px solid var(--color-line); padding-block-end: env(safe-area-inset-bottom);
+      /* The menu: a hamburger in the header opens a panel from the side. */
+      .sa-burger {
+        border: 0; background: rgba(255, 255, 255, 0.1); color: #fff; border-radius: 12px; cursor: pointer;
+        inline-size: 44px; block-size: 44px; display: grid; place-items: center; padding: 0; flex: none;
       }
+      .sa-burger .ic { inline-size: 26px; block-size: 26px; }
+      .sa-top img { margin-inline-end: auto; }
+      .sa-shade { position: fixed; inset: 0; background: rgba(23, 34, 74, 0.35); z-index: 8; }
+      .sa-nav {
+        position: fixed; z-index: 9; inset-block: 0; inset-inline-start: 0; inline-size: min(280px, 82vw); box-sizing: border-box;
+        display: flex; flex-direction: column; gap: 4px; background: #fff; box-shadow: 0 0 28px rgba(23, 34, 74, 0.25);
+        padding: calc(16px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
+        transform: translateX(-105%); transition: transform 0.2s ease; visibility: hidden;
+      }
+      [dir='rtl'] .sa-nav { transform: translateX(105%); }
+      .sa-nav.open { transform: none; visibility: visible; }
       .sa-nav[hidden] { display: none; }
-      .sa-nav a { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; min-block-size: 56px; box-sizing: border-box; text-decoration: none; color: var(--color-ink-soft); font-size: 0.75rem; }
-      .sa-nav .ic { inline-size: 28px; block-size: 28px; }
-      .sa-nav b { font-weight: 600; white-space: nowrap; font-size: 0.68rem; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
-      .sa-nav a[aria-current] { color: var(--color-navy-900); }
-      .sa-nav a[aria-current] b { text-decoration: underline; text-underline-offset: 3px; }
+      .sa-nav a { display: flex; align-items: center; gap: 14px; padding: 12px 14px; min-block-size: 52px; box-sizing: border-box; border-radius: 12px; text-decoration: none; color: var(--color-ink); font-size: 1.05rem; }
+      .sa-nav .ic { inline-size: 26px; block-size: 26px; color: var(--color-ink-soft); }
+      .sa-nav b { font-weight: 600; }
+      .sa-nav a[aria-current] { background: var(--color-blue-100, #e8edf8); color: var(--color-navy-900); }
       .sa-nav a[aria-current] .ic { color: var(--color-blue-600); }
 
       /* "Important" notice and payment countdown, above every tab. */

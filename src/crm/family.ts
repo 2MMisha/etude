@@ -75,6 +75,11 @@ const T = {
   inEn: l('на английском', 'באנגלית', 'in English'),
   choose: l('— выберите —', '— בחירה —', '— choose —'),
   born: l('род.', 'נולד/ה', 'born'),
+  nextDoc: l('Дальше: {form}', 'הבא: {form}', 'Next: {form}'),
+  startDocs: l('Заполнить документы', 'מילוי המסמכים', 'Fill in the documents'),
+  continueDocs: l('Продолжить: {form}', 'להמשיך: {form}', 'Continue: {form}'),
+  anotherStudent: l('Добавить ещё ученика', 'הוספת תלמיד/ה נוסף/ת', 'Add another student'),
+  noStudentsYet: l('Пока нет ни одного ученика. Нажмите «Добавить ученика» и заполните данные первого ученика; потом — его документы, один за другим.', 'עדיין אין תלמידים. לחצו על "הוספת תלמיד/ה" ומלאו את פרטי התלמיד/ה הראשון/ה; אחר כך — את המסמכים שלו/ה, אחד אחרי השני.', 'No students yet. Press "Add a student" and fill in the first student\u2019s details; then their documents, one after another.'),
   waiting: l('Спасибо! Ваша регистрация получена и ожидает подтверждения Студии. После подтверждения здесь можно будет добавить учеников и заполнить документы.', 'תודה! ההרשמה התקבלה וממתינה לאישור הסטודיו. לאחר האישור תוכלו להוסיף כאן תלמידים ולמלא את המסמכים.', 'Thank you! Your registration has been received and is waiting for the studio to approve it. Once approved, you can add students and fill in the documents here.'),
   error: l('Что-то пошло не так. Попробуйте ещё раз.', 'משהו השתבש. נסו שוב.', 'Something went wrong. Please try again.'),
 };
@@ -222,7 +227,7 @@ function holderForm(holder: Answers | null, email: string) {
 }
 
 // --- 3. the students ------------------------------------------------------------------
-function studentForm(s: Answers | null, holder: Answers, done: () => void) {
+function studentForm(s: Answers | null, holder: Answers, done: (newId?: string) => void) {
   const names = nameFields(t('studentName'), t('studentLast'), s?.full_name ?? '', s?.full_name_en ?? '');
   const birth = h('input', { type: 'date', required: true, value: s?.birth_date ?? '' });
   const yes = h('input', { type: 'radio', name: 'holder', value: 'yes', checked: !!s?.is_holder });
@@ -268,11 +273,11 @@ function studentForm(s: Answers | null, holder: Answers, done: () => void) {
   );
   form.onsubmit = async (e) => {
     e.preventDefault();
-    await call('family_save_student', { sid: s?.id ?? null, s: {
+    const saved = await call<string>('family_save_student', { sid: s?.id ?? null, s: {
       full_name: names.he(), full_name_en: names.en(), birth_date: birth.value, is_holder: yes.checked, relation: rel.value,
       id_number: id.value, address: address.value, phone: phone.value, email: email.value,
     } });
-    done();
+    done(s ? undefined : saved);
   };
   return form;
 }
@@ -286,6 +291,11 @@ function todoFor(s: Answers): string[] {
     return word ? [fill(tr(word), { name: s.full_name, form })] : [];
   });
 }
+
+function nextFormOf(s: Answers, sentNow = ''): Form | undefined {
+  return FORMS.find((f) => f.code !== sentNow && ['none', 'update'].includes(stateOf(f.code, s.needed, s.forms[f.code])));
+}
+const formName = (f: Form) => `${tr(W.appendix)}${f.num} — ${tr(f.title)}`;
 
 function formList(s: Answers, token: string) {
   return h('ul', { className: 'docs' }, ...FORMS.map((f) => {
@@ -321,9 +331,14 @@ async function homeView() {
       note(parts(holder.full_name_en, holder.phone, holder.email).join(' · ')),
       note(t('waiting'), 'warn')
     ));
-  if (editing === 'new' || !students.length) return h('div', { className: 'stack' },
+  if (editing === 'new') return h('div', { className: 'stack' },
     card(h('h1', { textContent: t('studentsTitle') }), note(t('studentsIntro'))),
-    studentForm(null, holder, () => { editing = ''; render(); }));
+    studentForm(null, holder, afterStudentSaved));
+  if (!students.length) return h('div', { className: 'stack' },
+    card(
+      h('h1', { textContent: t('studentsTitle') }), note(t('studentsIntro')), note(t('noStudentsYet')),
+      h('button', { type: 'button', className: 'primary big', textContent: `+ ${t('addStudent')}`, onclick: () => { editing = 'new'; render(); } })
+    ));
 
   const todo = students.flatMap(todoFor);
   const relWord = (code: string) => tr(HOLDER_REL.find(([v]) => v === code)?.[1] ?? l('', '', ''));
@@ -338,12 +353,23 @@ async function homeView() {
         h('h2', {}, s.full_name, h('small', { textContent: ` ${s.full_name_en} · ${t('born')} ${s.birth_date}` })),
         h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = s.id; render(); } })),
       s.needed.length === 5 && !s.is_holder && note(fill(t('adultSelf'), { name: s.full_name }), 'warn'),
+      !(s.needed.length === 5 && !s.is_holder) && nextFormOf(s) && h('a', { className: 'btn primary big', href: `#/s/${s.token}/${nextFormOf(s)!.code}`, textContent: fill(t('continueDocs'), { form: formName(nextFormOf(s)!) }) }),
       formList(s, s.token),
       h('h3', { textContent: t('link') }),
       shareRow(s.token, s.full_name)
     )),
-    h('p', {}, h('button', { type: 'button', className: 'primary', textContent: `+ ${t('addStudent')}`, onclick: () => { editing = 'new'; render(); } }))
+    h('p', {}, h('button', { type: 'button', className: 'primary big', textContent: `+ ${t('addStudent')}`, onclick: () => { editing = 'new'; render(); } }))
   );
+}
+
+/** A new student was saved: straight on to their first document (an adult who is not the holder fills their own, from their link). */
+async function afterStudentSaved(id?: string) {
+  editing = '';
+  const me = await call<Answers | null>('family_me');
+  const s = me?.students.find((x: Answers) => x.id === id);
+  const first = s && !(s.needed.length === 5 && !s.is_holder) ? nextFormOf(s) : undefined;
+  if (s && first) location.hash = `#/s/${s.token}/${first.code}`;
+  else render();
 }
 
 // --- 4. one student's forms (by link) ----------------------------------------------------
@@ -458,7 +484,16 @@ function formView(token: string, page: Answers, f: Form) {
         h('h2', { textContent: tr(f.title) }),
         note(tr(f.done), 'ok'),
         ...flags(f, a, c).map((x) => note(tr(x), 'warn')),
-        h('a', { className: 'btn primary', href: `#/s/${token}`, textContent: t('backToList') })
+        (() => {
+          const next = nextFormOf(page, f.code);
+          return next
+            ? h('a', { className: 'btn primary big', href: `#/s/${token}/${next.code}`, textContent: fill(t('nextDoc'), { form: formName(next) }) })
+            : note(tr(W.allDone), 'ok');
+        })(),
+        h('div', { className: 'row' },
+          h('a', { className: 'btn', href: `#/s/${token}`, textContent: t('backToList') }),
+          signedIn && h('a', { className: 'btn', href: '#/', textContent: t('backHome') }),
+          signedIn && !nextFormOf(page, f.code) && h('a', { className: 'btn', href: '#/new', textContent: `+ ${t('anotherStudent')}` }))
       ));
       scrollTo(0, 0);
     };
@@ -482,6 +517,7 @@ async function studentView(token: string, code?: string) {
     card(
       h('h1', {}, page.full_name, h('small', { textContent: ` ${page.full_name_en} · ${t('born')} ${page.birth_date}` })),
       page.adult && note(fill(t('adultHere'), { name: page.full_name }), 'warn'),
+      nextFormOf(page) && h('a', { className: 'btn primary big', href: `#/s/${token}/${nextFormOf(page)!.code}`, textContent: Object.keys(page.forms).length ? fill(t('continueDocs'), { form: formName(nextFormOf(page)!) }) : t('startDocs') }),
       formList(page, token)
     ),
     card(h('h2', { textContent: todo.length ? t('todo') : tr(W.allDone) }), todo.length > 0 && h('ul', { className: 'todo' }, ...todo.map((x) => h('li', { textContent: x }))))
@@ -496,6 +532,10 @@ async function render() {
   const [, route, token, code] = location.hash.split('/');
   try {
     if (route === 's' && token) return view.replaceChildren(await studentView(token, code));
+    if (route === 'new') {
+      editing = 'new';
+      history.replaceState(null, '', '#/'); // so Save and Cancel come back to the account
+    }
     if (recovering) return view.replaceChildren(newPasswordView(() => { recovering = false; render(); }));
     if (!signedIn) return view.replaceChildren(await createView());
     view.replaceChildren(await homeView());
