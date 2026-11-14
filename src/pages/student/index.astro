@@ -224,6 +224,7 @@ const data = {
 
       <section data-tab="schedule" hidden>
         <h1 id="schedTitle"></h1>
+        <p class="hint" id="schedMine" hidden></p>
         <input type="search" id="q" class="sa-search" autocomplete="off" />
         <div class="chips" id="chips"></div>
         <div class="sa-row" id="mineRow"></div>
@@ -306,13 +307,15 @@ const data = {
       import { fitCards, weekGrid } from '../../lib/weekGrid';
       import { icon } from '../../lib/icons';
       import { googleCalendarUrl } from '../../lib/calendar';
+      import { createClient } from '@supabase/supabase-js';
+      import { SUPABASE_URL, SUPABASE_KEY } from '../../lib/crmConfig';
       import { openShare, type ShareText } from '../../lib/shareCard';
 
       type Lang = 'he' | 'en' | 'ru';
       const SHARE = '<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const L = {
         he: {
-          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו', family: 'החשבון', register: 'הרשמה / כניסה לחשבון', registerHint: 'אין לכם קוד? הירשמו כמשפחה — אחרי אישור הסטודיו האפליקציה תיפתח בלי קוד.',
+          code: 'קוד הסטודיו', bad: 'קוד שגוי', home: 'ראשי', schedule: 'לוח זמנים', classes: 'שיעורים', request: 'בקשה', studio: 'סטודיו', family: 'החשבון', onlyYours: 'מוצגים רק השיעורים שלכם (אתם מחוברים לחשבון).', register: 'הרשמה / כניסה לחשבון', registerHint: 'אין לכם קוד? הירשמו כמשפחה — אחרי אישור הסטודיו האפליקציה תיפתח בלי קוד.',
           hello: 'שלום!', next: 'השיעור הבא שלך', nextAll: 'השיעור הבא בסטודיו', pickMine: 'סמנו בלוח הזמנים את הקבוצות או השמות שלכם — אפשר כמה — והשיעורים הבאים יופיעו כאן.',
           noNext: 'אין שיעורים קרובים בלוח', choose: 'בחירה', news: 'חדשות', search: 'חיפוש: קבוצה או שם',
           all: 'הכול', mine: 'לעקוב', isMine: 'במעקב', unmine: 'הסרה', noMatch: 'לא נמצאו שיעורים',
@@ -336,7 +339,7 @@ const data = {
           sentTitle: 'הבקשה נשלחה!', sentText: 'תודה! זו עדיין בקשה בלבד — ניצור איתכם קשר בטלפון או בוואטסאפ כדי לאשר.', newReq: 'בקשה חדשה',
         },
         en: {
-          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio', family: 'Account', register: 'Register / sign in', registerHint: 'No code? Register your family — once the studio approves, the app opens without a code.',
+          code: 'Studio code', bad: 'Wrong code', home: 'Home', schedule: 'Schedule', classes: 'Classes', request: 'Request', studio: 'Studio', family: 'Account', onlyYours: 'Only your lessons are shown (you are signed in to your account).', register: 'Register / sign in', registerHint: 'No code? Register your family — once the studio approves, the app opens without a code.',
           hello: 'Hi!', next: 'Your next class', nextAll: 'Next class at the studio', pickMine: 'Follow your groups or names in the schedule — as many as you like — and your next classes show up here.',
           noNext: 'No upcoming classes in the schedule', choose: 'Choose', news: 'News', search: 'Search: group or name',
           all: 'All', mine: 'Follow', isMine: 'Following', unmine: 'Remove', noMatch: 'No classes found',
@@ -360,7 +363,7 @@ const data = {
           sentTitle: 'Request sent!', sentText: "Thank you! This is just a request for now — we'll contact you by phone or WhatsApp to confirm.", newReq: 'New request',
         },
         ru: {
-          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия', family: 'Кабинет', register: 'Регистрация / вход в кабинет', registerHint: 'Нет кода? Зарегистрируйте семью — после подтверждения Студии приложение будет открываться без кода.',
+          code: 'Код студии', bad: 'Неверный код', home: 'Главная', schedule: 'Расписание', classes: 'Занятия', request: 'Заявка', studio: 'Студия', family: 'Кабинет', onlyYours: 'Показаны только ваши уроки (вы вошли в кабинет).', register: 'Регистрация / вход в кабинет', registerHint: 'Нет кода? Зарегистрируйте семью — после подтверждения Студии приложение будет открываться без кода.',
           hello: 'Привет!', next: 'Ваше следующее занятие', nextAll: 'Ближайшее занятие в студии', pickMine: 'Отметьте в расписании свои группы или имена — можно несколько — и здесь появятся ваши следующие занятия.',
           noNext: 'Ближайших занятий в расписании нет', choose: 'Выбрать', news: 'Новости', search: 'Поиск: группа или имя',
           all: 'Все', mine: 'Следить', isMine: 'Слежу', unmine: 'Убрать', noMatch: 'Занятий не найдено',
@@ -632,6 +635,8 @@ const data = {
 
       function renderSchedule() {
         $('schedTitle').textContent = t.schedule;
+        $('schedMine').textContent = t.onlyYours;
+        $('schedMine').hidden = !ownOnly;
         const q = $('q') as HTMLInputElement;
         q.placeholder = t.search;
         if (document.activeElement !== q) q.value = mineView ? '' : query;
@@ -1069,6 +1074,7 @@ const data = {
         if (e.data.height) frame.style.blockSize = `${Math.max(Number(e.data.height), 300)}px`;
         if (e.data.top) $('app').scrollTo(0, 0);
         if (e.data.approved && store.get('etude-student') !== CODE) { store.set('etude-student', CODE); unlock(); }
+        if ('approved' in e.data) loadTimetable();
       });
       const familyLink = () => location.hash.startsWith('#family');
       /** The account tab on its own, before the code: no menu to the rest of the app. */
@@ -1081,6 +1087,44 @@ const data = {
         showTab();
       }
       addEventListener('hashchange', () => { if (familyLink() && $('app').hidden) familyOnly(); });
+
+      // ----- The timetable from the CRM -----
+      // The page is built with the Google Sheet's timetable; on opening, the app
+      // replaces it with the CRM's (the Sheet stays as the fallback when offline).
+      // Not signed in: every group class and master class, no private lessons.
+      // A family signed in to its account (and let in by the studio): only its own
+      // lessons - its groups, its master classes, its private lessons.
+      const crm = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+      let ownOnly = false;
+      async function loadTimetable() {
+        if (!crm) return;
+        const d1 = today();
+        const plus = (n: number) => { const d = new Date(`${d1}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+        try {
+          const signed = (await crm.auth.getSession()).data.session;
+          const fam = signed ? (await crm.rpc('family_me')).data : null;
+          ownOnly = !!fam?.approved;
+          const { data: rows, error } = ownOnly
+            ? await crm.rpc('family_schedule', { d1, d2: plus(27) })
+            : await crm.rpc('public_timetable', { d1, d2: plus(27) });
+          if (error || !Array.isArray(rows)) return;
+          const end = (start: string, minutes: number) => { const x = Math.min(toMin(start) + minutes, 24 * 60 - 1); return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
+          const byDate = new Map<string, TimetableItem[]>();
+          for (const r of rows) {
+            if (r.cancelled || (ownOnly && !r.mine)) continue;
+            const item: TimetableItem = { start: r.start, end: end(r.start, r.minutes), title: r.kind === 'event' ? `★ ${r.title}` : r.title, column: r.trainer ?? '', hall: r.hall || undefined };
+            byDate.set(r.on_date, [...(byDate.get(r.on_date) ?? []), item]);
+          }
+          data.days = [...byDate].sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => ({ date, items }));
+          const titles = (kind: string) => [...new Set(rows.filter((r: any) => r.kind === kind && !r.cancelled && (!ownOnly || r.mine)).map((r: any) => r.title as string))].sort((a, b) => a.localeCompare(b));
+          data.groups = titles('class');
+          data.names = ownOnly ? titles('lesson') : [];
+          render();
+        } catch {
+          // offline or the database is unreachable: the Sheet's timetable stays
+        }
+      }
+      crm?.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') setTimeout(loadTimetable); });
 
       // ----- Code lock (the hash is remembered on this phone) -----
       async function sha256(s: string) {
@@ -1179,6 +1223,7 @@ const data = {
       $('lock').addEventListener('submit', (e) => e.preventDefault());
 
       render();
+      loadTimetable();
       if (familyLink() && store.get('etude-student') !== CODE) familyOnly();
       else if (!installed && !preview && !familyLink()) $('gate').hidden = false;
       else if (store.get('etude-student') === CODE) unlock();

@@ -621,4 +621,21 @@ assert.equal(joined.holder.phone, '050-1234567', 'an empty phone is filled from 
 assert.equal(joined.students.find((s) => s.id === oldKid).token, tok, "the student's link still works after joining");
 assert.ok(joined.students.find((s) => s.id === oldKid).forms.f2, 'and the forms came along');
 
+// The schedule in the family's account: the timetable, never someone else's private lesson.
+const sched = async (who, a, b) => (await rpc(who, 'family_schedule', [a, b])).rows[0].family_schedule;
+const nov = await sched('client', '2026-11-01', '2026-11-30');
+assert.ok(nov.some((x) => x.kind === 'class'), 'group classes show');
+const othersLessons = (await one('admin', `select count(*)::int n from public.lessons where held_on between '2026-11-01' and '2026-11-30'`)).n;
+assert.ok(othersLessons > 0 && !nov.some((x) => x.kind === 'lesson'), "another family's private lessons stay hidden");
+const ownLesson = (await one('admin', `insert into public.lessons (trainer_id, held_on, start_time, minutes, status, price, trainer_pay) values ($1, '2026-11-20', '17:00', 45, 'planned', 1, 1) returning id`, [roman.id])).id;
+await as('admin', 'insert into public.lesson_students (lesson_id, student_id) values ($1, $2)', [ownLesson, oldKid]);
+assert.equal((await sched('client', '2026-11-01', '2026-11-30')).filter((x) => x.kind === 'lesson').length, 1, "the family's own private lesson shows");
+await denied(rpc('client', 'family_schedule', ['2026-01-01', '2026-12-31']), /two months/);
+assert.deepEqual(await sched('nobody', '2026-11-01', '2026-11-30'), [], 'no family, no schedule');
+await denied(rpc('anon', 'family_schedule', ['2026-11-01', '2026-11-30']), /permission denied/);
+// The app's timetable for everyone: classes, never a private lesson; a month at most.
+const timetable = (await rpc('anon', 'public_timetable', ['2026-11-01', '2026-11-30'])).rows[0].public_timetable;
+assert.ok(timetable.some((x) => x.kind === 'class') && !timetable.some((x) => x.kind === 'lesson'), 'the public timetable has classes and no private lessons');
+await denied(rpc('anon', 'public_timetable', ['2026-01-01', '2026-12-31']), /a month/);
+
 console.log('access rules: all checks passed');
