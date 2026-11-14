@@ -197,3 +197,8 @@ body.embed .crm { max-width: none; }
 .imp-list a { display: block; padding: 0.45rem 0.2rem; border-block-end: 1px solid var(--color-line); color: var(--color-ink); text-decoration: none; }
 .imp-list a:hover { background: var(--color-ground); }
 .chips a.chip { text-decoration: none; color: var(--color-navy-900); padding: 0.3em 0.8em; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-surface); font-size: 0.88rem; }
+
+/* The bell: what waits for someone ("Important"), in the top bar. */
+.crm-top .bell { position: relative; display: grid; place-items: center; inline-size: 2.4rem; block-size: 2.4rem; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); text-decoration: none; font-size: 1.15rem; }
+.crm-top .bell[aria-current='page'] { border-color: var(--color-blue-500); background: var(--color-blue-100); }
+.crm-top .bell b { position: absolute; inset-block-start: -0.35rem; inset-inline-end: -0.35rem; min-inline-size: 1.25rem; padding: 0 0.3rem; box-sizing: border-box; border-radius: 999px; background: #c62828; color: #fff; font-size: 0.72rem; line-height: 1.25rem; text-align: center; }

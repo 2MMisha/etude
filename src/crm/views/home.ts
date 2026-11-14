@@ -157,7 +157,8 @@ export async function homeView() {
     .map((s) => item(`#/client/${s.client_id}/students`, h('strong', { textContent: s.full_name }), ' — ',
       s.birth_date.slice(5) === d0.slice(5) ? tr(S.today) : ltr(dmy(`${d0.slice(0, 4)}-${s.birth_date.slice(5)}`).slice(0, 5)), ` (${ageOf(s.birth_date) + (s.birth_date.slice(5) === d0.slice(5) ? 0 : 1)})`)));
 
-  return h('div', { className: 'stack' },
+  const total = sections.reduce((n, s) => n + Number(s.querySelector('.count')?.textContent ?? 0), 0);
+  const page = h('div', { className: 'stack' },
     h('h1', { textContent: tr(S.title) }),
     sections.length
       ? h('nav', { className: 'chips' }, ...sections.map((s) => h('a', { className: 'chip', href: `#/home`, onclick: (e: Event) => { e.preventDefault(); s.scrollIntoView({ behavior: 'smooth' }); },
@@ -165,4 +166,6 @@ export async function homeView() {
       : h('p', { className: 'card', textContent: tr(S.allClear) }),
     ...sections
   );
+  page.setAttribute('data-total', String(total));
+  return page;
 }

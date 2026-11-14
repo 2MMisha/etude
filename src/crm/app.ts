@@ -25,7 +25,7 @@ const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement
   settings: settingsView,
   accounts: accountsView,
 };
-const TABS: Key[] = ['home', 'clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts'];
+const TABS: Key[] = ['clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts'];
 
 const view = document.getElementById('view')!;
 const tabs = document.getElementById('nav')!;
@@ -51,9 +51,31 @@ function drawChrome(current: string) {
   return staff;
 }
 
+// The bell in the top bar: how many things wait (the "Important" screen), checked on
+// sign-in, after every change and every 5 minutes; a tap opens the list.
+let bellCount = 0;
+async function updateBell() {
+  if (!state.me || tabs.hidden) return; // staff only
+  try {
+    const el = await homeView();
+    bellCount = Number(el.dataset.total ?? 0);
+  } catch {
+    return;
+  }
+  drawBell();
+}
+function drawBell() {
+  const bell = document.getElementById('bell')!;
+  bell.hidden = tabs.hidden;
+  bell.title = bell.ariaLabel = `${t('home')}${bellCount ? `: ${bellCount}` : ''}`;
+  bell.ariaCurrent = location.hash.startsWith('#/home') ? 'page' : null;
+  bell.replaceChildren(h('span', { ariaHidden: 'true', textContent: '🔔' }), ...(bellCount > 0 ? [h('b', { textContent: bellCount > 99 ? '99+' : String(bellCount) })] : []));
+}
+setInterval(updateBell, 5 * 60 * 1000);
+
 async function render() {
   const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
-  const route = name in ROUTES ? name : 'home';
+  const route = name in ROUTES ? name : 'clients';
   const staff = drawChrome(route);
   if (!db) return view.replaceChildren(card('notConnected'));
   if (recovering) return view.replaceChildren(newPasswordView(() => { recovering = false; render(); }));
@@ -61,6 +83,8 @@ async function render() {
   if (!staff) return view.replaceChildren(card('noAccess'));
   try {
     view.replaceChildren(await ROUTES[route](arg, sub));
+    if (route === 'home') bellCount = Number(view.firstElementChild?.getAttribute('data-total') ?? bellCount);
+    drawBell();
     addTableTools(view);
   } catch (e) {
     view.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
@@ -70,6 +94,7 @@ async function render() {
 nav.refresh = async () => {
   const y = scrollY;
   await render();
+  updateBell();
   scrollTo(0, y);
 };
 
@@ -92,6 +117,7 @@ if (db) {
       state.me = session ? ((await db!.from('profiles').select('id, email, full_name, lang, roles, active').eq('id', session.user.id).single()).data as Profile | null) : null;
       if (state.me && !storedLang() && LANGS.includes(state.me.lang as Lang)) setLang(state.me.lang as Lang);
       render();
+      updateBell();
     });
   });
 } else render();
