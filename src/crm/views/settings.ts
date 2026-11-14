@@ -1,6 +1,7 @@
 // Settings: the price list (programmes at 1–3 classes a week, unlimited,
 // one-time entry, private lessons, rentals), the groups and the discount sizes.
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
+import { pick, type L } from '../forms';
 import { WEEKDAY } from './schedule';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, type Row } from '../ui';
 
@@ -211,5 +212,25 @@ export async function settingsView() {
     ))
   );
 
-  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, trainersCard, others, groupsCard, slotsCard, discounts, business);
+  // The texts families read when they register (/family/), pasted here; one text each.
+  const L3 = (ru: string, he: string, en: string): L => ({ ru, he, en });
+  const say = (ru: string, he: string, en: string) => pick(L3(ru, he, en), getLang());
+  const DOCS: [string, string][] = [
+    ['doc_provider', say('Сведения об Исполнителе (карточка Исполнителя)', 'פרטי נותן השירות', 'Provider details')],
+    ['doc_offer', say('Договор публичной оферты', 'חוזה ההצעה לציבור', 'Public offer agreement')],
+    ['doc_prices', say('Стоимость занятий (показывается в Приложении №1)', 'מחירי השיעורים (מוצג בנספח 1)', 'Prices (shown in appendix 1)')],
+    ['doc_terms', say('Условия использования личного кабинета', 'תנאי השימוש באזור האישי', 'Terms of use of the family account')],
+  ];
+  const docs = h('section', { className: 'card' },
+    h('h2', { textContent: say('Документы для регистрации семей', 'מסמכים לרישום משפחות', 'Documents for family registration') }),
+    h('p', { className: 'muted', textContent: say('Эти тексты видят семьи на странице регистрации. Пустой текст показывается как «ещё не опубликован».', 'את הטקסטים האלה רואות המשפחות בדף ההרשמה. טקסט ריק מוצג כ"עדיין לא פורסם".', 'Families see these texts on the registration page. An empty one shows as "not published yet".') }),
+    ...DOCS.map(([id, label]) => {
+      const box = h('textarea', { rows: 6, value: settings.find((x) => x.id === id)?.value ?? '' });
+      box.onchange = () => ok(db!.from('settings').upsert({ id, value: box.value.trim() }));
+      return field(label, box, 'full');
+    }),
+    h('p', { className: 'muted' }, say('Ссылка на регистрацию для всех семей: ', 'קישור ההרשמה לכל המשפחות: ', 'Registration link for every family: '), h('bdi', { dir: 'ltr', textContent: `${location.origin}/family/` }))
+  );
+
+  return h('div', { className: 'stack' }, h('h1', { textContent: t('settings') }), programmes, trainersCard, others, groupsCard, slotsCard, discounts, business, docs);
 }

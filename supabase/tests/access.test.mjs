@@ -558,4 +558,54 @@ await as('admin', `update public.profiles set roles = '{}' where id = $1`, [U.tr
 assert.equal((await mineIn('2026-01-01', '2027-12-31')).length, 0);
 await denied(rpc('trainer', 'trainer_confirm', [asked, 'done']), /only your own/);
 
+// Family registration: a family sees and changes only itself, through functions.
+const fam = async (who) => (await rpc(who, 'family_me')).rows[0].family_me;
+assert.equal(await fam('client'), null, 'no family before the details are filled in');
+await denied(rpc('client', 'family_save_student', [null, JSON.stringify({ full_name: 'ילד', full_name_en: 'Kid', birth_date: '2015-03-01', relation: 'son' })]), /your own details first/);
+await denied(rpc('client', 'family_save', [JSON.stringify({ full_name: 'הורה', full_name_en: '', phone: '0501234567', relation: 'parent' })]), /Hebrew and in English/);
+const famId = (await rpc('client', 'family_save', [JSON.stringify({ full_name: 'הורה אחד', full_name_en: 'Parent One', phone: '050-1234567', relation: 'parent' })])).rows[0].family_save;
+assert.equal((await rpc('client', 'family_save', [JSON.stringify({ full_name: 'הורה אחד', full_name_en: 'Parent One', phone: '050-1234567', relation: 'parent', address: 'x' })])).rows[0].family_save, famId, 'saving again keeps one family');
+const kid = (await rpc('client', 'family_save_student', [null, JSON.stringify({ full_name: 'ילד', full_name_en: 'Kid', birth_date: '2015-03-01', relation: 'son' })])).rows[0].family_save_student;
+const grown = (await rpc('client', 'family_save_student', [null, JSON.stringify({ full_name: 'הורה אחד', full_name_en: 'Parent One', birth_date: '1985-03-01', is_holder: true })])).rows[0].family_save_student;
+const reg = await fam("client");
+assert.equal(reg.students.length, 2);
+assert.deepEqual(reg.students.find((s) => s.id === kid).needed, ['f1', 'f2', 'f3', 'f4', 'f6', 'f7']);
+assert.deepEqual(reg.students.find((s) => s.id === grown).needed, ['f1', 'f2', 'f4', 'f6', 'f7'], 'no appendix 3 for an adult');
+// Another login cannot see or touch that family.
+assert.equal(await fam('nobody'), null);
+await denied(rpc('nobody', 'family_save_student', [kid, JSON.stringify({ full_name: 'x y', full_name_en: 'x y', birth_date: '2015-03-01', relation: 'son' })]), /your own details first/);
+await rpc('nobody', 'family_save', [JSON.stringify({ full_name: 'משפחה שנייה', full_name_en: 'Second Family', phone: '0529999999', relation: 'self' })]);
+await denied(rpc('nobody', 'family_save_student', [kid, JSON.stringify({ full_name: 'x y', full_name_en: 'x y', birth_date: '2015-03-01', relation: 'son' })]), /not a student of your family/);
+for (const t of ['clients', 'students', 'student_forms', 'student_notes']) assert.equal(await count('client', t), 0, `a family reads no ${t} table`);
+// The student's link: no login needed; the forms that apply, no answers.
+const tok = reg.students.find((s) => s.id === kid).token;
+const page = (await rpc('anon', 'student_by_token', [tok])).rows[0].student_by_token;
+assert.equal(page.full_name_en, 'Kid');
+assert.equal(page.adult, false);
+assert.equal((await rpc('anon', 'student_by_token', [id(9)])).rows[0].student_by_token, null, 'a made-up link shows nothing');
+await rpc('anon', 'submit_student_form', [tok, 'f2', JSON.stringify({ limits: 'no', _signed_by: 'Parent One' }), 'ru']);
+await denied(rpc('anon', 'submit_student_form', [tok, 'f2', JSON.stringify({ limits: 'no' }), 'ru']), /who confirms/);
+await denied(rpc('anon', 'submit_student_form', [tok, 'f5', JSON.stringify({ _signed_by: 'Parent One' }), 'ru']), /not needed/);
+const grownTok = reg.students.find((s) => s.id === grown).token;
+await denied(rpc('anon', 'submit_student_form', [grownTok, 'f3', JSON.stringify({ _signed_by: 'Parent One' }), 'he']), /not needed/);
+await denied(rpc('anon', 'submit_student_form', [tok, 'f2', JSON.stringify({ x: 'y'.repeat(20001), _signed_by: 'Parent One' }), 'he']), /too long/);
+assert.equal((await rpc('anon', 'public_docs')).rows[0].public_docs.doc_offer, '', 'the documents can be read before signing in');
+assert.ok(!('second_child_pct' in (await rpc('anon', 'public_docs')).rows[0].public_docs), 'but no other setting');
+const states = (await rpc('anon', 'student_by_token', [tok])).rows[0].student_by_token.forms;
+assert.ok(states.f2.at && !('answers' in states.f2) && !JSON.stringify(states).includes('limits'), 'the link shows that a form is done, not what it says');
+await denied(as('anon', 'select * from public.student_forms'), /permission denied/);
+await denied(rpc('anon', 'family_me'), /permission denied/);
+// Staff read the answers, and join an online family to the one already in the CRM.
+assert.equal((await one('admin', `select answers ->> 'limits' l from public.student_forms where student_id = $1`, [kid])).l, 'no');
+await denied(rpc('client', 'merge_client', [famId, famId]), /staff only/);
+const old = (await one('admin', `insert into public.clients (full_name, phone) values ('Old Family', '') returning id`)).id;
+const oldKid = (await one('admin', `insert into public.students (client_id, full_name) values ($1, 'ילד') returning id`, [old])).id;
+await rpc('admin', 'merge_student', [kid, oldKid]);
+await rpc('admin', 'merge_client', [famId, old]);
+const joined = await fam('client');
+assert.equal(joined.students.length, 2, 'the family now sees the CRM record with its students');
+assert.equal(joined.holder.phone, '050-1234567', 'an empty phone is filled from the registration');
+assert.equal(joined.students.find((s) => s.id === oldKid).token, tok, "the student's link still works after joining");
+assert.ok(joined.students.find((s) => s.id === oldKid).forms.f2, 'and the forms came along');
+
 console.log('access rules: all checks passed');

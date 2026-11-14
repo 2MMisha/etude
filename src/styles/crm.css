@@ -121,3 +121,34 @@ body { background: var(--color-ground); }
 }
 .status.bad { background: #b3261e; border-radius: var(--radius-md); }
 [hidden] { display: none !important; }
+
+/* The family page (/family/): registration and the students' forms. */
+.sign.wide { max-width: 560px; }
+.center { text-align: center; }
+.doc summary { cursor: pointer; font-weight: 600; color: var(--color-blue-600); }
+.doc-text { white-space: pre-wrap; max-height: 50vh; overflow-y: auto; margin-block-start: 0.5rem; padding: 0.8rem; border: 1px solid var(--color-line); border-radius: var(--radius-sm); font-size: 0.9rem; }
+.doc-p { margin: 0; font-size: 0.92rem; }
+.docs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.doc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-block-end: 1px solid var(--color-line); }
+.doc-row > span:first-child { flex: 1 1 16em; }
+.doc-row.is-notNeeded { opacity: 0.6; }
+.pill { padding: 0.15em 0.7em; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: var(--color-blue-100); white-space: nowrap; }
+.pill.done { background: #e3f4ea; color: #175c3a; }
+.pill.none { background: #fdecea; color: #8c1d18; }
+.pill.update, .pill.ask { background: #fff4d6; color: #6b4e00; }
+.pill.notNeeded { background: var(--color-ground); color: var(--color-ink-soft); }
+.q { display: grid; gap: 0.35rem; padding-block: 0.3rem; }
+.q-label { margin: 0; font-weight: 600; }
+.q-hint { color: var(--color-ink-soft); }
+.q.need { padding: 0.5rem; border: 2px solid #b3261e; border-radius: var(--radius-sm); }
+.choices { display: grid; gap: 0.35rem; }
+.choices .tick, .q > .tick { align-items: flex-start; }
+.choices .tick input, .q > .tick input { margin-block-start: 0.2em; flex: none; }
+fieldset.choice { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 1rem; }
+fieldset.choice legend { font-weight: 600; margin-block-end: 0.3rem; }
+.todo { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 0.25rem; }
+.ok { margin: 0; padding: 0.6em 0.8em; border-radius: var(--radius-sm); background: #e3f4ea; color: #175c3a; font-weight: 600; }
+.answers { display: grid; gap: 0.2rem; margin: 0; }
+.answers dt { font-size: 0.82rem; color: var(--color-ink-soft); margin-block-start: 0.4rem; }
+.answers dd { margin: 0; white-space: pre-wrap; }
+.answers dd.need { color: #b3261e; font-weight: 600; }

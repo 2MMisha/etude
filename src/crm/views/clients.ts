@@ -2,15 +2,19 @@
 // discounts, suggested monthly price and charges.
 import { t, LANGS } from '../i18n';
 import { paymentsCard } from './payments';
+import { registrationCard, attention, regWord } from './registration';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
 export async function clientsView() {
   const [clients, students] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, phone, archived').order('full_name')),
-    get<Row[]>(db!.from('students').select('client_id, full_name, archived').order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online').order('full_name')),
+    get<Row[]>(db!.from('students').select('id, client_id, full_name, archived').order('full_name')),
   ]);
+  const asking = await attention();
+  // A family that registered online and is not checked yet, or one that asked to be contacted.
+  const marks = (id: string) => `${students.some((s) => s.client_id === id && asking.has(s.id)) ? ' ⚠' : ''}`;
   const kids = (id: string) => students.filter((s) => s.client_id === id && !s.archived).map((s) => s.full_name).join(', ');
 
   const body = h('tbody');
@@ -18,10 +22,10 @@ export async function clientsView() {
   const archived = h('input', { type: 'checkbox' });
   const draw = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q)));
+    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.full_name_en} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q)));
     body.replaceChildren(
       ...rows.map((c) => h('tr', { className: c.archived ? 'off' : '' },
-        h('td', {}, h('a', { href: `#/client/${c.id}`, textContent: c.full_name })),
+        h('td', {}, h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) }), c.online && h('small', { textContent: ` 🆕 ${regWord('title')}` })),
         h('td', {}, ltr(c.phone)),
         h('td', {}, kids(c.id))
       ))
@@ -54,8 +58,8 @@ export async function clientView(id?: string, tab?: string) {
   const [students, groups, others, everyone] = await Promise.all([
     get<Row[]>(db!.from('students').select('*').eq('client_id', id).order('created_at')),
     get<Row[]>(db!.from('groups').select('id, name, archived').order('name')),
-    get<Row[]>(db!.from('clients').select('id, full_name, phone').neq('id', id)),
-    get<Row[]>(db!.from('students').select('id, full_name').eq('archived', false).order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, phone, user_id').neq('id', id).order('full_name')),
+    get<Row[]>(db!.from('students').select('id, full_name, client_id').eq('archived', false).order('full_name')),
   ]);
   const ids = students.map((s) => s.id);
   const [enrollments, quotes, charges] = await Promise.all([
@@ -79,6 +83,7 @@ export async function clientView(id?: string, tab?: string) {
   const clientCard = h('section', { className: 'card' },
     h('div', { className: 'grid' },
       field(t('name'), nameInput('clients', client)),
+      field(`${t('name')} (EN)`, input(client.full_name_en, (v) => set('clients', client, { full_name_en: v }), { dir: 'ltr' })),
       field(t('phone'), input(client.phone, (v) => set('clients', client, { phone: v }, true), { type: 'tel' })),
       field(t('email'), input(client.email, (v) => set('clients', client, { email: v }), { type: 'email' })),
       field(t('address'), input(client.address, (v) => set('clients', client, { address: v }))),
@@ -169,8 +174,12 @@ export async function clientView(id?: string, tab?: string) {
     return h('section', { className: `card${s.archived ? ' off' : ''}` },
       h('div', { className: 'grid' },
         field(t('name'), nameInput('students', s)),
+        field(`${t('name')} (EN)`, input(s.full_name_en, (v) => upd({ full_name_en: v }), { dir: 'ltr' })),
         field(t('birthDate'), input(s.birth_date, (v) => upd({ birth_date: v || null }), { type: 'date' })),
         field(t('phone'), input(s.phone, (v) => upd({ phone: v }), { type: 'tel' })),
+        field(t('email'), input(s.email, (v) => upd({ email: v }), { type: 'email', dir: 'ltr' })),
+        field(t('idNumber'), input(s.id_number, (v) => upd({ id_number: v }), { dir: 'ltr' })),
+        field(t('address'), input(s.address, (v) => upd({ address: v }))),
         field(t('level'), input(s.level, (v) => upd({ level: v }))),
         // A couple: the two point at each other, and a private lesson for one offers the other.
         field(t('partner'), select([['', '—'], ...everyone.filter((x) => x.id !== s.id).map((x): [string, string] => [x.id, x.full_name])], s.partner_id ?? '', (v) => upd({ partner_id: v || null }, true)))
@@ -229,10 +238,11 @@ export async function clientView(id?: string, tab?: string) {
   };
 
   // Three tabs, so the page isn't one long scroll: details, money, students.
-  const TABS: [string, string][] = [['info', t('tabInfo')], ['pay', t('payments')], ['students', `${t('students')} (${students.length})`]];
+  const TABS: [string, string][] = [['info', t('tabInfo')], ['pay', t('payments')], ['students', `${t('students')} (${students.length})`], ['reg', `${regWord('title')}${client.online ? ' 🆕' : ''}`]];
   const current = TABS.some(([k]) => k === tab) ? tab : 'info';
   const body =
     current === 'pay' ? [await paymentsCard(client, students, charges)]
+    : current === 'reg' ? await registrationCard(client, students, everyone, others)
     : current === 'students' ? [...students.map(studentCard), h('section', { className: 'card' }, addForm)]
     : [clientCard];
 
