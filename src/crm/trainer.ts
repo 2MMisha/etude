@@ -8,7 +8,7 @@
 import { LANGS, LOCALE, getLang, setLang, t, type Key } from './i18n';
 import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, addTableTools, type Row } from './ui';
 import { signInView, newPasswordView } from './auth';
-import { attendanceBlock } from './attendance';
+import { attendanceBlock, ATTENDANCE } from './attendance';
 import { weekGrid, fitCards } from '../lib/weekGrid';
 import type { TimetableItem } from '../lib/timetable';
 
@@ -151,7 +151,7 @@ async function home() {
 
   // ── Waiting for a word from me: lessons whose day has come, classes not marked yet ──
   const lessonsDue = lessons.filter((l) => l.status === 'planned' && l.held_on <= today());
-  const classesDue = lately.filter((c) => !c.marked);
+  const classesDue = ATTENDANCE ? lately.filter((c) => !c.marked) : [];
   const dueCard = (lessonsDue.length > 0 || classesDue.length > 0) && h('section', { className: 'card' },
     h('h2', { textContent: `${t('toConfirm')} (${lessonsDue.length + classesDue.length})` }),
     ...lessonsDue.map((l) => h('div', { className: 'row' },

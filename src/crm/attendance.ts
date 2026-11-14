@@ -5,7 +5,11 @@
 import { t } from './i18n';
 import { db, h, get, ok, nav, sureButton, type Row } from './ui';
 
+/** Attendance marking is switched off for now (owner, 2026-11-14); true brings it back everywhere. */
+export const ATTENDANCE = false;
+
 export function attendanceBlock(slotId: string, onDate: string, asTrainer: boolean) {
+  if (!ATTENDANCE) return null;
   const box = h('div', { className: 'stack' }, h('h3', { textContent: t('attendance') }));
   const refresh = (p: PromiseLike<boolean>) => p.then((okay) => { if (okay) nav.refresh(); });
   get<Row[]>(db!.rpc(asTrainer ? 'trainer_class_roster' : 'class_roster', { sid: slotId, d: onDate })).then((rows) => {

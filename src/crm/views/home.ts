@@ -7,6 +7,7 @@
 import { getLang } from '../i18n';
 import { db, h, get, money, ltr, today, type Row } from '../ui';
 import { FORMS, stateOf, expired, dmy, pick, type L } from '../forms';
+import { ATTENDANCE } from '../attendance';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
 const tr = (x: L) => pick(x, getLang());
@@ -137,7 +138,7 @@ export async function homeView() {
     (x.lesson_students ?? []).map((ls: Row) => ls.students?.full_name).filter(Boolean).join(', '))));
 
   // Group classes of the last two weeks that nobody marked.
-  section('unmarked', classes
+  if (ATTENDANCE) section('unmarked', classes
     .filter((c) => !c.cancelled && c.held_on < d0 && !sessions.some((s) => s.slot_id === c.slot_id && s.held_on === c.on_date))
     .sort((a, b) => `${a.held_on} ${a.start_time}`.localeCompare(`${b.held_on} ${b.start_time}`))
     .map((c) => item(`#/lessons/${c.held_on}`, ltr(`${dmy(c.held_on)} ${String(c.start_time).slice(0, 5)}`), ' ', h('strong', { textContent: c.group_name }))));
