@@ -131,8 +131,11 @@ function nameFields(firstLabel: string, lastLabel: string, he: string, en: strin
 }
 
 // --- 1. the account -----------------------------------------------------------
-function docBox(title: string, body: string | L[]) {
-  const content = typeof body === 'string' ? (body.trim() ? body : t('notPublished')) : body.map(tr).join('\n\n');
+/** A document: an uploaded file opens in a new tab; built-in text unfolds; nothing yet says so. */
+function docBox(title: string, body: unknown) {
+  if (body && typeof body === 'object' && 'url' in body)
+    return h('p', { className: 'doc' }, h('a', { href: String((body as { url: string }).url), target: '_blank', rel: 'noopener', textContent: `📄 ${title}` }));
+  const content = Array.isArray(body) ? (body as L[]).map(tr).join('\n\n') : typeof body === 'string' && body.trim() ? body : t('notPublished');
   return h('details', { className: 'doc' }, h('summary', { textContent: title }), h('div', { className: 'doc-text', textContent: content }));
 }
 
@@ -151,7 +154,7 @@ async function createView() {
   const form = h('form', { className: 'card sign wide' },
     h('h1', { textContent: t('createTitle') }), note(t('createIntro')),
     h('label', {}, t('email'), email), h('label', {}, crmT('newPassword'), pass), h('label', {}, t('repeat'), pass2),
-    docBox(t('terms'), docs.doc_terms ?? ''), docBox(t('privacy'), PRIVACY),
+    docBox(t('terms'), docs.doc_terms), docBox(t('privacy'), PRIVACY), docs.doc_privacy?.url && docBox(t('privacy'), docs.doc_privacy),
     h('label', { className: 'tick' }, agree, t('agree')),
     button, msg,
     h('button', { type: 'button', className: 'link', textContent: t('haveAccount'), onclick: () => { mode = 'signin'; render(); } })
@@ -403,9 +406,9 @@ function formView(token: string, page: Answers, f: Form) {
       ...visible(f, a, c).map(({ s, qs }) => card(
         s.title && h('h2', { textContent: tr(s.title) }),
         ...(s.text ?? []).map((p) => note(tr(p), 'doc-p')),
-        ...(s.docs ?? []).map((d) => d === 'schedule'
+        ...(s.docs ?? []).filter((d) => d !== 'doc_privacy' || (c.docs[d] as { url?: string })?.url).map((d) => d === 'schedule'
           ? h('p', {}, h('a', { href: `/${getLang()}/schedule/`, target: '_blank', rel: 'noopener', textContent: t('docSchedule') }))
-          : docBox(t(({ doc_provider: 'docProvider', doc_offer: 'docOffer', doc_prices: 'docPrices' } as const)[d as 'doc_offer']), c.docs[d] ?? '')),
+          : docBox(t(({ doc_provider: 'docProvider', doc_offer: 'docOffer', doc_prices: 'docPrices', doc_terms: 'terms', doc_privacy: 'privacy' } as const)[d as 'doc_offer']), c.docs[d])),
         ...qs.map((q) => h('div', { className: `q${holes.has(q.id) ? ' need' : ''}` },
           q.type !== 'tick' && h('p', { className: 'q-label' }, tr(q.label), !q.req && h('small', { textContent: ` (${t('optional')})` })),
           control(q, a, c, draw),

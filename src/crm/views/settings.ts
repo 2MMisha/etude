@@ -3,7 +3,7 @@
 import { t, getLang } from '../i18n';
 import { pick, type L } from '../forms';
 import { WEEKDAY } from './schedule';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, type Row } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, flash, type Row } from '../ui';
 
 const PER_WEEK = [1, 2, 3];
 
@@ -212,23 +212,49 @@ export async function settingsView() {
     ))
   );
 
-  // The texts families read when they register (/family/), pasted here; one text each.
+  // The documents families open when they register (/family/): one file each, in the public "docs" bucket.
   const L3 = (ru: string, he: string, en: string): L => ({ ru, he, en });
   const say = (ru: string, he: string, en: string) => pick(L3(ru, he, en), getLang());
   const DOCS: [string, string][] = [
-    ['doc_provider', say('Сведения об Исполнителе (карточка Исполнителя)', 'פרטי נותן השירות', 'Provider details')],
     ['doc_offer', say('Договор публичной оферты', 'חוזה ההצעה לציבור', 'Public offer agreement')],
+    ['doc_provider', say('Сведения об Исполнителе (карточка Исполнителя)', 'פרטי נותן השירות', 'Provider details')],
     ['doc_prices', say('Стоимость занятий (показывается в Приложении №1)', 'מחירי השיעורים (מוצג בנספח 1)', 'Prices (shown in appendix 1)')],
     ['doc_terms', say('Условия использования личного кабинета', 'תנאי השימוש באזור האישי', 'Terms of use of the family account')],
+    ['doc_privacy', say('Уведомление о конфиденциальности (файл, в дополнение к тексту в Приложении №6)', 'הודעת פרטיות (קובץ, בנוסף לטקסט בנספח 6)', 'Privacy notice (a file, in addition to the text in appendix 6)')],
   ];
+  const docRow = ([id, label]: [string, string]) => {
+    const now = settings.find((x) => x.id === id)?.value;
+    const file = now && typeof now === 'object' ? (now as { url: string; name: string }) : null;
+    const pickFile = h('input', { type: 'file', accept: '.pdf,.doc,.docx,.png,.jpg,.jpeg', ariaLabel: label });
+    pickFile.onchange = async () => {
+      const f = pickFile.files?.[0];
+      if (!f) return;
+      // A new name each time, so a family never sees an old copy from its browser's cache.
+      const path = `${id}/${Date.now()}.${(f.name.split('.').pop() ?? 'pdf').toLowerCase()}`;
+      const up = await db!.storage.from('docs').upload(path, f, { contentType: f.type });
+      if (up.error) return flash(up.error.message, true);
+      const url = db!.storage.from('docs').getPublicUrl(path).data.publicUrl;
+      if (await ok(db!.from('settings').upsert({ id, value: { url, name: f.name, path } }))) {
+        if (file && (now as Row).path) await db!.storage.from('docs').remove([(now as Row).path]);
+        nav.refresh();
+      }
+    };
+    return h('div', { className: 'block stack' },
+      h('strong', { textContent: label }),
+      file
+        ? h('div', { className: 'row' }, h('a', { href: file.url, target: '_blank', rel: 'noopener', textContent: `📄 ${file.name}` }),
+            sureButton(t('remove'), async () => {
+              if ((now as Row).path) await db!.storage.from('docs').remove([(now as Row).path]);
+              if (await ok(db!.from('settings').upsert({ id, value: '' }))) nav.refresh();
+            }))
+        : h('p', { className: 'muted', textContent: say('Файл не загружен — семьи видят «ещё не опубликован».', 'לא הועלה קובץ — המשפחות רואות "עדיין לא פורסם".', 'No file yet — families see "not published yet".') }),
+      field(file ? say('Заменить файл', 'החלפת הקובץ', 'Replace the file') : say('Загрузить файл', 'העלאת קובץ', 'Upload a file'), pickFile)
+    );
+  };
   const docs = h('section', { className: 'card' },
     h('h2', { textContent: say('Документы для регистрации семей', 'מסמכים לרישום משפחות', 'Documents for family registration') }),
-    h('p', { className: 'muted', textContent: say('Эти тексты видят семьи на странице регистрации. Пустой текст показывается как «ещё не опубликован».', 'את הטקסטים האלה רואות המשפחות בדף ההרשמה. טקסט ריק מוצג כ"עדיין לא פורסם".', 'Families see these texts on the registration page. An empty one shows as "not published yet".') }),
-    ...DOCS.map(([id, label]) => {
-      const box = h('textarea', { rows: 6, value: settings.find((x) => x.id === id)?.value ?? '' });
-      box.onchange = () => ok(db!.from('settings').upsert({ id, value: box.value.trim() }));
-      return field(label, box, 'full');
-    }),
+    h('p', { className: 'muted', textContent: say('Файлы (PDF, Word или фото, до 10 МБ), которые семьи открывают на странице регистрации.', 'קבצים (PDF, וורד או תמונה, עד 10MB) שהמשפחות פותחות בדף ההרשמה.', 'Files (PDF, Word or a photo, up to 10 MB) that families open on the registration page.') }),
+    ...DOCS.map(docRow),
     h('p', { className: 'muted' }, say('Ссылка на регистрацию для всех семей: ', 'קישור ההרשמה לכל המשפחות: ', 'Registration link for every family: '), h('bdi', { dir: 'ltr', textContent: `${location.origin}/family/` }))
   );
 

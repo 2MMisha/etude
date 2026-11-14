@@ -16,7 +16,7 @@ export interface Ctx {
   student: Answers;
   holder: Answers;
   groups: string[];
-  docs: Record<string, string>;
+  docs: Record<string, unknown>;
 }
 type When = (a: Answers, c: Ctx) => boolean;
 export interface Q {
@@ -71,7 +71,7 @@ const f1: Form = {
   title: l('Регистрация ученика и принятие договора публичной оферты', 'רישום תלמיד/ה וקבלת חוזה ההצעה לציבור', 'Student registration and acceptance of the public offer agreement'),
   intro: l('Перед заполнением прочитайте действующую оферту, сведения об Исполнителе, расписание и стоимость занятий.', 'לפני המילוי יש לקרוא את ההצעה לציבור בתוקף, את פרטי נותן השירות, את מערכת השעות ואת המחירים.', 'Before filling in, read the current offer, the provider details, the timetable and the prices.'),
   sections: [
-    { docs: ['doc_provider', 'doc_offer', 'doc_prices', 'schedule'], qs: [] },
+    { docs: ['doc_offer', 'doc_provider', 'doc_prices', 'schedule'], qs: [] },
     { title: l('Кто заполняет форму', 'מי ממלא/ת את הטופס', 'Who is filling in the form'), qs: [who()] },
     {
       title: l('Данные несовершеннолетнего ученика и представителя', 'פרטי התלמיד/ה הקטין/ה והנציג/ה', 'The minor student and the representative'),
@@ -319,7 +319,7 @@ const f6: Form = {
   title: l('Уведомление о конфиденциальности и подтверждение ознакомления', 'הודעת פרטיות ואישור קריאה', 'Privacy notice and acknowledgement'),
   intro: l('Форма подтверждает получение уведомления и не заменяет отдельные добровольные согласия на рекламу, фото, видео и публикации.', 'הטופס מאשר את קבלת ההודעה ואינו מחליף את ההסכמות הוולונטריות הנפרדות לפרסום, צילום, וידאו ופרסומים.', 'This form confirms the notice was received; it does not replace the separate voluntary consents for marketing, photos, video and publication.'),
   sections: [
-    { text: PRIVACY, qs: [] },
+    { text: PRIVACY, docs: ['doc_privacy'], qs: [] },
     {
       qs: [
         who(l('Кто подтверждает ознакомление?', 'מי מאשר/ת את הקריאה?', 'Who is confirming they have read it?')),
