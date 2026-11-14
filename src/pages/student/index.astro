@@ -958,12 +958,21 @@ const data = {
       // the app's offline worker (/student/sw.js). iPhone allows push only in
       // the home-screen app — which is the only way this app opens anyway.
       let push: any = null; // OneSignal, once loaded on a phone that supports push
+      // The signed-in family's login: this phone is then known to OneSignal by it, so the
+      // database can notify just this family (a private lesson added, moved or cancelled).
+      let familyUser: string | null = null;
+      const linkPush = () => {
+        if (!push) return;
+        if (familyUser) push.login?.(familyUser);
+        else if (push.User?.externalId) push.logout?.();
+      };
       if (data.pushAppId)
         ((window as any).OneSignalDeferred ||= []).push(async (OneSignal: any) => {
           await OneSignal.init({ appId: data.pushAppId, serviceWorkerPath: 'student/push/OneSignalSDKWorker.js', serviceWorkerParam: { scope: '/student/push/' } });
           if (!OneSignal.Notifications.isPushSupported()) return;
           push = OneSignal;
           push.User.setLanguage?.(lang);
+          linkPush();
           push.Notifications.addEventListener('permissionChange', renderHome);
           renderHome();
         });
@@ -1104,6 +1113,8 @@ const data = {
           const signed = (await crm.auth.getSession()).data.session;
           const fam = signed ? (await crm.rpc('family_me')).data : null;
           ownOnly = !!fam?.approved;
+          familyUser = ownOnly ? signed!.user.id : null;
+          linkPush();
           const { data: rows, error } = ownOnly
             ? await crm.rpc('family_schedule', { d1, d2: plus(27) })
             : await crm.rpc('public_timetable', { d1, d2: plus(27) });

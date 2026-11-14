@@ -638,4 +638,38 @@ const timetable = (await rpc('anon', 'public_timetable', ['2026-11-01', '2026-11
 assert.ok(timetable.some((x) => x.kind === 'class') && !timetable.some((x) => x.kind === 'lesson'), 'the public timetable has classes and no private lessons');
 await denied(rpc('anon', 'public_timetable', ['2026-01-01', '2026-12-31']), /a month/);
 
+{
+// Personal pushes: a change to a family's future private lesson or group class is logged for that family.
+const logged = async () => (await as('admin', 'select * from public.push_log order by id')).rows;
+const n0 = (await logged()).length;
+const later = (await one('admin', `insert into public.lessons (trainer_id, held_on, start_time, minutes, status, price, trainer_pay) values ($1, '2027-06-10', '10:00', 45, 'planned', 1, 1) returning id`, [roman.id])).id;
+await as('admin', 'insert into public.lesson_students (lesson_id, student_id) values ($1, $2)', [later, oldKid]);
+await as('admin', `update public.lessons set start_time = '11:00' where id = $1`, [later]);
+await as('admin', `update public.lessons set status = 'cancelled' where id = $1`, [later]);
+await as('admin', 'delete from public.lessons where id = $1', [later]); // already cancelled: nothing more to say
+let pushes = (await logged()).slice(n0);
+assert.equal(pushes.length, 3, 'added, moved, cancelled');
+assert.ok(pushes.every((r) => r.user_ids.includes(U.client) && !r.sent && r.note), 'to the family login; only logged without the OneSignal key');
+assert.equal(pushes[0].lang, 'he');
+console.log('  push texts:', pushes.map((r) => `${r.title} | ${r.body}`).join(' / '));
+assert.ok(pushes[1].body.includes('10.06 10:00 > 10.06 11:00'), 'a move says from and to');
+const gone = (await one('admin', `insert into public.lessons (trainer_id, held_on, start_time, minutes, status, price, trainer_pay) values ($1, '2027-06-11', '10:00', 45, 'planned', 1, 1) returning id`, [roman.id])).id;
+await as('admin', 'insert into public.lesson_students (lesson_id, student_id) values ($1, $2)', [gone, oldKid]);
+await as('admin', 'delete from public.lessons where id = $1', [gone]);
+assert.equal((await logged()).length - n0, 5, 'a deleted planned lesson is announced once');
+// A past lesson, or a family with no login, hears nothing.
+const past = (await one('admin', `insert into public.lessons (trainer_id, held_on, start_time, minutes, status, price, trainer_pay) values ($1, '2020-01-01', '10:00', 45, 'planned', 1, 1) returning id`, [roman.id])).id;
+await as('admin', 'insert into public.lesson_students (lesson_id, student_id) values ($1, $2)', [past, oldKid]);
+assert.equal((await logged()).length - n0, 5, 'nothing for the past');
+// A group class of the family's student, cancelled for a date, then put back.
+const slot = (await one('admin', 'select id, group_id from public.group_slots limit 1'));
+await as('admin', 'insert into public.enrollments (student_id, group_id) values ($1, $2) on conflict do nothing', [oldKid, slot.group_id]);
+await as('admin', `insert into public.group_slot_changes (slot_id, on_date, cancelled) values ($1, '2027-06-13', true)`, [slot.id]);
+await as('admin', `delete from public.group_slot_changes where slot_id = $1 and on_date = '2027-06-13'`, [slot.id]);
+pushes = (await logged()).slice(n0 + 5);
+assert.equal(pushes.length, 2, 'class cancelled, then back');
+assert.equal(await count('client', 'push_log'), 0, 'a family cannot read the log');
+await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::jsonb)`, [oldKid]), /permission denied/);
+}
+
 console.log('access rules: all checks passed');
