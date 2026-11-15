@@ -91,13 +91,24 @@ export async function settingsView() {
     e.preventDefault();
     then(ok(db!.from('groups').insert({ name: groupName.value.trim(), program_id: groupProgram.value })));
   };
+  // Words for the groups table, in the three languages.
+  const gsay = (ru: string, he: string, en: string) => pick({ ru, he, en }, getLang());
   const groupsCard = h('section', { className: 'card' },
     h('h2', { textContent: t('groupsTitle') }),
+    h('p', { className: 'muted', textContent: gsay('«Раз в неделю» — сколько раз в неделю считается новый ученик группы (от этого цена). «Включает группы» — для общей группы: её ученики ходят и на занятия этих групп (например, Ballroom ЛА+СТ включает Latin и Standard).', '"פעמים בשבוע" — כמה פעמים בשבוע נחשב/ת תלמיד/ה חדש/ה בקבוצה (המחיר נגזר מזה). "כולל קבוצות" — לקבוצה משולבת: התלמידים שלה משתתפים גם בשיעורים של הקבוצות האלה (למשל Ballroom LA+ST כולל Latin ו-Standard).', '"Times a week": how many classes a week a new student of the group counts as (the price follows). "Includes groups": for a combined group, its students also attend these groups\u2019 classes (e.g. Ballroom LA+ST includes Latin and Standard).') }),
     h('div', { className: 'scroll' }, h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('programme')), h('th', {}, t('archived')), h('th'))),
+      h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('programme')), h('th', {}, gsay('Раз в неделю', 'פעמים בשבוע', 'Times a week')), h('th', {}, gsay('Включает группы', 'כולל קבוצות', 'Includes groups')), h('th', {}, t('archived')), h('th'))),
       h('tbody', {}, ...groups.map((g) => h('tr', { className: g.archived ? 'off' : '' },
         h('td', {}, input(g.name, (v, el) => (v ? set('groups', g.id, { name: v }) : (el.value = g.name)), { ariaLabel: t('name') })),
         h('td', {}, select(programs.map((p): [string, string] => [p.id, p.name]), g.program_id, (v) => set('groups', g.id, { program_id: v }), { ariaLabel: t('programme') })),
+        // How many classes a week a new student of this group counts as (the price comes from it).
+        h('td', {}, number(g.per_week_default, (v) => set('groups', g.id, { per_week_default: v ? Math.min(7, Math.round(v)) : null }), { max: 7, ariaLabel: gsay('Раз в неделю', 'פעמים בשבוע', 'Times a week') })),
+        // A combined group: its students also attend these groups' classes (Ballroom LA+ST = Latin + Standard).
+        h('td', {}, h('div', { className: 'chips' }, ...groups.filter((x) => x.id !== g.id && !x.archived && x.program_id === g.program_id).map((x) => {
+          const on = (g.includes ?? []).includes(x.id);
+          return h('button', { type: 'button', textContent: x.name, ariaPressed: String(on), onclick: () =>
+            then(set('groups', g.id, { includes: on ? g.includes.filter((y: string) => y !== x.id) : [...(g.includes ?? []), x.id] })) });
+        }))),
         h('td', {}, checkbox(g.archived, (v) => then(set('groups', g.id, { archived: v })), { ariaLabel: t('archived') }))
         , h('td', { className: 'actions' }, sureButton('×', () => then(ok(db!.from('groups').delete().eq('id', g.id))), { title: t('del'), ariaLabel: t('del') }))
       )))

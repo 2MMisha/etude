@@ -692,4 +692,23 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await denied(as('client', 'select public.birthday_push()'), /permission denied/);
 }
 
+// A group that includes other groups: Ballroom LA+ST = Latin + Standard.
+{
+  const prog = (await one('admin', `insert into public.programs (name, minutes) values ('Ballroom T', 90) returning id`)).id;
+  await as('admin', `insert into public.prices (kind, program_id, per_week, amount) values ('group', $1, 2, 200), ('group', $1, 3, 300)`, [prog]);
+  const mk = async (name, n, inc = []) => (await one('admin', `insert into public.groups (name, program_id, per_week_default, includes) values ($1, $2, $3, $4) returning id`, [name, prog, n, inc])).id;
+  const la = await mk('LA T', 2);
+  const st = await mk('ST T', 2);
+  const both = await mk('LA+ST T', 3, [la, st]);
+  const laSlot = (await one('admin', `insert into public.group_slots (group_id, weekday, start_time, minutes, hall) values ($1, 4, '19:00', 90, 'Big Hall') returning id`, [la])).id;
+  await as('admin', 'insert into public.enrollments (student_id, group_id) values ($1, $2)', [oldKid, both]);
+  assert.equal((await one('admin', 'select per_week from public.enrollments where student_id = $1 and group_id = $2', [oldKid, both])).per_week, 3, "a new enrollment takes the group's default");
+  const thu = '2026-11-19'; // a Thursday
+  const mineThu = (await sched('client', thu, thu)).filter((x) => x.kind === 'class' && x.title === 'LA T');
+  assert.ok(mineThu.length === 1 && mineThu[0].mine, "the Latin class is the LA+ST student's own");
+  assert.ok((await as('admin', 'select * from public.class_roster($1, $2)', [laSlot, thu])).rows.some((r) => r.student_id === oldKid), 'and they are on its list');
+  const q = await one('admin', 'select description, list_amount from public.student_quotes where student_id = $1', [oldKid]);
+  assert.ok(q.description.includes('Ballroom T 3') , `priced as the programme at 3 a week (${q.description})`);
+}
+
 console.log('access rules: all checks passed');
