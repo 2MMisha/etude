@@ -443,6 +443,18 @@ export function answered(q: Q, v: any) {
   return typeof v === 'string' ? v.trim() !== '' : v != null;
 }
 
+/** An answer as text, in the given language. */
+export function shownAnswer(q: Q, v: any, lang: Lang): string {
+  const opt = (id: string) => { const o = q.opts?.find(([x]) => x === id); return o ? pick(o[1], lang) : id; };
+  if (v == null || v === '') return '';
+  if (q.type === 'name2') return [v.he, v.en].filter(Boolean).join(' / ');
+  if (q.type === 'tick') return v ? '✓' : '';
+  if (q.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(String(v))) return dmy(String(v));
+  if (q.type === 'yesno') return v === 'yes' ? pick(W.yes, lang) : pick(W.no, lang);
+  if (Array.isArray(v)) return v.map(opt).join('\n');
+  return q.opts ? opt(v) : String(v);
+}
+
 /** On a repeat filling, these start empty again: confirmations and the signature. */
 export const resigned = (f: Form, q: Q) => q.type === 'all' || q.type === 'tick' || q.id === f.signer || q.id === 'confirm';
 /** A date as dd.mm.yyyy. */

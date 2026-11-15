@@ -5,7 +5,7 @@
 // family that registered online and is already in the CRM: join the two.
 import { getLang, t } from '../i18n';
 import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, type Row } from '../ui';
-import { FORMS, W, visible, missing, flags, answered, stateOf, dmy, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
+import { FORMS, W, visible, missing, flags, answered, stateOf, dmy, shownAnswer, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
 
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
@@ -46,15 +46,7 @@ const adult = (birth: string | null) => {
 const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' });
 
 /** One answer as text, in the screen's language. */
-function shown(q: Q, v: any): string {
-  const opt = (id: string) => { const o = q.opts?.find(([x]) => x === id); return o ? tr(o[1]) : id; };
-  if (v == null || v === '') return '';
-  if (q.type === 'name2') return [v.he, v.en].filter(Boolean).join(' / ');
-  if (q.type === 'tick') return v ? '✓' : '';
-  if (q.type === 'yesno') return v === 'yes' ? tr(W.yes) : tr(W.no);
-  if (Array.isArray(v)) return v.map(opt).join('\n');
-  return q.opts ? opt(v) : String(v);
-}
+const shown = (q: Q, v: any) => shownAnswer(q, v, getLang());
 
 function answersOf(f: Form, a: Row, c: Ctx, sentAt = '') {
   const signedOn = a._signed_on ?? sentAt.slice(0, 10);

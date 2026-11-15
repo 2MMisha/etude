@@ -8,7 +8,7 @@
 import { LANGS, getLang, setLang, t as crmT } from './i18n';
 import { db, h, flash, today } from './ui';
 import { signInView, newPasswordView } from './auth';
-import { FORMS, PRIVACY, W, STUDENT_REL, STATE_WORD, formOf, missing, stopped, flags, visible, stateOf, resigned, dmy, expired, pick, type Answers, type Ctx, type Form, type L, type Q, type Sent } from './forms';
+import { FORMS, PRIVACY, W, STUDENT_REL, STATE_WORD, formOf, missing, stopped, flags, visible, stateOf, resigned, dmy, expired, shownAnswer, pick, type Answers, type Ctx, type Form, type L, type Q, type Sent } from './forms';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
 const T = {
@@ -80,6 +80,12 @@ const T = {
   continueDocs: l('Продолжить: {form}', 'להמשיך: {form}', 'Continue: {form}'),
   anotherStudent: l('Добавить ещё ученика', 'הוספת תלמיד/ה נוסף/ת', 'Add another student'),
   noStudentsYet: l('Пока нет ни одного ученика. Нажмите «Добавить ученика» и заполните данные первого ученика; потом — его документы, один за другим.', 'עדיין אין תלמידים. לחצו על "הוספת תלמיד/ה" ומלאו את פרטי התלמיד/ה הראשון/ה; אחר כך — את המסמכים שלו/ה, אחד אחרי השני.', 'No students yet. Press "Add a student" and fill in the first student\u2019s details; then their documents, one after another.'),
+  pdf: l('📄 Скачать PDF с ответами', '📄 הורדת PDF עם התשובות', '📄 Download a PDF of the answers'),
+  pdfTitle: l('Ответы на регистрационные формы', 'תשובות לטופסי הרישום', 'Answers to the registration forms'),
+  pdfMade: l('Сформировано', 'הופק', 'Made on'),
+  savePdf: l('Сохранить как PDF / распечатать', 'שמירה כ-PDF / הדפסה', 'Save as PDF / print'),
+  pdfHint: l('В окне печати выберите «Сохранить как PDF».', 'בחלון ההדפסה בחרו "שמירה כ-PDF".', 'In the print window, choose "Save as PDF".'),
+  fixedHint: l('Эти данные взяты из вашего кабинета. Чтобы их изменить, отредактируйте ученика в кабинете.', 'הפרטים האלה נלקחו מהחשבון שלכם. כדי לשנות אותם, ערכו את התלמיד/ה בחשבון.', 'These details come from your account. To change them, edit the student in the account.'),
   waiting: l('Спасибо! Ваша регистрация получена и ожидает подтверждения Студии. После подтверждения здесь можно будет добавить учеников и заполнить документы.', 'תודה! ההרשמה התקבלה וממתינה לאישור הסטודיו. לאחר האישור תוכלו להוסיף כאן תלמידים ולמלא את המסמכים.', 'Thank you! Your registration has been received and is waiting for the studio to approve it. Once approved, you can add students and fill in the documents here.'),
   error: l('Что-то пошло не так. Попробуйте ещё раз.', 'משהו השתבש. נסו שוב.', 'Something went wrong. Please try again.'),
 };
@@ -356,6 +362,7 @@ async function homeView() {
       s.needed.length === 5 && !s.is_holder && note(fill(t('adultSelf'), { name: s.full_name }), 'warn'),
       !(s.needed.length === 5 && !s.is_holder) && nextFormOf(s) && h('a', { className: 'btn primary big', href: `#/s/${s.token}/${nextFormOf(s)!.code}`, textContent: fill(t('continueDocs'), { form: formName(nextFormOf(s)!) }) }),
       formList(s, s.token),
+      Object.keys(s.forms ?? {}).length > 0 && h('a', { className: 'btn', href: `#/s/${s.token}/pdf`, textContent: t('pdf') }),
       h('h3', { textContent: t('link') }),
       shareRow(s.token, s.full_name)
     )),
@@ -427,6 +434,12 @@ function control(q: Q, a: Answers, c: Ctx, redraw: () => void): Node {
   }
 }
 
+/** A detail the account already holds (name, date of birth, phone, email, ID, address): shown, not typed again. */
+const known = (q: Q, c: Ctx) => {
+  const v = q.prefill?.(c);
+  return v && (typeof v !== 'object' || (v.he && v.en)) ? v : undefined;
+};
+
 function formView(token: string, page: Answers, f: Form) {
   const c: Ctx = { adult: page.adult, student: page, holder: page.holder, groups: page.groups ?? [], docs: page.docs ?? {} };
   const key = `${token}/${f.code}`;
@@ -437,6 +450,7 @@ function formView(token: string, page: Answers, f: Form) {
     const before: Answers = page.last?.[f.code] ?? {};
     for (const s of f.sections) for (const q of s.qs) {
       if (before[q.id] !== undefined && !resigned(f, q)) a[q.id] = before[q.id];
+      if (known(q, c) !== undefined) a[q.id] = known(q, c); // always as the account has it now
       const v = q.prefill?.(c);
       if (a[q.id] === undefined && v && (typeof v !== 'object' || v.he || v.en)) a[q.id] = v;
     }
@@ -458,7 +472,9 @@ function formView(token: string, page: Answers, f: Form) {
           : docBox(t(({ doc_provider: 'docProvider', doc_offer: 'docOffer', doc_prices: 'docPrices', doc_terms: 'terms', doc_privacy: 'privacy' } as const)[d as 'doc_offer']), c.docs[d])),
         ...qs.map((q) => h('div', { className: `q${holes.has(q.id) ? ' need' : ''}` },
           q.type !== 'tick' && h('p', { className: 'q-label' }, tr(q.label), !q.req && h('small', { textContent: ` (${t('optional')})` })),
-          control(q, a, c, draw),
+          known(q, c) !== undefined
+            ? h('p', { className: 'fixed', textContent: shownAnswer(q, known(q, c), getLang()), title: t('fixedHint') })
+            : control(q, a, c, draw),
           q.id === f.signer && h('p', { className: 'sign-date' }, `${tr(W.signedOn)}: `, h('strong', { dir: 'ltr', textContent: dmy(today()) })),
           q.hint && h('small', { className: 'q-hint', textContent: tr(q.hint) }),
           q.stop && a[q.id] === q.stop[0] && note(tr(q.stop[1]), 'warn'),
@@ -514,9 +530,40 @@ function formView(token: string, page: Answers, f: Form) {
   return box;
 }
 
+/** All of a student's sent forms with every answer, laid out for paper; the browser saves it as PDF. */
+function pdfView(token: string, page: Answers) {
+  const c: Ctx = { adult: page.adult, student: page, holder: page.holder, groups: page.groups ?? [], docs: page.docs ?? {} };
+  const lang = getLang();
+  const sent = FORMS.filter((f) => page.last?.[f.code]);
+  const sheet = h('div', { className: 'stack pdf' },
+    h('div', { className: 'row noprint' },
+      h('a', { className: 'btn', href: `#/s/${token}`, textContent: t('backToList') }),
+      h('button', { type: 'button', className: 'primary', textContent: t('savePdf'), onclick: () => print() })),
+    note(t('pdfHint'), 'muted noprint'),
+    h('header', {},
+      h('h1', {}, 'ETUDE — ', t('pdfTitle')),
+      h('p', {}, h('strong', { textContent: page.full_name }), ` · ${page.full_name_en} · ${t('born')} ${dmy(page.birth_date)}`),
+      h('p', { className: 'muted', textContent: `${t('pdfMade')}: ${dmy(today())}` })),
+    ...sent.map((f) => {
+      const a = page.last[f.code];
+      const at = page.forms?.[f.code]?.at ?? '';
+      return h('section', { className: 'pdf-form' },
+        h('h2', { textContent: `${tr(W.appendix)}${f.num} — ${tr(f.title)}` }),
+        h('p', { className: 'muted', textContent: `${tr(W.signedBy)}: ${a._signed_by ?? ''} · ${tr(W.signedOn)}: ${dmy(a._signed_on ?? at.slice(0, 10))}` }),
+        ...visible(f, a, c).filter(({ qs }) => qs.length).map(({ s, qs }) => h('div', {},
+          s.title && h('h3', { textContent: tr(s.title) }),
+          h('dl', { className: 'answers' }, ...qs.flatMap((q) => [
+            h('dt', { textContent: tr(q.label) }),
+            h('dd', { textContent: shownAnswer(q, a[q.id], lang) || '—' }),
+          ])))));
+    }));
+  return sheet;
+}
+
 async function studentView(token: string, code?: string) {
   const { data: page } = /^[0-9a-f-]{36}$/i.test(token) ? await db!.rpc('student_by_token', { tok: token }) : { data: null };
   if (!page) return card(note(t('notActive'), 'warn'));
+  if (code === 'pdf') return pdfView(token, page);
   if (code && page.needed.includes(code)) return formView(token, page, formOf(code));
   const todo = todoFor({ ...page, full_name: page.full_name });
   return h('div', { className: 'stack' },
@@ -525,7 +572,8 @@ async function studentView(token: string, code?: string) {
       h('h1', {}, page.full_name, h('small', { textContent: ` ${page.full_name_en} · ${t('born')} ${page.birth_date}` })),
       page.adult && note(fill(t('adultHere'), { name: page.full_name }), 'warn'),
       nextFormOf(page) && h('a', { className: 'btn primary big', href: `#/s/${token}/${nextFormOf(page)!.code}`, textContent: Object.keys(page.forms).length ? fill(t('continueDocs'), { form: formName(nextFormOf(page)!) }) : t('startDocs') }),
-      formList(page, token)
+      formList(page, token),
+      Object.keys(page.forms ?? {}).length > 0 && h('a', { className: 'btn', href: `#/s/${token}/pdf`, textContent: t('pdf') })
     ),
     card(h('h2', { textContent: todo.length ? t('todo') : tr(W.allDone) }), todo.length > 0 && h('ul', { className: 'todo' }, ...todo.map((x) => h('li', { textContent: x }))))
   );
