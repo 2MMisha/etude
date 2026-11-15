@@ -121,9 +121,9 @@
       "en": "The schedule is moving to a new system"
     },
     "body": {
-      "he": "בזמן הקרוב ייתכנו תקלות במערכת השעות באפליקציה. מערכת השעות העדכנית — בקישור: [מערכת השעות של ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
-      "ru": "В ближайшее время расписание в приложении может работать с ошибками. Актуальное расписание — по ссылке: [Расписание ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
-      "en": "For a while, the schedule in the app may show mistakes. The current schedule is here: [ETUDE schedule](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)"
+      "he": "**כרגע אין צורך להירשם לחשבון האישי באפליקציה.**\n\nבזמן הקרוב ייתכנו תקלות במערכת השעות באפליקציה. מערכת השעות העדכנית — בקישור: [מערכת השעות של ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
+      "ru": "**Сейчас регистрироваться в личном кабинете не нужно.**\n\nВ ближайшее время расписание в приложении может работать с ошибками. Актуальное расписание — по ссылке: [Расписание ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
+      "en": "**There's no need to register for an account in the app right now.**\n\nFor a while, the schedule in the app may show mistakes. The current schedule is here: [ETUDE schedule](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)"
     }
   },
   "payment": {
