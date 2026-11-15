@@ -218,9 +218,9 @@ export async function settingsView() {
   const DOCS: [string, string][] = [
     ['doc_offer', say('Договор публичной оферты', 'חוזה ההצעה לציבור', 'Public offer agreement')],
     ['doc_provider', say('Сведения об Исполнителе (карточка Исполнителя)', 'פרטי נותן השירות', 'Provider details')],
-    ['doc_prices', say('Стоимость занятий (показывается в Разделе №1)', 'מחירי השיעורים (מוצג בחלק 1)', 'Prices (shown in section 1)')],
+    ['doc_prices', say('Стоимость занятий (показывается в Приложении №1)', 'מחירי השיעורים (מוצג בנספח 1)', 'Prices (shown in appendix 1)')],
     ['doc_terms', say('Условия использования личного кабинета', 'תנאי השימוש באזור האישי', 'Terms of use of the family account')],
-    ['doc_privacy', say('Уведомление о конфиденциальности (файл, в дополнение к тексту в Разделе №6)', 'הודעת פרטיות (קובץ, בנוסף לטקסט בחלק 6)', 'Privacy notice (a file, in addition to the text in section 6)')],
+    ['doc_privacy', say('Уведомление о конфиденциальности (файл, в дополнение к тексту в Приложении №6)', 'הודעת פרטיות (קובץ, בנוסף לטקסט בנספח 6)', 'Privacy notice (a file, in addition to the text in appendix 6)')],
   ];
   const docRow = ([id, label]: [string, string]) => {
     const now = settings.find((x) => x.id === id)?.value;
