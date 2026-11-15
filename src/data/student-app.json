@@ -82,7 +82,7 @@
       "באולם לא אוכלים ולא לועסים מסטיק.",
       "טלפונים: במצב שקט בזמן השיעור. מצלמים רק באישור המאמן.",
       "ילדים: ההורים מביאים ואוספים את הילדים בזמן. מחכים לסוף השיעור באזור ההמתנה.",
-      "תשלום: את המנוי משלמים עד ה-10 בכל חודש."
+      "תשלום: את המנוי משלמים עד ה-1 בכל חודש."
     ],
     "ru": [
       "Одежда: удобная спортивная или танцевальная, в которой видна линия тела. Без джинсов и широких худи.",
@@ -95,7 +95,7 @@
       "В зале не едим и не жуём жвачку.",
       "Телефоны: на беззвучном во время урока. Снимать — только с разрешения тренера.",
       "Дети: родители приводят и забирают детей вовремя. Ждать окончания урока — в зоне ожидания.",
-      "Оплата: абонемент оплачивается до 10 числа каждого месяца."
+      "Оплата: абонемент оплачивается до 1 числа каждого месяца."
     ],
     "en": [
       "Clothing: comfortable sports or dance wear that shows the body line. No jeans or baggy hoodies.",
@@ -108,7 +108,7 @@
       "No eating or chewing gum in the hall.",
       "Phones: on silent during the lesson. Filming only with the trainer's permission.",
       "Children: parents drop off and pick up their children on time. Wait for the end of the class in the waiting area.",
-      "Payment: the monthly membership is paid by the 10th of each month."
+      "Payment: the monthly membership is paid by the 1st of each month."
     ]
   },
   "notice": {
@@ -128,7 +128,7 @@
   },
   "payment": {
     "active": true,
-    "day": 10,
+    "day": 1,
     "before": 3,
     "after": 7
   },

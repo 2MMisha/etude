@@ -121,7 +121,7 @@ const f1: Form = {
           hint: l('Окончательное распределение и перевод определяются совместным решением руководителя Студии и тренера группы.', 'השיבוץ הסופי והמעבר בין קבוצות נקבעים בהחלטה משותפת של מנהל/ת הסטודיו ומאמן/ת הקבוצה.', "The final placement and any move between groups are decided together by the studio's head and the group's trainer.") },
         { id: 'pay', type: 'one', label: l('Предпочтительный способ помесячной оплаты годового абонемента', 'אופן התשלום החודשי המועדף למנוי השנתי', 'Preferred way to pay the yearly membership month by month'), req: true, opts: opts(
           ['cheques', l('Двенадцать чеков при регистрации', 'שנים-עשר צ׳קים בעת הרישום', 'Twelve cheques at registration')],
-          ['cash', l('Наличными ежемесячно до 2-го числа', 'במזומן מדי חודש עד ה-2 בחודש', 'Cash every month by the 2nd')],
+          ['cash', l('Наличными ежемесячно до 1-го числа', 'במזומן מדי חודש עד ה-1 בחודש', 'Cash every month by the 1st')],
           ['prepay', l('Предоплата наличными за 6–12 месяцев, если применяется скидка', 'תשלום מראש במזומן ל-6–12 חודשים, כשיש הנחה', 'Cash in advance for 6–12 months, when a discount applies')],
           ['other', l('Иной способ, официально предложенный Студией', 'אמצעי אחר שהסטודיו הציע באופן רשמי', 'Another way officially offered by the studio')]) },
         { id: 'terms', type: 'all', label: l('Подтверждение актуальных условий', 'אישור התנאים העדכניים', 'Current terms'), req: true, opts: opts(

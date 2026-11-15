@@ -98,7 +98,7 @@ export interface PaymentSettings {
   after: number; // days after it the banner stays
 }
 
-export const PAYMENT_DEFAULTS: PaymentSettings = { active: true, day: 10, before: 3, after: 3 };
+export const PAYMENT_DEFAULTS: PaymentSettings = { active: true, day: 1, before: 3, after: 3 };
 
 export function paymentSettings(p?: Partial<PaymentSettings>): PaymentSettings {
   const s = { ...PAYMENT_DEFAULTS, ...p };

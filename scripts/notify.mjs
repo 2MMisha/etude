@@ -118,7 +118,7 @@ if (old) {
 
 // Payment day (same default and range as paymentSettings in src/lib/student.ts).
 const pay = app.payment ?? {};
-const payDay = Math.min(28, Math.max(1, Math.round(Number(pay.day ?? 10)) || 10));
+const payDay = Math.min(28, Math.max(1, Math.round(Number(pay.day ?? 1)) || 1));
 if (morning && pay.active !== false && Number(today.slice(8)) === payDay)
   await send(`pay-${today.slice(0, 7)}`, LABEL.pay, PAY_TODAY, '#studio');
 

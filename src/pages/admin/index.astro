@@ -1553,7 +1553,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           $('saNoticeActive').checked = !!s.notice?.active;
           $('saNoticeMode').value = s.notice?.mode === 'popup' ? 'popup' : 'banner';
           $('saNoticeUntil').value = s.notice?.until || '';
-          const pay = { active: true, day: 10, before: 3, after: 3, ...s.payment };
+          const pay = { active: true, day: 1, before: 3, after: 3, ...s.payment };
           $('saPayActive').checked = pay.active !== false;
           $('saPayDay').value = pay.day;
           $('saPayBefore').value = pay.before;
