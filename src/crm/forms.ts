@@ -479,7 +479,7 @@ export function stateOf(code: string, needed: string[], sent?: Sent): State {
 
 // Words both pages use.
 export const W = {
-  appendix: l('Приложение №', 'נספח מס׳ ', 'Appendix '),
+  appendix: l('Раздел №', 'חלק מס׳ ', 'Section '),
   none: l('Не заполнена', 'לא מולא', 'Not filled in'),
   done: l('Заполнена', 'מולא', 'Filled in'),
   update: l('Нужно обновить', 'צריך לעדכן', 'Needs updating'),

@@ -1,0 +1,14 @@
+{
+  "name": "ETUDE CRM",
+  "short_name": "ETUDE CRM",
+  "description": "ETUDE Dance School — management system for the studio staff",
+  "start_url": "/crm/",
+  "scope": "/crm/",
+  "display": "standalone",
+  "background_color": "#17224a",
+  "theme_color": "#17224a",
+  "icons": [
+    { "src": "/images/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/images/logo-mark-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

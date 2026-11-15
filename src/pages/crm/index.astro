@@ -16,7 +16,12 @@ import '../../styles/crm.css';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#17224a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ETUDE CRM" />
+    <link rel="manifest" href="/crm/manifest.webmanifest" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
@@ -32,6 +37,7 @@ import '../../styles/crm.css';
           <button type="button" class="bell" id="bell" aria-expanded="false" aria-controls="bellPanel" hidden></button>
           <div class="bell-panel" id="bellPanel" role="dialog" hidden></div>
         </span>
+        <button type="button" id="install" hidden></button>
         <span class="langs" id="langs"></span>
         <button id="signOut" hidden></button>
       </div>

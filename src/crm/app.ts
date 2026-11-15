@@ -100,6 +100,27 @@ function drawBell() {
 }
 setInterval(updateBell, 5 * 60 * 1000);
 
+// The CRM as an app: it can be installed on a phone or computer (it still works in
+// any browser). Chrome / Edge / Android offer it with the Install button; on iPhone,
+// Safari's Share > Add to Home Screen.
+let installEvent: any = null;
+const installBtn = document.getElementById('install') as HTMLButtonElement;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installEvent = e;
+  installBtn.textContent = `⬇ ${t('installApp')}`;
+  installBtn.hidden = false;
+});
+installBtn.onclick = async () => {
+  if (!installEvent) return;
+  installEvent.prompt();
+  await installEvent.userChoice;
+  installEvent = null;
+  installBtn.hidden = true;
+};
+addEventListener('appinstalled', () => (installBtn.hidden = true));
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/crm/sw.js', { scope: '/crm/' }).catch(() => {});
+
 async function render() {
   const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
   const route = name in ROUTES ? name : 'clients';
