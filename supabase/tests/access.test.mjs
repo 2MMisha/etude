@@ -796,4 +796,18 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   assert.equal((await one('admin', 'select count(*)::int n from public.enrollments where student_id = $1', [kid2.id])).n, 1, 'sending again does not double it');
 }
 
+// Staff send their own notification to chosen families.
+{
+  const famClient = (await one('admin', 'select client_id from public.students where id = $1', [oldKid])).client_id;
+  const noLogin = (await one('admin', `insert into public.clients (full_name, phone) values ('No Login', '') returning id`)).id;
+  const before = (await as('admin', 'select count(*)::int n from public.push_log')).rows[0].n;
+  const n = (await rpc('admin', 'staff_push', [[famClient, noLogin], 'Hello', 'Please bring the certificate'])).rows[0].staff_push;
+  assert.equal(n, 1, 'only the family with an app login is reached');
+  const last = (await as('admin', 'select * from public.push_log order by id desc limit 1')).rows[0];
+  assert.ok(last.user_ids.includes(U.client) && last.body === 'Please bring the certificate');
+  assert.equal((await as('admin', 'select count(*)::int n from public.push_log')).rows[0].n, before + 1);
+  await denied(rpc('client', 'staff_push', [[famClient], 'x', 'y']), /staff only/);
+  await denied(rpc('admin', 'staff_push', [[famClient], '', 'y']), /title and a text/);
+}
+
 console.log('access rules: all checks passed');

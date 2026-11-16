@@ -5,13 +5,14 @@ import { pick } from '../forms';
 import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
+import { notifyCard, notifyMany } from './notify';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
 export async function clientsView() {
   const [clients, students, enrollments, groups, owing] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online, approved').order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online, approved, user_id').order('full_name')),
     get<Row[]>(db!.from('students').select('id, client_id, full_name, archived').order('full_name')),
     get<Row[]>(db!.from('enrollments').select('student_id, group_id')),
     get<Row[]>(db!.from('groups').select('id, name, includes, archived').order('name')),
@@ -34,6 +35,7 @@ export async function clientsView() {
   const contactBox = h('input', { type: 'checkbox' });
   const inGroup = (clientId: string, gid: string) => students.some((s) => s.client_id === clientId && !s.archived &&
     enrollments.some((e) => e.student_id === s.id && (e.group_id === gid || (groups.find((g) => g.id === e.group_id)?.includes ?? []).includes(gid))));
+  let shown: Row[] = [];
   const draw = () => {
     const q = search.value.trim().toLowerCase();
     const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.full_name_en} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q))
@@ -41,6 +43,7 @@ export async function clientsView() {
       && (!owesBox.checked || owing.some((b) => b.client_id === c.id))
       && (!waitingBox.checked || (c.online && !c.approved))
       && (!contactBox.checked || students.some((s) => s.client_id === c.id && asking.has(s.id))));
+    shown = rows;
     body.replaceChildren(
       ...rows.map((c) => h('tr', { className: c.archived ? 'off' : '' },
         h('td', {}, h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) }), c.online && h('small', { textContent: ` 🆕 ${regWord('waiting')}` })),
@@ -68,6 +71,7 @@ export async function clientsView() {
       form,
       h('div', { className: 'row' }, search, tick(t('showArchived'), archived)),
       h('div', { className: 'row' }, groupSel, tick(fsay('Должники', 'חייבים', 'Owe money'), owesBox), tick(fsay('Ждут подтверждения', 'ממתינים לאישור', 'Waiting to be let in'), waitingBox), tick(fsay('Нужно связаться', 'צריך ליצור קשר', 'To contact'), contactBox)),
+      notifyMany(() => shown),
       h('div', { className: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('students')))), body))
     ),
     exportCard()
@@ -268,7 +272,7 @@ export async function clientView(id?: string, tab?: string) {
     current === 'pay' ? [await paymentsCard(client, students, charges)]
     : current === 'reg' ? await registrationCard(client, students, everyone, others)
     : current === 'students' ? [...students.map(studentCard), h('section', { className: 'card' }, addForm)]
-    : [clientCard];
+    : [clientCard, await notifyCard(client, students)];
 
   return h('div', { className: 'stack' },
     h('a', { href: '#/clients', textContent: t('back') }),
