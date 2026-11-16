@@ -39,6 +39,7 @@ const en = {
   label: 'Name', groupsTitle: 'Groups', programme: 'Programme', discountsTitle: 'Discounts, %',
   historyHint: 'A change applies to new charges only. Charges already made keep their price.',
   // stage 3: trainers, private lessons, expenses
+  dashboard: "Dashboard", log: "Log",
   installApp: "Install the app",
   home: "Important",
   printShort: "Print",
@@ -177,6 +178,7 @@ const ru: Record<Key, string> = {
   label: 'Название', groupsTitle: 'Группы', programme: 'Программа', discountsTitle: 'Скидки, %',
   historyHint: 'Изменение действует только на новые начисления. Уже сделанные сохраняют свою цену.',
   // stage 3: trainers, private lessons, expenses
+  dashboard: "Сводка", log: "Журнал",
   installApp: "Установить приложение",
   home: "Важное",
   printShort: "Печать",
@@ -314,6 +316,7 @@ const he: Record<Key, string> = {
   label: 'שם', groupsTitle: 'קבוצות', programme: 'תוכנית', discountsTitle: 'הנחות, %',
   historyHint: 'שינוי חל רק על חיובים חדשים. חיובים שכבר נוצרו שומרים על המחיר שלהם.',
   // stage 3: trainers, private lessons, expenses
+  dashboard: "סיכום", log: "יומן",
   installApp: "התקנת האפליקציה",
   home: "חשוב",
   printShort: "הדפסה",

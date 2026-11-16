@@ -11,9 +11,13 @@ import { debtsView, receiptView, reportsView } from './views/payments';
 import { trainersView } from './views/lessons';
 import { scheduleView } from './views/schedule';
 import { homeView } from './views/home';
+import { dashboardView } from './views/dashboard';
+import { logView } from './views/log';
 
 const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement>> = {
   home: homeView,
+  dashboard: dashboardView,
+  log: logView,
   clients: clientsView,
   client: clientView,
   month: monthView,
@@ -25,7 +29,7 @@ const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement
   settings: settingsView,
   accounts: accountsView,
 };
-const TABS: Key[] = ['clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts'];
+const TABS: Key[] = ['dashboard', 'clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'settings', 'accounts', 'log'];
 
 const view = document.getElementById('view')!;
 const tabs = document.getElementById('nav')!;
@@ -123,7 +127,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/crm/sw.js',
 
 async function render() {
   const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
-  const route = name in ROUTES ? name : 'clients';
+  const route = name in ROUTES ? name : 'dashboard';
   const staff = drawChrome(route);
   if (!db) return view.replaceChildren(card('notConnected'));
   if (recovering) return view.replaceChildren(newPasswordView(() => { recovering = false; render(); }));

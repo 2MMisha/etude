@@ -247,3 +247,20 @@ body.embed .crm { max-width: none; }
 .money-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding-block: 0.4rem; border-block-end: 1px solid var(--color-line); }
 .money-list li > span:first-child { flex: 1 1 14em; }
 .money-list li.off { opacity: 0.55; }
+
+/* Dashboard tiles and income bars (stage 5). */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.7rem; }
+.tile { display: grid; gap: 0.2rem; padding: 0.9rem; border-radius: var(--radius-md); border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink); text-decoration: none; }
+.tile:hover { border-color: var(--color-blue-500); }
+.tile-label { font-size: 0.82rem; color: var(--color-ink-soft); font-weight: 600; }
+.tile strong { font-size: 1.6rem; color: var(--color-navy-900); }
+.tile small { color: var(--color-ink-soft); }
+.tile.warn-tile { border-color: #e0a800; box-shadow: inset 4px 0 0 #e0a800; }
+.bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; align-items: end; block-size: 11rem; }
+.bar { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; block-size: 100%; text-decoration: none; color: var(--color-ink); }
+.bar-fill { align-self: end; inline-size: 70%; min-block-size: 2px; border-radius: 6px 6px 0 0; background: var(--color-blue-600); }
+.bar-value { font-size: 0.72rem; color: var(--color-ink-soft); white-space: nowrap; }
+.bar-label { font-size: 0.8rem; margin-block-start: 0.3rem; }
+/* Activity log. */
+.log td { vertical-align: top; font-size: 0.88rem; }
+.log-what { white-space: pre-wrap; color: var(--color-ink-soft); max-inline-size: 28rem; }

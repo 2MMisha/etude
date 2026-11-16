@@ -784,4 +784,16 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await denied(as('client', 'select public.debt_reminders()'), /permission denied/);
 }
 
+// The group chosen in appendix 1 enrols the student in it, with the group's default times a week.
+{
+  const kid2 = (await one('admin', `insert into public.students (client_id, full_name, birth_date) select client_id, 'Group Kid', '2016-01-01' from public.students where id = $1 returning id, form_token`, [oldKid]));
+  await rpc('anon', 'submit_student_form', [kid2.form_token, 'f1', JSON.stringify({ who: 'parent', group: 'unknown', _signed_by: 'Parent' }), 'he']);
+  assert.equal((await one('admin', 'select count(*)::int n from public.enrollments where student_id = $1', [kid2.id])).n, 0, '"I don\'t know" enrols nowhere');
+  await rpc('anon', 'submit_student_form', [kid2.form_token, 'f1', JSON.stringify({ who: 'parent', group: 'LA+ST T', _signed_by: 'Parent' }), 'he']);
+  const e = await one('admin', 'select g.name, e.per_week from public.enrollments e join public.groups g on g.id = e.group_id where e.student_id = $1', [kid2.id]);
+  assert.deepEqual([e.name, e.per_week], ['LA+ST T', 3], 'enrolled in the chosen group at its default');
+  await rpc('anon', 'submit_student_form', [kid2.form_token, 'f1', JSON.stringify({ who: 'parent', group: 'LA+ST T', _signed_by: 'Parent' }), 'he']);
+  assert.equal((await one('admin', 'select count(*)::int n from public.enrollments where student_id = $1', [kid2.id])).n, 1, 'sending again does not double it');
+}
+
 console.log('access rules: all checks passed');

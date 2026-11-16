@@ -1,6 +1,7 @@
 // Clients list, and one client's page: the family, each student's groups,
 // discounts, suggested monthly price and charges.
-import { t, LANGS } from '../i18n';
+import { t, LANGS, getLang } from '../i18n';
+import { pick } from '../forms';
 import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
@@ -9,9 +10,12 @@ import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sure
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
 export async function clientsView() {
-  const [clients, students] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online').order('full_name')),
+  const [clients, students, enrollments, groups, owing] = await Promise.all([
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online, approved').order('full_name')),
     get<Row[]>(db!.from('students').select('id, client_id, full_name, archived').order('full_name')),
+    get<Row[]>(db!.from('enrollments').select('student_id, group_id')),
+    get<Row[]>(db!.from('groups').select('id, name, includes, archived').order('name')),
+    get<Row[]>(db!.from('client_balances').select('client_id, balance').gt('balance', 0)),
   ]);
   const asking = await attention();
   // A family that registered online and is not checked yet, or one that asked to be contacted.
@@ -21,9 +25,22 @@ export async function clientsView() {
   const body = h('tbody');
   const search = h('input', { type: 'search', placeholder: t('search') });
   const archived = h('input', { type: 'checkbox' });
+  // Filters (stage 5): a group (its own students and those of a group that includes it), who owes, who waits, who to contact.
+  const fsay = (ru: string, he: string, en: string) => pick({ ru, he, en }, getLang());
+  const groupSel = h('select', { ariaLabel: fsay('Группа', 'קבוצה', 'Group') }, h('option', { value: '', textContent: fsay('Все группы', 'כל הקבוצות', 'All groups') }),
+    ...groups.filter((g) => !g.archived).map((g) => h('option', { value: g.id, textContent: g.name })));
+  const owesBox = h('input', { type: 'checkbox' });
+  const waitingBox = h('input', { type: 'checkbox' });
+  const contactBox = h('input', { type: 'checkbox' });
+  const inGroup = (clientId: string, gid: string) => students.some((s) => s.client_id === clientId && !s.archived &&
+    enrollments.some((e) => e.student_id === s.id && (e.group_id === gid || (groups.find((g) => g.id === e.group_id)?.includes ?? []).includes(gid))));
   const draw = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.full_name_en} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q)));
+    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.full_name_en} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q))
+      && (!groupSel.value || inGroup(c.id, groupSel.value))
+      && (!owesBox.checked || owing.some((b) => b.client_id === c.id))
+      && (!waitingBox.checked || (c.online && !c.approved))
+      && (!contactBox.checked || students.some((s) => s.client_id === c.id && asking.has(s.id))));
     body.replaceChildren(
       ...rows.map((c) => h('tr', { className: c.archived ? 'off' : '' },
         h('td', {}, h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) }), c.online && h('small', { textContent: ` 🆕 ${regWord('waiting')}` })),
@@ -33,7 +50,7 @@ export async function clientsView() {
     );
     if (!rows.length) body.append(h('tr', {}, h('td', { colSpan: 3, className: 'muted', textContent: t('emptyList') })));
   };
-  search.oninput = archived.onchange = draw;
+  search.oninput = archived.onchange = groupSel.onchange = owesBox.onchange = waitingBox.onchange = contactBox.onchange = draw;
   draw();
 
   const name = h('input', { type: 'text', placeholder: t('name'), required: true });
@@ -50,6 +67,7 @@ export async function clientsView() {
       h('h1', { textContent: t('clients') }),
       form,
       h('div', { className: 'row' }, search, tick(t('showArchived'), archived)),
+      h('div', { className: 'row' }, groupSel, tick(fsay('Должники', 'חייבים', 'Owe money'), owesBox), tick(fsay('Ждут подтверждения', 'ממתינים לאישור', 'Waiting to be let in'), waitingBox), tick(fsay('Нужно связаться', 'צריך ליצור קשר', 'To contact'), contactBox)),
       h('div', { className: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('students')))), body))
     ),
     exportCard()
