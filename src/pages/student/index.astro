@@ -259,11 +259,6 @@ const data = {
         <div class="sa-done" id="sent"></div>
       </section>
 
-      <!-- The family's account: registration, students and their documents (the page /family/ in a frame). -->
-      <section data-tab="family" hidden>
-        <iframe id="famFrame" class="sa-frame" title="ETUDE"></iframe>
-      </section>
-
       <section data-tab="studio" hidden>
         <h1 id="rulesTitle"></h1>
         <ol class="rules" id="rules"></ol>
@@ -1003,7 +998,6 @@ const data = {
         $('codeBad').textContent = t.bad;
         $('regBtn').textContent = t.register;
         $('regHint').textContent = t.registerHint;
-        tellFrame();
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => (a.querySelector('b')!.textContent = t[a.dataset.go as 'home']));
         renderAlerts();
         renderHome();
@@ -1033,10 +1027,6 @@ const data = {
         if (tab === 'notice' && !data.notice) tab = 'home';
         if (post) renderNews();
         if (eventId) renderEvents();
-        if (tab === 'family') openFamily();
-        // The account fills the screen and scrolls by itself: an embedded page that grows inside
-        // the app's own scrolling area stops taking taps on iPhone.
-        $('app').classList.toggle('fam-mode', tab === 'family');
         document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
         const navTab = NAV_OF[tab] ?? tab;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
@@ -1087,39 +1077,6 @@ const data = {
         b.addEventListener('click', () => { lang = b.dataset.lang as Lang; t = L[lang]; store.set('etude-lang', lang); push?.User.setLanguage?.(lang); render(); })
       );
 
-      // ----- The family's account (the page /family/ in a frame) -----
-      // #family opens it; #family/s/<token>/<form> opens one student's documents
-      // (the link a family sends to the other parent or to an adult student).
-      // Neither needs the studio code; a family the studio approved unlocks the app.
-      const frame = $('famFrame') as HTMLIFrameElement;
-      let frameFor = '';
-      function openFamily() {
-        const rest = location.hash.slice(1).split('/').slice(1).join('/');
-        const want = `/family/?embed#/${rest}`;
-        if (want === frameFor) return;
-        frameFor = want;
-        frame.src = want;
-      }
-      const tellFrame = () => frame.contentWindow?.postMessage({ etude: true, lang }, location.origin);
-      frame.addEventListener('load', tellFrame);
-      addEventListener('message', (e) => {
-        if (e.origin !== location.origin || e.source !== frame.contentWindow || !e.data?.etude) return;
-        if (e.data.top) $('app').scrollTo(0, 0); // the frame scrolls itself to the top
-        if (e.data.approved && store.get('etude-student') !== CODE) { store.set('etude-student', CODE); unlock(); }
-        if ('approved' in e.data) loadTimetable();
-      });
-      const familyLink = () => location.hash.startsWith('#family');
-      /** The account tab on its own, before the code: no menu to the rest of the app. */
-      function familyOnly() {
-        $('lock').hidden = true;
-        $('gate').hidden = true;
-        $('app').hidden = false;
-        $('nav').hidden = $('menuBtn').hidden = store.get('etude-student') !== CODE;
-        $('alerts').hidden = $('updated').hidden = store.get('etude-student') !== CODE;
-        showTab();
-      }
-      addEventListener('hashchange', () => { if (familyLink() && $('app').hidden) familyOnly(); });
-
       // ----- The timetable from the CRM -----
       // The page is built with the Google Sheet's timetable; on opening, the app
       // replaces it with the CRM's (the Sheet stays as the fallback when offline).
@@ -1137,6 +1094,7 @@ const data = {
           const fam = signed ? (await crm.rpc('family_me')).data : null;
           ownOnly = !!fam?.approved;
           familyUser = ownOnly ? signed!.user.id : null;
+          if (ownOnly && store.get('etude-student') !== CODE) { store.set('etude-student', CODE); unlock(); }
           linkPush();
           if (!ownOnly) {
             data.days = [];
@@ -1168,6 +1126,16 @@ const data = {
         }
       }
       crm?.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') setTimeout(loadTimetable); });
+
+      // ----- The family's account: its own page, /student/family/ -----
+      // #family (the menu, the code screen) and the student links sent earlier
+      // (#family/s/<token>[/<form>]) open it. No studio code is needed there.
+      const familyLink = () => location.hash.startsWith('#family');
+      const goFamily = (replace = false) => {
+        const rest = location.hash.slice(1).split('/').slice(1).join('/');
+        location[replace ? 'replace' : 'assign'](`/student/family/#/${rest}`);
+      };
+      addEventListener('hashchange', () => { if (familyLink()) goFamily(); });
 
       // ----- Code lock (the hash is remembered on this phone) -----
       async function sha256(s: string) {
@@ -1267,8 +1235,8 @@ const data = {
 
       render();
       loadTimetable();
-      if (familyLink() && store.get('etude-student') !== CODE) familyOnly();
-      else if (!installed && !preview && !familyLink()) $('gate').hidden = false;
+      if (familyLink()) goFamily(true);
+      else if (!installed && !preview) $('gate').hidden = false;
       else if (store.get('etude-student') === CODE) unlock();
       else { $('lock').hidden = false; code.focus(); }
       // Keep "next class" and the payment countdown right if the app stays open.
@@ -1326,10 +1294,6 @@ const data = {
       .sa-lock input:focus { outline: none; border-color: var(--color-blue-600); }
       .sa-bad { color: #b3261e; font-weight: 600; }
       .sa-reg-hint { max-inline-size: 26em; text-align: center; margin-block-start: 18px !important; }
-      .sa-frame { display: block; inline-size: 100%; block-size: 100%; border: 0; background: transparent; }
-      .sa-main.fam-mode { overflow: hidden; padding: 0; display: flex; flex-direction: column; }
-      .sa-main.fam-mode > :not([data-tab='family']) { display: none !important; }
-      .sa-main.fam-mode > [data-tab='family'] { flex: 1; min-block-size: 0; }
 
       .sa-main {
         flex: 1; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;

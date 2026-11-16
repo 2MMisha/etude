@@ -1,0 +1,45 @@
+---
+// /student/family/ — the family's account in the students' app: their own
+// login, the account holder's details, their students and each student's forms;
+// /student/family/#/s/<token> opens one student's forms without a login. Its own
+// page (not a frame inside the app: an embedded page lost taps on phones), under
+// the app's scope so the installed app opens it as its own screen. The page is
+// src/crm/family.ts; what it may read or change is decided by database functions.
+import '../../styles/global.css';
+import '../../styles/crm.css';
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#17224a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/student/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
+    />
+    <title>ETUDE</title>
+  </head>
+  <body class="family-page">
+    <div class="crm">
+      <div class="crm-top">
+        <a class="btn back-to-app" href="/student/">← ETUDE</a>
+        <span class="grow"></span>
+        <span class="langs" id="langs"></span>
+        <button id="signOut" hidden></button>
+      </div>
+      <main id="view"></main>
+      <div id="status" class="status" role="status" hidden></div>
+    </div>
+
+    <script>
+      import '../../crm/family';
+    </script>
+  </body>
+</html>
