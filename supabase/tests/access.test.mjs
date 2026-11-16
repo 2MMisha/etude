@@ -739,4 +739,15 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   assert.equal((await db.query('select full_name from public.profiles where id = $1', [U.owner])).rows[0].full_name, 'The Owner');
 }
 
+// Details typed in a form are kept on the student when the record has none.
+{
+  const s = (await one('admin', `select id, form_token from public.students where id = $1`, [oldKid]));
+  await as('admin', `update public.students set id_number = '', address = '' where id = $1`, [oldKid]);
+  await rpc('anon', 'submit_student_form', [s.form_token, 'f1', JSON.stringify({ who: 'parent', s_id: '123456782', s_address: 'Rothschild 49', _signed_by: 'Parent One' }), 'he']);
+  const after = await one('admin', 'select id_number, address from public.students where id = $1', [oldKid]);
+  assert.deepEqual([after.id_number, after.address], ['123456782', 'Rothschild 49'], 'the ID and address from appendix 1 are now on the student');
+  await rpc('anon', 'submit_student_form', [s.form_token, 'f1', JSON.stringify({ who: 'parent', s_id: '999', _signed_by: 'Parent One' }), 'he']);
+  assert.equal((await one('admin', 'select id_number from public.students where id = $1', [oldKid])).id_number, '123456782', 'but never overwrite what is there');
+}
+
 console.log('access rules: all checks passed');

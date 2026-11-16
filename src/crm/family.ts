@@ -518,6 +518,7 @@ function formView(token: string, page: Answers, f: Form) {
           signedIn && !nextFormOf(page, f.code) && h('a', { className: 'btn', href: '#/new', textContent: `+ ${t('anotherStudent')}` }))
       ));
       scrollTo(0, 0);
+      tellApp({ top: true }); // inside the students' app: show the top, not an empty screen
     };
     box.replaceChildren(
       card(h('p', { className: 'muted', textContent: `${page.full_name} · ${tr(W.appendix)}${f.num}` }), h('h1', { textContent: tr(f.title) }), f.intro && note(tr(f.intro)),

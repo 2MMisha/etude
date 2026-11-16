@@ -120,10 +120,10 @@ const f1: Form = {
           opts: opts(['unknown', l('Не знаю — прошу подобрать группу', 'לא יודע/ת — אבקש שיתאימו לי קבוצה', "I don't know — please find a group for me")]),
           hint: l('Окончательное распределение и перевод определяются совместным решением руководителя Студии и тренера группы.', 'השיבוץ הסופי והמעבר בין קבוצות נקבעים בהחלטה משותפת של מנהל/ת הסטודיו ומאמן/ת הקבוצה.', "The final placement and any move between groups are decided together by the studio's head and the group's trainer.") },
         { id: 'pay', type: 'one', label: l('Предпочтительный способ помесячной оплаты годового абонемента', 'אופן התשלום החודשי המועדף למנוי השנתי', 'Preferred way to pay the yearly membership month by month'), req: true, opts: opts(
-          ['cheques', l('Двенадцать чеков при регистрации', 'שנים-עשר צ׳קים בעת הרישום', 'Twelve cheques at registration')],
-          ['cash', l('Наличными ежемесячно до 1-го числа', 'במזומן מדי חודש עד ה-1 בחודש', 'Cash every month by the 1st')],
-          ['prepay', l('Предоплата наличными за 6–12 месяцев, если применяется скидка', 'תשלום מראש במזומן ל-6–12 חודשים, כשיש הנחה', 'Cash in advance for 6–12 months, when a discount applies')],
-          ['other', l('Иной способ, официально предложенный Студией', 'אמצעי אחר שהסטודיו הציע באופן רשמי', 'Another way officially offered by the studio')]) },
+          ['cheques', l('Чеки (צ׳קים)', 'צ׳קים', 'Cheques (צ׳קים)')],
+          ['cash', l('Наличные (מזומן)', 'מזומן', 'Cash (מזומן)')],
+          ['transfer', l('Банковский перевод (העברה בנקאית)', 'העברה בנקאית', 'Bank transfer (העברה בנקאית)')],
+          ['standing', l('Постоянное поручение (הוראת קבע)', 'הוראת קבע', 'Standing order (הוראת קבע)')]) },
         { id: 'terms', type: 'all', label: l('Подтверждение актуальных условий', 'אישור התנאים העדכניים', 'Current terms'), req: true, opts: opts(
           ['seen', l('Мне доступны актуальные расписание, стоимость, порядок оплаты и отмены', 'מערכת השעות, המחירים, אופן התשלום ומדיניות הביטול העדכניים זמינים לי', 'The current timetable, prices, payment and cancellation terms are available to me')],
           ['extra', l('Я понимаю, что соревнования, фестивали, концерты, поездки, учебно-тренировочные сборы, костюмы, реквизит, членские и регистрационные взносы могут оплачиваться отдельно', 'ידוע לי שתחרויות, פסטיבלים, הופעות, נסיעות, מחנות אימון, תלבושות, אביזרים, דמי חבר ודמי רישום עשויים להיות בתשלום נפרד', 'I understand that competitions, festivals, concerts, trips, training camps, costumes, props, membership and registration fees may be paid separately')]) },
@@ -205,7 +205,7 @@ const f2: Form = {
       title: l('Что важно знать тренеру', 'מה חשוב שהמאמן/ת ידע/תדע', 'What the trainer should know'),
       qs: [
         ...STUDIO,
-        { id: 'kupah', type: 'select', req: true, label: l('Купат холим', 'קופת חולים', 'Health fund (kupat holim)'), opts: opts(['clalit', l('Клалит', 'כללית', 'Clalit')], ['maccabi', l('Маккаби', 'מכבי', 'Maccabi')], ['meuhedet', l('Меухедет', 'מאוחדת', 'Meuhedet')], ['leumit', l('Леумит', 'לאומית', 'Leumit')], ['other', l('Другое', 'אחר', 'Other')], ['none', l('Предпочитаю не указывать', 'מעדיף/ה לא לציין', 'Prefer not to say')]) },
+        { id: 'kupah', type: 'select', req: true, label: l('Больничная касса (קופת חולים)', 'קופת חולים', 'Health fund (קופת חולים)'), opts: opts(['clalit', l('Клалит (כללית)', 'כללית', 'Clalit (כללית)')], ['maccabi', l('Маккаби (מכבי)', 'מכבי', 'Maccabi (מכבי)')], ['meuhedet', l('Меухедет (מאוחדת)', 'מאוחדת', 'Meuhedet (מאוחדת)')], ['leumit', l('Леумит (לאומית)', 'לאומית', 'Leumit (לאומית)')], ['unregistered', l('Не зарегистрирован(а) в больничной кассе', 'לא רשום/ה בקופת חולים', 'Not registered with a health fund')]) },
       ],
     },
     {
