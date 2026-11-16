@@ -3,8 +3,9 @@
 // database changes (the database refuses what isn't allowed; the controls are
 // only switched off to match). The three things that need the project's secret
 // key go through the "accounts" Edge Function (supabase/functions/accounts/).
-import { t, type Key } from '../i18n';
-import { db, h, get, ok, nav, input, checkbox, flash, state, type Profile } from '../ui';
+import { t, getLang, type Key } from '../i18n';
+import { pick } from '../forms';
+import { db, h, get, ok, nav, input, checkbox, flash, state, type Profile, type Row } from '../ui';
 
 const ROLES = ['owner', 'admin', 'trainer', 'client'] as const;
 
@@ -23,7 +24,17 @@ async function account(body: Record<string, unknown>): Promise<boolean> {
 
 export async function accountsView() {
   const me = state.me!;
-  const profiles = await get<Profile[]>(db!.from('profiles').select('id, email, full_name, lang, roles, active').order('created_at'));
+  const [profiles, clients, trainers] = await Promise.all([
+    get<Profile[]>(db!.from('profiles').select('id, email, full_name, lang, roles, active').order('created_at')),
+    get<Row[]>(db!.from('clients').select('id, full_name, user_id').not('user_id', 'is', null)),
+    get<Row[]>(db!.from('trainers').select('id, full_name, user_id').not('user_id', 'is', null)),
+  ]);
+  const say = (ru: string, he: string, en: string) => pick({ ru, he, en }, getLang());
+  /** What a login belongs to: the client (family) and/or the trainer it is linked with. */
+  const linked = (p: Profile) => [
+    ...clients.filter((c) => c.user_id === p.id).map((c) => h('a', { href: `#/client/${c.id}/reg`, textContent: `${t('client')}: ${c.full_name}` })),
+    ...trainers.filter((x) => x.user_id === p.id).map((x) => h('a', { href: '#/settings', textContent: `${t('trainer')}: ${x.full_name}` })),
+  ];
   const iAmOwner = me.roles.includes('owner');
   const save = async (p: Profile, patch: Partial<Profile>) => {
     const done = await ok(db!.from('profiles').update(patch).eq('id', p.id));
@@ -56,6 +67,7 @@ export async function accountsView() {
         } });
         return b;
       }))),
+      h('td', {}, h('div', { className: 'stack' }, ...linked(p))),
       h('td', {}, checkbox(p.active, async (v, el) => {
         if (await save(p, { active: v })) tr.className = v ? '' : 'off';
         else el.checked = p.active;
@@ -64,6 +76,12 @@ export async function accountsView() {
     );
     return tr;
   };
+
+  // Search by name, email or what the login is linked to (family logins make the list long).
+  const rows = profiles.map((p) => ({ tr: row(p), text: `${p.full_name} ${p.email} ${linked(p).map((a) => a.textContent).join(' ')}`.toLowerCase() }));
+  const body = h('tbody', {}, ...rows.map((r) => r.tr));
+  const search = h('input', { type: 'search', placeholder: say('Поиск по имени или почте', 'חיפוש לפי שם או אימייל', 'Search by name or email') });
+  search.oninput = () => rows.forEach((r) => (r.tr.hidden = !r.text.includes(search.value.trim().toLowerCase())));
 
   // A new login: the email they sign in with, a first password to hand them, a name and what they may do.
   const email = h('input', { type: 'email', placeholder: t('email'), required: true, autocomplete: 'off', dir: 'ltr' });
@@ -91,9 +109,10 @@ export async function accountsView() {
   return h('div', { className: 'stack' },
     h('section', { className: 'card' },
       h('h1', { textContent: t('accounts') }),
+      search,
       h('div', { className: 'scroll' }, h('table', {},
-        h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('roles')), h('th', {}, t('active')), h('th'))),
-        h('tbody', {}, ...profiles.map(row))
+        h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('roles')), h('th', {}, say('Связан с', 'מקושר ל', 'Linked to')), h('th', {}, t('active')), h('th'))),
+        body
       )),
       h('p', { className: 'muted', textContent: t('accountsHint') })
     ),

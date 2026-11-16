@@ -711,4 +711,32 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   assert.ok(q.description.includes('Ballroom T 3') , `priced as the programme at 3 a week (${q.description})`);
 }
 
+// A login follows what it is linked to: a family's sign-up gets the Client role and the parent's name,
+// a login linked to a trainer gets the Trainer role and the trainer's name.
+{
+  const fam = '00000000-0000-0000-0000-0000000000a1';
+  const coach = '00000000-0000-0000-0000-0000000000a2';
+  await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [fam, 'fam@test', coach, 'coach@test']);
+  const asUser = async (uid, sql, params) => {
+    await db.exec(`set role authenticated; select set_config('request.jwt.claims', '${JSON.stringify({ sub: uid })}', false);`);
+    try { return await db.query(sql, params); } finally { await db.exec(`reset role; select set_config('request.jwt.claims', '', false);`); }
+  };
+  await asUser(fam, 'select public.family_save($1)', [JSON.stringify({ full_name: 'הורה חדש', full_name_en: 'New Parent', phone: '0501112233', relation: 'parent' })]);
+  let p = (await db.query('select full_name, roles from public.profiles where id = $1', [fam])).rows[0];
+  assert.equal(p.full_name, 'הורה חדש', "the family's login takes the parent's name");
+  assert.ok(p.roles.includes('client'), 'and the Client role');
+  await asUser(fam, 'select public.family_save($1)', [JSON.stringify({ full_name: 'הורה מתוקן', full_name_en: 'Fixed Parent', phone: '0501112233', relation: 'parent', lang: 'ru' })]);
+  assert.equal((await db.query('select lang from public.clients where user_id = $1', [fam])).rows[0].lang, 'ru', "the app's language becomes the client's language");
+  assert.equal((await db.query('select full_name from public.profiles where id = $1', [fam])).rows[0].full_name, 'הורה מתוקן', 'a corrected name follows');
+  await denied(asUser(fam, `update public.profiles set roles = '{client,admin}' where id = $1`, [fam]), /only staff/);
+  const tid = (await one('admin', `insert into public.trainers (full_name) values ('Coach T') returning id`)).id;
+  await as('admin', 'update public.trainers set user_id = $1 where id = $2', [coach, tid]);
+  p = (await db.query('select full_name, roles from public.profiles where id = $1', [coach])).rows[0];
+  assert.ok(p.roles.includes('trainer') && p.full_name === 'Coach T', 'a linked trainer login gets the role and the name');
+  // A staff member's own name is not overwritten by a link.
+  await as('owner', `update public.profiles set full_name = 'The Owner' where id = $1`, [U.owner]);
+  await as('admin', 'update public.trainers set user_id = $1 where id = $2', [U.owner, tid]);
+  assert.equal((await db.query('select full_name from public.profiles where id = $1', [U.owner])).rows[0].full_name, 'The Owner');
+}
+
 console.log('access rules: all checks passed');

@@ -225,7 +225,7 @@ function holderForm(holder: Answers | null, email: string) {
   );
   form.onsubmit = async (e) => {
     e.preventDefault();
-    await call('family_save', { h: { full_name: names.he(), full_name_en: names.en(), phone: phone.value, birth_date: birth.value, address: address.value, relation: rel.value } });
+    await call('family_save', { h: { full_name: names.he(), full_name_en: names.en(), phone: phone.value, birth_date: birth.value, address: address.value, relation: rel.value, lang: getLang() } });
     editing = '';
     render();
   };
