@@ -1034,6 +1034,9 @@ const data = {
         if (post) renderNews();
         if (eventId) renderEvents();
         if (tab === 'family') openFamily();
+        // The account fills the screen and scrolls by itself: an embedded page that grows inside
+        // the app's own scrolling area stops taking taps on iPhone.
+        $('app').classList.toggle('fam-mode', tab === 'family');
         document.querySelectorAll<HTMLElement>('[data-tab]').forEach((s) => (s.hidden = s.dataset.tab !== tab));
         const navTab = NAV_OF[tab] ?? tab;
         document.querySelectorAll<HTMLAnchorElement>('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.go === navTab));
@@ -1101,8 +1104,7 @@ const data = {
       frame.addEventListener('load', tellFrame);
       addEventListener('message', (e) => {
         if (e.origin !== location.origin || e.source !== frame.contentWindow || !e.data?.etude) return;
-        if (e.data.height) frame.style.blockSize = `${Math.max(Number(e.data.height), 300)}px`;
-        if (e.data.top) $('app').scrollTo(0, 0);
+        if (e.data.top) $('app').scrollTo(0, 0); // the frame scrolls itself to the top
         if (e.data.approved && store.get('etude-student') !== CODE) { store.set('etude-student', CODE); unlock(); }
         if ('approved' in e.data) loadTimetable();
       });
@@ -1324,7 +1326,10 @@ const data = {
       .sa-lock input:focus { outline: none; border-color: var(--color-blue-600); }
       .sa-bad { color: #b3261e; font-weight: 600; }
       .sa-reg-hint { max-inline-size: 26em; text-align: center; margin-block-start: 18px !important; }
-      .sa-frame { display: block; inline-size: 100%; block-size: 70vh; border: 0; background: transparent; }
+      .sa-frame { display: block; inline-size: 100%; block-size: 100%; border: 0; background: transparent; }
+      .sa-main.fam-mode { overflow: hidden; padding: 0; display: flex; flex-direction: column; }
+      .sa-main.fam-mode > :not([data-tab='family']) { display: none !important; }
+      .sa-main.fam-mode > [data-tab='family'] { flex: 1; min-block-size: 0; }
 
       .sa-main {
         flex: 1; min-block-size: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;

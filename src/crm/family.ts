@@ -119,13 +119,12 @@ const call = async <T>(fn: string, args: Record<string, unknown> = {}): Promise<
 };
 /** A student's link opens their documents inside the students' app. */
 const linkFor = (token: string) => `${location.origin}/student/#family/s/${token}`;
-// Inside the students' app this page runs in a frame (/family/?embed): it tells the app its height,
+// Inside the students' app this page runs in a frame (/family/?embed) that fills the screen and scrolls by itself; it tells the app
 // and that the family was let in (the app then opens without the studio code).
 const embedded = new URLSearchParams(location.search).has('embed') && parent !== window;
 const tellApp = (msg: Record<string, unknown>) => { if (embedded) parent.postMessage({ etude: true, ...msg }, location.origin); };
 if (embedded) {
   document.body.classList.add('embed');
-  new ResizeObserver(() => tellApp({ height: document.documentElement.scrollHeight })).observe(document.body);
   addEventListener('message', (e) => {
     if (e.origin === location.origin && e.data?.etude && LANGS.includes(e.data.lang)) { setLang(e.data.lang); render(); }
   });
