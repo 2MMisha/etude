@@ -116,14 +116,14 @@
     "mode": "banner",
     "until": "",
     "title": {
-      "he": "מערכת השעות עוברת למערכת חדשה",
-      "ru": "Расписание переезжает в новую систему",
-      "en": "The schedule is moving to a new system"
+      "he": "חשוב: הרשמה לאפליקציה — חובה",
+      "ru": "Важно: регистрация в приложении обязательна",
+      "en": "Important: registration in the app is required"
     },
     "body": {
-      "he": "**כרגע אין צורך להירשם לחשבון האישי באפליקציה.**\n\nבזמן הקרוב ייתכנו תקלות במערכת השעות באפליקציה. מערכת השעות העדכנית — בקישור: [מערכת השעות של ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
-      "ru": "**Сейчас регистрироваться в личном кабинете не нужно.**\n\nВ ближайшее время расписание в приложении может работать с ошибками. Актуальное расписание — по ссылке: [Расписание ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
-      "en": "**There's no need to register for an account in the app right now.**\n\nFor a while, the schedule in the app may show mistakes. The current schedule is here: [ETUDE schedule](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)"
+      "he": "**ההרשמה לאפליקציה היא חובה לכולם.**\n\nETUDE עוברת למערכת אקולוגית מלאה שפותחה על ידי סוכנות הקריאייטיב **2M Media**. מערכת השעות, המסמכים, התשלומים וההודעות יהיו עכשיו במקום אחד.\n\n**אם במשפחה יש יותר מתלמיד אחד**, אנא הירשמו **בחשבון אחד**. אין צורך לפתוח חשבון נפרד לכל אחד.\n\nההרשמה בלשונית \"החשבון\" בתפריט האפליקציה.\n\n**בינתיים אין צורך למלא טפסים.** בהמשך יהיה צורך למלא טפסים בחשבון, אבל רק אחרי שנודיע על כך.\n\nבינתיים ייתכנו תקלות במערכת השעות באפליקציה. מערכת השעות העדכנית בקישור: [מערכת השעות של ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
+      "ru": "**Регистрация в приложении обязательна для всех.**\n\nETUDE переходит на полную экосистему, разработанную креативным агентством **2M Media**. Расписание, документы, оплаты и уведомления теперь будут в одном месте.\n\n**Если в семье больше одного ученика**, пожалуйста, зарегистрируйтесь **одним аккаунтом**. Не нужно создавать отдельный аккаунт для каждого.\n\nЗарегистрироваться можно во вкладке «Аккаунт» в меню приложения.\n\n**Формы пока заполнять не нужно.** Позже в аккаунте нужно будет заполнить формы, но только после того, как мы сообщим.\n\nПока расписание в приложении может работать с ошибками. Актуальное расписание по ссылке: [Расписание ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
+      "en": "**Registration in the app is required for everyone.**\n\nETUDE is moving to a complete ecosystem developed by the creative agency **2M Media**. The schedule, documents, payments and notifications will now be in one place.\n\n**If your family has more than one student**, please register with **one account**. There's no need to create a separate account for each.\n\nYou can register in the \"Account\" tab in the app menu.\n\n**Please don't fill in the forms yet.** Later you will need to fill in forms in the account, but only once we let you know.\n\nFor now, the schedule in the app may show mistakes. The current schedule is here: [ETUDE schedule](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)"
     }
   },
   "payment": {
