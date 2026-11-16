@@ -5,8 +5,9 @@
 // so it can go to the other parent or to an adult student who confirms their
 // own documents. Every call goes through database functions that work out
 // whose family it is (supabase/migrations/20261126000000_family_registration.sql).
-import { LANGS, getLang, setLang, t as crmT } from './i18n';
-import { db, h, flash, today } from './ui';
+import { LANGS, getLang, setLang, t as crmT, type Lang } from './i18n';
+import { db, h, flash, today, money } from './ui';
+import { receiptParts, chargeLabel, dateText, methodText } from './views/payments';
 import { signInView, newPasswordView } from './auth';
 import { FORMS, PRIVACY, W, STUDENT_REL, STATE_WORD, formOf, missing, stopped, flags, visible, stateOf, resigned, dmy, expired, shownAnswer, pick, type Answers, type Ctx, type Form, type L, type Q, type Sent } from './forms';
 
@@ -86,6 +87,18 @@ const T = {
   savePdf: l('Сохранить как PDF / распечатать', 'שמירה כ-PDF / הדפסה', 'Save as PDF / print'),
   pdfHint: l('В окне печати выберите «Сохранить как PDF».', 'בחלון ההדפסה בחרו "שמירה כ-PDF".', 'In the print window, choose "Save as PDF".'),
   fixedHint: l('Эти данные взяты из вашего кабинета. Чтобы их изменить, отредактируйте ученика в кабинете.', 'הפרטים האלה נלקחו מהחשבון שלכם. כדי לשנות אותם, ערכו את התלמיד/ה בחשבון.', 'These details come from your account. To change them, edit the student in the account.'),
+  moneyTitle: l('Оплаты', 'תשלומים', 'Payments'),
+  toPay: l('К оплате', 'לתשלום', 'To pay'),
+  nothingToPay: l('Всё оплачено ✓', 'הכול שולם ✓', 'All paid ✓'),
+  credit: l('Переплата (зачтётся в следующие оплаты)', 'יתרת זכות (תקוזז בתשלומים הבאים)', 'Credit (counted towards the next payments)'),
+  chargesTitle: l('Начисления', 'חיובים', 'Charges'),
+  paidMark: l('оплачено', 'שולם', 'paid'),
+  owedMark: l('осталось {x}', 'נותרו {x}', '{x} left'),
+  paymentsTitle: l('Мои оплаты', 'התשלומים שלי', 'My payments'),
+  noPayments: l('Оплат пока нет.', 'אין עדיין תשלומים.', 'No payments yet.'),
+  confirmation: l('Подтверждение', 'אישור', 'Confirmation'),
+  voidedMark: l('аннулирован', 'בוטל', 'voided'),
+  backAccount: l('← В кабинет', '← לאזור האישי', '← Back to the account'),
   waiting: l('Спасибо! Ваша регистрация получена и ожидает подтверждения Студии. После подтверждения здесь можно будет добавить учеников и заполнить документы.', 'תודה! ההרשמה התקבלה וממתינה לאישור הסטודיו. לאחר האישור תוכלו להוסיף כאן תלמידים ולמלא את המסמכים.', 'Thank you! Your registration has been received and is waiting for the studio to approve it. Once approved, you can add students and fill in the documents here.'),
   error: l('Что-то пошло не так. Попробуйте ещё раз.', 'משהו השתבש. נסו שוב.', 'Something went wrong. Please try again.'),
 };
@@ -352,7 +365,8 @@ async function homeView() {
       h('h3', { textContent: t('link') }),
       shareRow(s.token, s.full_name)
     )),
-    h('p', {}, h('button', { type: 'button', className: 'primary big', textContent: `+ ${t('addStudent')}`, onclick: () => { editing = 'new'; render(); } }))
+    h('p', {}, h('button', { type: 'button', className: 'primary big', textContent: `+ ${t('addStudent')}`, onclick: () => { editing = 'new'; render(); } })),
+    await moneyCard()
   );
 }
 
@@ -364,6 +378,44 @@ async function afterStudentSaved(id?: string) {
   const first = s && !(s.needed.length === 5 && !s.is_holder) ? nextFormOf(s) : undefined;
   if (s && first) location.hash = `#/s/${s.token}/${first.code}`;
   else render();
+}
+
+// --- the family's money: what is left to pay, the charges, the payments and their confirmations ---
+async function moneyCard() {
+  const m = await call<Answers | null>('family_money');
+  if (!m) return null;
+  const lang = getLang() as Lang;
+  const balance = Number(m.balance ?? 0);
+  return card(
+    h('h2', { textContent: t('moneyTitle') }),
+    h('p', { className: balance > 0 ? 'owe-big' : 'ok' }, balance > 0 ? `${t('toPay')}: ` : t('nothingToPay'), balance > 0 && h('strong', { dir: 'ltr', textContent: money(balance) })),
+    Number(m.credit ?? 0) > 0 && note(`${t('credit')}: ${money(m.credit)}`, 'muted'),
+    m.charges.length > 0 && h('details', { open: balance > 0 },
+      h('summary', { textContent: t('chargesTitle') }),
+      h('ul', { className: 'money-list' }, ...m.charges.map((c: Answers) => h('li', {},
+        h('span', {}, h('strong', { textContent: c.student }), ` — ${chargeLabel(lang, c)}`),
+        h('span', { dir: 'ltr', textContent: money(c.amount) }),
+        h('span', { className: `pill ${Number(c.owed) > 0 ? 'none' : 'done'}`, textContent: Number(c.owed) > 0 ? t('owedMark').replace('{x}', money(c.owed)) : t('paidMark') }))))),
+    h('h3', { textContent: t('paymentsTitle') }),
+    m.payments.length
+      ? h('ul', { className: 'money-list' }, ...m.payments.map((p: Answers) => h('li', { className: p.voided ? 'off' : '' },
+          h('span', {}, `№ ${p.number} · ${dateText(lang, p.paid_on)} · ${methodText(lang, p)}`, p.voided && h('small', { textContent: ` (${t('voidedMark')})` })),
+          h('span', { dir: 'ltr', textContent: money(p.amount) }),
+          h('a', { className: 'btn', href: `#/receipt/${p.id}`, textContent: t('confirmation') }))))
+      : note(t('noPayments'), 'muted')
+  );
+}
+
+/** One payment confirmation, the same as the CRM prints; the browser saves it as PDF. */
+async function receiptPage(id: string) {
+  const p = await call<Answers | null>('family_receipt', { pid: id });
+  if (!p) return card(note(t('error'), 'warn'));
+  const { sheet } = receiptParts(p, p.business ?? {}, (p.clients?.lang ?? getLang()) as Lang);
+  return h('div', { className: 'stack sheets' },
+    h('div', { className: 'row noprint' },
+      h('a', { className: 'btn', href: '#/', textContent: t('backAccount') }),
+      h('button', { type: 'button', className: 'primary', textContent: t('savePdf'), onclick: () => print() })),
+    sheet(false));
 }
 
 // --- 4. one student's forms (by link) ----------------------------------------------------
@@ -580,6 +632,7 @@ async function render() {
   const [, route, token, code] = location.hash.split('/');
   try {
     if (route === 's' && token) return view.replaceChildren(await studentView(token, code));
+    if (route === 'receipt' && token && signedIn) return view.replaceChildren(await receiptPage(token));
     if (route === 'new') {
       editing = 'new';
       history.replaceState(null, '', '#/'); // so Save and Cancel come back to the account

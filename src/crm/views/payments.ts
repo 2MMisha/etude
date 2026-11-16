@@ -7,14 +7,14 @@ import { db, h, get, ok, nav, input, select, field, sureButton, flash, money, lt
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
 const monthName = (lang: Lang, iso: string) =>
   new Date(`${iso.slice(0, 7)}-01T12:00:00Z`).toLocaleDateString(LOCALE[lang], { month: 'long', year: 'numeric', timeZone: 'UTC' });
-const dateText = (lang: Lang, iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE[lang], { timeZone: 'UTC' });
+export const dateText = (lang: Lang, iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(LOCALE[lang], { timeZone: 'UTC' });
 const sum = (rows: Row[], key = 'amount') => rows.reduce((s, r) => s + Number(r[key]), 0);
 /** What a charge is for, in a given language: "Kids 2×45, November 2026". */
-const chargeLabel = (lang: Lang, c: Row) =>
+export const chargeLabel = (lang: Lang, c: Row) =>
   [c.kind === 'private' ? `${tIn(lang, 'privateLesson')}: ${c.description}` : c.kind === 'entry' ? `${tIn(lang, 'oneTimeEntry')}: ${c.description}` : c.description, c.month ? monthName(lang, c.month) : c.day && dateText(lang, c.day)].filter(Boolean).join(', ') || c.comment || '';
 /** A WhatsApp chat with the text ready. Israeli numbers are typed 05x…, WhatsApp wants 9725x…. */
 const waLink = (phone: string, text: string) => `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '972')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
-const methodText = (lang: Lang, p: Row) =>
+export const methodText = (lang: Lang, p: Row) =>
   tIn(lang, p.method as Key) + (p.method === 'cheque' ? [` ${p.cheque_number}`, p.cheque_bank, p.cheque_date && dateText(lang, p.cheque_date)].filter(Boolean).join(', ') : '');
 
 // ── The payments card on a client's page ─────────────────────────────────────
@@ -152,14 +152,12 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
   );
 }
 
-// ── The confirmation: printed (two per A4 sheet), saved as PDF or sent as a picture, in the client's language ──
-export async function receiptView(id?: string) {
-  const [p, settings] = await Promise.all([
-    get<Row>(db!.from('payments').select('*, clients(id, full_name, phone, lang), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name)))').eq('id', id).single()),
-    get<Row[]>(db!.from('settings').select('value').eq('id', 'business')),
-  ]);
-  const biz: Row = settings[0]?.value ?? {};
-  const L: Lang = p.clients?.lang ?? getLang(); // a guest's confirmation is in the language of the screen
+/**
+ * A payment confirmation's content and its printed sheet, in language L. Shared by
+ * the CRM's confirmation page and the family's account (src/crm/family.ts), so both
+ * show the very same confirmation. p has the payment with clients and payment_lines.
+ */
+export function receiptParts(p: Row, biz: Row, L: Lang) {
   const payer: string = p.clients?.full_name ?? p.payer_name;
   const refund = Number(p.amount) < 0;
   const lines: Row[] = p.payment_lines.map((l: Row) => ({ who: l.charges.students.full_name, what: chargeLabel(L, l.charges), amount: Math.abs(Number(l.amount)) }));
@@ -200,6 +198,19 @@ export async function receiptView(id?: string) {
         h('tfoot', {}, h('tr', {}, h('th', {}, tIn(L, 'total')), h('th', { className: 'sum' }, ltr(total))))
       )
     );
+
+  return { title, total, facts, lines, forWhat, sheet };
+}
+
+// ── The confirmation: printed (two per A4 sheet), saved as PDF or sent as a picture, in the client's language ──
+export async function receiptView(id?: string) {
+  const [p, settings] = await Promise.all([
+    get<Row>(db!.from('payments').select('*, clients(id, full_name, phone, lang), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name)))').eq('id', id).single()),
+    get<Row[]>(db!.from('settings').select('value').eq('id', 'business')),
+  ]);
+  const biz: Row = settings[0]?.value ?? {};
+  const L: Lang = p.clients?.lang ?? getLang(); // a guest's confirmation is in the language of the screen
+  const { title, total, facts, lines, forWhat, sheet } = receiptParts(p, biz, L);
 
   // WhatsApp gets the confirmation as a picture. A web page can't drop a file
   // into a chosen chat by itself: on a phone the share sheet does it; on a

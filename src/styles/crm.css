@@ -239,3 +239,11 @@ body.embed .crm { max-width: none; }
 .family-page .langs button { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.35); }
 .family-page .langs button[aria-pressed='true'] { background: #fff; color: var(--color-navy-900); }
 .family-page #signOut { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.35); }
+
+/* The family's payments card. */
+.owe-big { margin: 0; font-size: 1.15rem; }
+.owe-big strong { font-size: 1.4rem; color: #8c1d18; }
+.money-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
+.money-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding-block: 0.4rem; border-block-end: 1px solid var(--color-line); }
+.money-list li > span:first-child { flex: 1 1 14em; }
+.money-list li.off { opacity: 0.55; }

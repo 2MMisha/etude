@@ -519,13 +519,13 @@ const data = {
         if (noticeLive() && data.notice!.mode === 'banner')
           html += `<a class="sa-alert sa-alert--notice" href="#notice">${icon('megaphone')}<span><small>${t.important}</small><b dir="auto">${esc(data.notice!.title[lang])}</b></span>${icon('next', 'ic--flip')}</a>`;
         const due = payDue();
-        if (due && store.get('etude-paid') !== due.iso) {
+        if (due && owes > 0 && store.get('etude-paid') !== due.iso) {
           const n = Math.abs(due.diff);
           const timer = due.diff === 0
             ? `<div class="sa-timer sa-timer--today"><b>${t.payToday}</b></div>`
             : `<div class="sa-timer"><small>${due.diff > 0 ? t.payLeft : t.payAgo}</small><b>${n}</b><small>${t.days(n)}</small></div>`;
           const line = due.diff > 0 ? t.payDue.replace('{day}', lang === 'en' ? ordinal(data.payment.day) : String(data.payment.day)) : due.diff === 0 ? t.payDueToday : t.payLate;
-          html += `<div class="sa-alert sa-alert--pay${due.diff < 0 ? ' is-late' : ''}">${icon('wallet')}<span><b>${t.payTitle}</b><small>${esc(line)}</small>
+          html += `<div class="sa-alert sa-alert--pay${due.diff < 0 ? ' is-late' : ''}">${icon('wallet')}<span><b>${t.payTitle}: <bdi dir="ltr">${owes} ₪</bdi></b><small>${esc(line)}</small>
             <button type="button" class="sa-link" data-paid="${due.iso}">${icon('check')}${t.paid}</button></span>${timer}</div>`;
         }
         $('alerts').innerHTML = html;
@@ -1085,6 +1085,7 @@ const data = {
       // lessons - its groups, its master classes, its private lessons.
       const crm = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
       let ownOnly = false;
+      let owes = 0; // what the signed-in family still has to pay (the payment banner shows only then)
       async function loadTimetable() {
         if (!crm) return;
         const d1 = today();
@@ -1094,6 +1095,7 @@ const data = {
           const fam = signed ? (await crm.rpc('family_me')).data : null;
           ownOnly = !!fam?.approved;
           familyUser = ownOnly ? signed!.user.id : null;
+          owes = ownOnly ? Number((await crm.rpc('family_money')).data?.balance ?? 0) : 0;
           if (ownOnly && store.get('etude-student') !== CODE) { store.set('etude-student', CODE); unlock(); }
           linkPush();
           if (!ownOnly) {

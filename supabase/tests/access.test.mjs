@@ -760,4 +760,28 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   assert.ok(page.needed.includes('f3') && page.adult === false, 'and the forms needed follow from that birth date');
 }
 
+// Stage 4 money: a family sees its own balance, charges and confirmations; reminders only to those who owe.
+{
+  const famClient = (await one('admin', 'select client_id from public.students where id = $1', [oldKid])).client_id;
+  const ch = (await one('admin', `insert into public.charges (student_id, kind, month, description, amount) values ($1, 'membership', '2026-12-01', 'Test 1x', 300) returning id`, [oldKid])).id;
+  const pid = (await one('admin', `select public.record_payment($1, $2) id`, [JSON.stringify({ client_id: famClient, paid_on: '2026-12-02', method: 'cash', amount: 100 }), JSON.stringify([{ charge_id: ch, amount: 100 }])])).id;
+  const money = (await rpc('client', 'family_money')).rows[0].family_money;
+  const mine = money.charges.find((c) => c.id === ch);
+  assert.ok(mine && Number(mine.owed) === 200, 'the charge shows what is still owed');
+  assert.ok(Number(money.balance) >= 200 && money.payments.some((p) => p.id === pid), 'the balance and the payment are there');
+  const rc = (await rpc('client', 'family_receipt', [pid])).rows[0].family_receipt;
+  assert.ok(rc && rc.payment_lines.length === 1 && Number(rc.amount) === 100, 'its own confirmation');
+  assert.equal((await rpc('nobody', 'family_receipt', [pid])).rows[0].family_receipt, null, "never another family's");
+  await denied(rpc('anon', 'family_money'), /permission denied/);
+  const logBefore = (await as('admin', 'select count(*)::int n from public.push_log')).rows[0].n;
+  assert.equal((await db.query(`select public.debt_reminders('2026-12-10') n`)).rows[0].n, 0, 'nothing on an ordinary day');
+  const n = (await db.query(`select public.debt_reminders('2026-11-28') n`)).rows[0].n;
+  assert.ok(n >= 1, 'three days before the 1st, families who owe are reminded');
+  const last = (await as('admin', 'select * from public.push_log order by id desc limit 1')).rows[0];
+  assert.ok(last.user_ids.includes(U.client) && /\d/.test(last.body), 'to the family, with the amount');
+  assert.ok((await db.query(`select public.debt_reminders('2026-12-08') n`)).rows[0].n >= 1, 'and seven days after it');
+  assert.ok((await as('admin', 'select count(*)::int n from public.push_log')).rows[0].n > logBefore);
+  await denied(as('client', 'select public.debt_reminders()'), /permission denied/);
+}
+
 console.log('access rules: all checks passed');

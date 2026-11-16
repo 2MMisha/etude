@@ -119,8 +119,9 @@ if (old) {
 // Payment day (same default and range as paymentSettings in src/lib/student.ts).
 const pay = app.payment ?? {};
 const payDay = Math.min(28, Math.max(1, Math.round(Number(pay.day ?? 1)) || 1));
-if (morning && pay.active !== false && Number(today.slice(8)) === payDay)
-  await send(`pay-${today.slice(0, 7)}`, LABEL.pay, PAY_TODAY, '#studio');
+// The payment-day push to everyone is off (owner, 2026-11-16): the database now reminds
+// only the families that owe (debt_reminders, supabase/migrations/20261206000000_family_money.sql).
+void payDay;
 
 // Today's birthdays: sent by the database every morning from the students in the CRM
 // (birthday_push, supabase/migrations/20261131000000_birthdays.sql), no longer from here.
