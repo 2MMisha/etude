@@ -448,8 +448,15 @@ function formView(token: string, page: Answers, f: Form) {
     // then fill what is still empty from what is already known: names, dates, contacts.
     const a: Answers = {};
     const before: Answers = page.last?.[f.code] ?? {};
+    // What the other forms of this student already say: the same question asked there,
+    // the emergency contact of appendix 1, and the name of whoever signed last.
+    const others: Answers = Object.assign({}, ...Object.entries(page.last ?? {}).filter(([code]) => code !== f.code).map(([, x]) => x));
+    if (others.e_name && others.e_phone) others.ec1 ??= [others.e_name, others.e_rel, others.e_phone].filter(Boolean).join(', ');
+    if (others.e_more) others.ec2 ??= others.e_more;
+    if (others._signed_by) others.signer = others._signed_by;
     for (const s of f.sections) for (const q of s.qs) {
       if (before[q.id] !== undefined && !resigned(f, q)) a[q.id] = before[q.id];
+      else if (others[q.id] !== undefined && (!resigned(f, q) || q.id === f.signer)) a[q.id] = others[q.id];
       if (known(q, c) !== undefined) a[q.id] = known(q, c); // always as the account has it now
       const v = q.prefill?.(c);
       if (a[q.id] === undefined && v && (typeof v !== 'object' || v.he || v.en)) a[q.id] = v;

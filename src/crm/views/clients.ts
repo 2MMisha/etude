@@ -2,7 +2,7 @@
 // discounts, suggested monthly price and charges.
 import { t, LANGS } from '../i18n';
 import { paymentsCard } from './payments';
-import { registrationCard, attention, regWord } from './registration';
+import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
 import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
 
@@ -66,10 +66,11 @@ export async function clientView(id?: string, tab?: string) {
     get<Row[]>(db!.from('students').select('id, full_name, client_id').eq('archived', false).order('full_name')),
   ]);
   const ids = students.map((s) => s.id);
-  const [enrollments, quotes, charges] = await Promise.all([
+  const [enrollments, quotes, charges, forms] = await Promise.all([
     get<Row[]>(db!.from('enrollments').select('*').in('student_id', ids)),
     get<Row[]>(db!.from('student_quotes').select('*').in('student_id', ids)),
     get<Row[]>(db!.from('charges').select('*').in('student_id', ids).order('month', { ascending: false }).limit(500)),
+    get<Row[]>(db!.from('student_forms').select('student_id, form, answers, submitted_at').in('student_id', ids).order('submitted_at', { ascending: false })),
   ]);
 
   /** Save one or more columns; `redraw` when the change moves the suggested price. */
@@ -189,6 +190,7 @@ export async function clientView(id?: string, tab?: string) {
         field(t('partner'), select([['', '—'], ...everyone.filter((x) => x.id !== s.id).map((x): [string, string] => [x.id, x.full_name])], s.partner_id ?? '', (v) => upd({ partner_id: v || null }, true)))
       ),
       field(t('notes'), input(s.notes, (v) => upd({ notes: v }))),
+      formFacts(s.id, client.id, forms),
 
       h('h3', { textContent: t('membership') }),
       h('div', { className: 'chips' },

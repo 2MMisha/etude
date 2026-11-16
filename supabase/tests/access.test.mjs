@@ -750,4 +750,14 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   assert.equal((await one('admin', 'select id_number from public.students where id = $1', [oldKid])).id_number, '123456782', 'but never overwrite what is there');
 }
 
+// A student added in the CRM with only a name gets the date of birth and English name from the first form.
+{
+  const bare = (await one('admin', `insert into public.students (client_id, full_name) select client_id, 'Bare Kid' from public.students where id = $1 returning id, form_token`, [oldKid]));
+  await rpc('anon', 'submit_student_form', [bare.form_token, 'f1', JSON.stringify({ who: 'parent', s_name: { he: 'ילד', en: 'Bare Kid EN' }, s_birth: '2016-02-03', s_id: '111', _signed_by: 'Parent' }), 'he']);
+  const r = await one('admin', 'select birth_date::text b, full_name_en, id_number from public.students where id = $1', [bare.id]);
+  assert.deepEqual([r.b, r.full_name_en, r.id_number], ['2016-02-03', 'Bare Kid EN', '111']);
+  const page = (await rpc('anon', 'student_by_token', [bare.form_token])).rows[0].student_by_token;
+  assert.ok(page.needed.includes('f3') && page.adult === false, 'and the forms needed follow from that birth date');
+}
+
 console.log('access rules: all checks passed');

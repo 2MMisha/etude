@@ -172,3 +172,52 @@ export async function attention() {
   }
   return asking;
 }
+
+/**
+ * What the forms say about one student, in their card on the client page: the
+ * things staff need day to day (emergency contacts, health fund, health notes,
+ * who collects the child, payment way, group wanted). The full answers stay on
+ * the Registration tab; this reads the same rows, so there is one source.
+ */
+export function formFacts(studentId: string, clientId: string, forms: Row[]) {
+  const latest = (code: string) => forms.find((f) => f.student_id === studentId && f.form === code)?.answers as Row | undefined; // newest first
+  const lang = getLang();
+  const q = (code: string, id: string) => FORMS.find((f) => f.code === code)?.sections.flatMap((s) => s.qs).find((x) => x.id === id);
+  const ans = (code: string, id: string) => {
+    const a = latest(code);
+    const question = q(code, id);
+    return a && question ? shownAnswer(question, a[id], lang) : '';
+  };
+  const F = {
+    title: l('Из анкет', 'מהטפסים', 'From the forms'),
+    emergency: l('Экстренный контакт', 'איש קשר לחירום', 'Emergency contact'),
+    kupah: l('Больничная касса', 'קופת חולים', 'Health fund'),
+    health: l('Здоровье', 'בריאות', 'Health'),
+    cert: l('⚠ нужна справка от врача', '⚠ נדרש אישור רפואי', "⚠ doctor's certificate needed"),
+    collect: l('Кто забирает', 'מי אוסף/ת', 'Who collects'),
+    alone: l('Уходит сам(а)', 'עוזב/ת לבד', 'Leaves alone'),
+    pay: l('Способ оплаты', 'אופן תשלום', 'Payment way'),
+    group: l('Желаемая группа', 'קבוצה מבוקשת', 'Group wanted'),
+    all: l('Все ответы →', 'כל התשובות ←', 'All answers →'),
+  };
+  const f1 = latest('f1'), f2 = latest('f2'), f3 = latest('f3');
+  if (!f1 && !f2 && !f3) return null;
+  const rows: [L, string][] = [];
+  const add = (label: L, text: string) => { if (text.trim()) rows.push([label, text]); };
+  add(F.emergency, [f1 && [f1.e_name, f1.e_rel, f1.e_phone].filter(Boolean).join(', '), f1?.e_more, f2?.ec1, f2?.ec2].filter(Boolean).filter((x, i, all) => all.indexOf(x) === i).join('\n'));
+  add(F.kupah, ans('f2', 'kupah'));
+  if (f2) add(F.health, [
+    Object.entries(f2).some(([k, v]) => /^h\d/.test(k) && v === 'yes') ? tr(F.cert) : '',
+    ...['allergy', 'conditions', 'injuries', 'meds', 'doctor_recs'].map((id) => (f2[id] ? `${tr(q('f2', id)!.label)}: ${f2[id]}` : '')),
+  ].filter(Boolean).join('\n'));
+  if (f3) {
+    add(F.collect, [ans('f3', 'leave'), f3.auth1, f3.auth2, f3.auth3, f3.auth4].filter(Boolean).join('\n'));
+    if (f3.alone_ok === 'yes') add(F.alone, [ans('f3', 'days'), f3.alone_more].filter(Boolean).join('\n'));
+  }
+  add(F.pay, ans('f1', 'pay'));
+  add(F.group, [ans('f1', 'group'), ans('f1', 'year')].filter(Boolean).join(' · '));
+  return h('div', { className: 'stack' },
+    h('h3', { textContent: tr(F.title) }),
+    h('dl', { className: 'answers' }, ...rows.flatMap(([label, text]) => [h('dt', { textContent: tr(label) }), h('dd', { textContent: text })])),
+    h('a', { href: `#/client/${clientId}/reg`, textContent: tr(F.all) }));
+}
