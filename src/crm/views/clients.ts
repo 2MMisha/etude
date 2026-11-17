@@ -12,8 +12,8 @@ const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
 export async function clientsView() {
   const [clients, students, enrollments, groups, owing] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online, approved, user_id, lang').order('full_name')),
-    get<Row[]>(db!.from('students').select('id, client_id, full_name, archived, birth_date').order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, email, archived, online, approved, user_id, lang').order('full_name')),
+    get<Row[]>(db!.from('students').select('id, client_id, full_name, full_name_en, phone, email, id_number, archived, birth_date').order('full_name')),
     get<Row[]>(db!.from('enrollments').select('student_id, group_id')),
     get<Row[]>(db!.from('groups').select('id, name, includes, archived, program_id').order('name')),
     get<Row[]>(db!.from('client_balances').select('client_id, balance').gt('balance', 0)),
@@ -66,10 +66,18 @@ export async function clientsView() {
     lessons.some((ls) => ls.trainer_id === tid && (ls.lesson_students ?? []).some((y: Row) => y.student_id === x.id)));
   const inGroup = (clientId: string, gid: string) => students.some((s) => s.client_id === clientId && !s.archived &&
     enrollments.some((e) => e.student_id === s.id && (e.group_id === gid || (groups.find((g) => g.id === e.group_id)?.includes ?? []).includes(gid))));
+  // Search finds a client by its own details and by any of its students' (names in Hebrew and English,
+  // phone, email, ID number) — what the family typed in the account. Phones match with or without dashes.
+  const digitsOf = (x: unknown) => String(x ?? '').replace(/\D/g, '');
+  const searchText = (c: Row) => {
+    const kidsRows = students.filter((s) => s.client_id === c.id);
+    const words = [c.full_name, c.full_name_en, c.phone, c.email, ...kidsRows.flatMap((s) => [s.full_name, s.full_name_en, s.phone, s.email, s.id_number])];
+    return `${words.join(' ')} ${words.map(digitsOf).filter((d) => d.length >= 3).join(' ')}`.toLowerCase();
+  };
   let shown: Row[] = [];
   const draw = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || `${c.full_name} ${c.full_name_en} ${c.phone} ${kids(c.id)}`.toLowerCase().includes(q))
+    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || searchText(c).includes(q) || (digitsOf(q).length >= 3 && searchText(c).includes(digitsOf(q))))
       && (!groupSel.value || inGroup(c.id, groupSel.value))
       && (!owesBox.checked || owing.some((b) => b.client_id === c.id))
       && (!waitingBox.checked || (c.online && !c.approved))
