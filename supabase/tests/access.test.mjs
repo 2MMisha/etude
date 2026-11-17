@@ -826,4 +826,15 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await denied(rpc('client', 'staff_push_many', [[famClient], JSON.stringify({ he: ['a', 'b'] })]), /staff only/);
 }
 
+// Stage 6: the site's timetable from the CRM, public, with no student or renter names.
+{
+  const rows = (await rpc('anon', 'site_timetable', ['2026-11-01', '2026-11-30'])).rows;
+  assert.ok(rows.some((r) => r.kind === 'class' && r.trainer), 'group classes with their trainer');
+  const priv = rows.filter((r) => r.kind === 'private');
+  assert.ok(priv.length > 0 && priv.every((r) => r.title === 'Private lesson'), 'private lessons without names');
+  const names = (await one('admin', `select string_agg(full_name, '|') n from public.students`)).n.split('|').filter((n) => n.length > 2);
+  assert.ok(!rows.some((r) => names.includes(r.title)), 'no student name anywhere');
+  await denied(rpc('anon', 'site_timetable', ['2026-01-01', '2026-12-31']), /ten weeks/);
+}
+
 console.log('access rules: all checks passed');
