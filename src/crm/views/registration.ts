@@ -4,7 +4,7 @@
 // family asked the studio to contact them about, and staff comments. For a
 // family that registered online and is already in the CRM: join the two.
 import { getLang, t } from '../i18n';
-import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, type Row } from '../ui';
+import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, studentPicker, type Row } from '../ui';
 import { FORMS, W, visible, missing, flags, answered, stateOf, dmy, shownAnswer, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
 
 
@@ -142,12 +142,12 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
       field(tr(S.link), h('div', { className: 'row' },
         h('input', { type: 'text', readOnly: true, value: link, dir: 'ltr' }),
         h('button', { type: 'button', textContent: '⧉', title: 'Copy', onclick: async () => { await navigator.clipboard?.writeText(link); flash('✓'); } }))),
-      client.online && select([['', tr(S.sameAs)], ...everyone.filter((x) => x.id !== s.id && x.client_id !== client.id).map((x): [string, string] => [x.id, x.full_name])], '', async (into) => {
+      client.online && studentPicker(everyone.filter((x) => x.id !== s.id && x.client_id !== client.id), '', async (into) => {
         if (!into) return;
         const { error } = await db!.rpc('merge_student', { from_id: s.id, into_id: into });
         if (error) return flash(error.message, true);
         nav.refresh();
-      }),
+      }, { empty: tr(S.sameAs), ariaLabel: tr(S.sameAs) }),
       ...rows,
       h('h3', { textContent: tr(S.notes) }),
       ...notes.filter((n) => n.student_id === s.id).map((n) => h('p', {}, ltr(when(n.created_at)), ` — ${n.body} `,

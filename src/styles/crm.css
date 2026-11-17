@@ -266,3 +266,11 @@ body.embed .crm { max-width: none; }
 .log-what { white-space: pre-wrap; color: var(--color-ink-soft); max-inline-size: 28rem; }
 .lang-pair { border: 1px solid var(--color-line); border-radius: var(--radius-sm); padding: 0.6rem; display: grid; gap: 0.4rem; margin: 0; }
 .lang-pair legend { font-weight: 600; font-size: 0.88rem; padding-inline: 0.3rem; }
+
+/* The student picker with search. */
+.picker { position: relative; display: flex; align-items: center; min-inline-size: 12rem; flex: 1 1 12rem; }
+.picker > input { flex: 1; padding-inline-end: 2rem; }
+.picker > .x { position: absolute; inset-inline-end: 0.3rem; }
+.picker-list { position: absolute; z-index: 15; inset-block-start: 100%; inset-inline: 0; margin: 2px 0 0; padding: 0.25rem 0; list-style: none; max-block-size: 16rem; overflow-y: auto; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-sm); box-shadow: 0 10px 28px rgba(23, 34, 74, 0.18); }
+.picker-list li { padding: 0.45rem 0.7rem; cursor: pointer; }
+.picker-list li[aria-selected='true'], .picker-list li:hover { background: var(--color-blue-100); }

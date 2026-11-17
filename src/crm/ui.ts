@@ -185,3 +185,62 @@ export function addTableTools(root: HTMLElement) {
       h('button', { type: 'button', textContent: `🖨 ${t('printShort')}`, title: t('print'), onclick: printIt })));
   }
 }
+
+/** How a student is named in a list: the Hebrew name, and the English one in brackets. */
+export const studentLabel = (s: Row) => (s.full_name_en ? `${s.full_name} (${s.full_name_en})` : s.full_name);
+
+/**
+ * A student picker with search, instead of the system drop-down: type part of a
+ * name in Hebrew or English, choose from the list under the field (tap, or arrows
+ * and Enter), × clears it. Behaves like a <select> for the code around it: it has
+ * .value (the student id, '' for none) and calls onchange(id) on a choice.
+ * `empty` names the "nobody" choice (e.g. "Guest"); `required` refuses the form without a choice.
+ */
+export function studentPicker(students: Row[], value: string, onchange: (id: string) => void = () => {}, opts: { empty?: string; required?: boolean; ariaLabel?: string } = {}) {
+  let current = value;
+  const labelOf = (id: string) => { const s = students.find((x) => x.id === id); return s ? studentLabel(s) : ''; };
+  const field = h('input', { type: 'text', autocomplete: 'off', placeholder: opts.empty ?? '—', required: !!opts.required, ariaLabel: opts.ariaLabel ?? '', value: labelOf(current) });
+  const list = h('ul', { className: 'picker-list', role: 'listbox', hidden: true });
+  const clear = h('button', { type: 'button', className: 'x', textContent: '×', title: opts.empty ?? '—', ariaLabel: opts.empty ?? '—', hidden: !current });
+  const box = h('div', { className: 'picker' }, field, clear, list) as HTMLDivElement & { value: string };
+  let shown: Row[] = [];
+  let active = 0;
+  const choose = (id: string) => {
+    current = id;
+    field.value = labelOf(id);
+    clear.hidden = !id;
+    list.hidden = true;
+    onchange(id);
+  };
+  const draw = () => {
+    const q = field.value.trim().toLowerCase();
+    shown = students.filter((s) => !q || `${s.full_name} ${s.full_name_en ?? ''}`.toLowerCase().includes(q)).slice(0, 50);
+    active = Math.min(active, Math.max(shown.length - 1, 0));
+    list.replaceChildren(...shown.map((s, i) => {
+      const li = h('li', { role: 'option', textContent: studentLabel(s), ariaSelected: String(i === active) });
+      li.onmousedown = (e) => { e.preventDefault(); choose(s.id); }; // before the field loses focus
+      return li;
+    }));
+    list.hidden = !shown.length;
+  };
+  field.onfocus = () => { field.select(); draw(); };
+  field.oninput = () => { active = 0; draw(); };
+  field.onkeydown = (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % Math.max(shown.length, 1);
+      draw();
+    } else if (e.key === 'Enter' && !list.hidden && shown[active]) {
+      e.preventDefault();
+      choose(shown[active].id);
+    } else if (e.key === 'Escape') list.hidden = true;
+  };
+  // Leaving the field without a choice puts back what was chosen (or nothing).
+  field.onblur = () => { list.hidden = true; field.value = labelOf(current); };
+  clear.onclick = () => choose('');
+  Object.defineProperty(box, 'value', {
+    get: () => current,
+    set: (id: string) => { current = id ?? ''; field.value = labelOf(current); clear.hidden = !current; },
+  });
+  return box;
+}

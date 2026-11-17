@@ -474,7 +474,7 @@ for (const who of ['client', 'nobody']) {
 await denied(as('anon', 'select * from public.trainer_students()'), /permission denied/);
 for (const table of ['lessons', 'students', 'lesson_requests', 'trainer_rates']) assert.equal(await count('trainer', table), 0, `the trainer still reads no table: ${table}`);
 // Names only, to choose from; and their own lesson lengths.
-assert.deepEqual(Object.keys((await rpc('trainer', 'trainer_students')).rows[0]).sort(), ['full_name', 'id', 'partner_id']);
+assert.deepEqual(Object.keys((await rpc('trainer', 'trainer_students')).rows[0]).sort(), ['full_name', 'full_name_en', 'id', 'partner_id']);
 assert.deepEqual((await rpc('trainer', 'trainer_rates_mine')).rows.map((r) => r.minutes), [45, 60]);
 
 // Asking for a lesson: it is theirs whatever they send, at their own rate, and waits for the admin.

@@ -4,7 +4,7 @@
 // hall rentals — by day, time and hall. Click anything on the grid to change
 // it; the forms under the grid add a private lesson or a rental.
 import { getLang, t, LOCALE, type Key } from '../i18n';
-import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, type Row } from '../ui';
+import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, studentPicker, type Row } from '../ui';
 import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
 import { SITE } from '../../lib/site';
@@ -50,7 +50,7 @@ export async function scheduleView(arg?: string) {
     get<Row[]>(db!.from('rentals').select('*').gte('held_on', start).lte('held_on', end)),
     get<Row[]>(db!.from('trainers').select('id, full_name').eq('archived', false).order('full_name')),
     get<Row[]>(db!.from('trainer_rates').select('*').order('minutes')),
-    get<Row[]>(db!.from('students').select('id, full_name, partner_id').eq('archived', false).order('full_name')),
+    get<Row[]>(db!.from('students').select('id, full_name, full_name_en, partner_id').eq('archived', false).order('full_name')),
     get<Row[]>(db!.from('settings').select('value').eq('id', 'halls')),
     get<Row[]>(db!.from('lessons').select('held_on').eq('status', 'planned').lt('held_on', today()).order('held_on').limit(100)),
     get<Row[]>(db!.from('events').select('*').gte('held_on', start).lte('held_on', end)),
@@ -131,7 +131,7 @@ export async function scheduleView(arg?: string) {
   const entriesBlock = (target: Row, defaultAmount: number, what: string): Part[] => {
     const list = entries.filter((e) => (target.event_id ? e.event_id === target.event_id : e.group_id === target.group_id && e.held_on === target.held_on));
     const guestName = h('input', { type: 'text', placeholder: t('name') });
-    const who = select([['', t('guest')], ...students.map((s): [string, string] => [s.id, s.full_name])], '', (v) => (guestName.hidden = !!v));
+    const who = studentPicker(students, '', (v) => (guestName.hidden = !!v), { empty: t('guest'), ariaLabel: t('student') });
     const amount = h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: defaultAmount, ariaLabel: t('amount') });
     return [
       h('h3', { textContent: `${t('entries')} (${list.length})` }),
@@ -317,7 +317,6 @@ export async function scheduleView(arg?: string) {
   // ── Add a private lesson ──
   // Choosing a trainer offers that trainer's lesson lengths; the first student's
   // dance partner is offered as the second; up to four share a lesson.
-  const studentOptions = students.map((s): [string, string] => [s.id, s.full_name]);
   const firstDay = dates.includes(today()) ? today() : start;
   const date = h('input', { type: 'date', value: firstDay, required: true });
   const time = h('input', { type: 'time', step: 300, required: true });
@@ -331,8 +330,8 @@ export async function scheduleView(arg?: string) {
   }, { required: true });
   minutes.onchange = showRate;
   const hall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {});
-  const others = [1, 2, 3].map((n) => select([['', '—'], ...studentOptions], '', () => {}, { ariaLabel: `${t('student')} ${n + 1}` }));
-  const first = select([['', '—'], ...studentOptions], '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true });
+  const others = [1, 2, 3].map((n) => studentPicker(students, '', undefined, { ariaLabel: `${t('student')} ${n + 1}` }));
+  const first = studentPicker(students, '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true, ariaLabel: t('student') });
   const note = h('input', { type: 'text' });
   const goTo = (iso: string) => {
     flash(t('saved'));

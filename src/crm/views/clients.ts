@@ -6,7 +6,7 @@ import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
 import { notifyCard, notifyMany } from './notify';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, type Row } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
@@ -130,7 +130,7 @@ export async function clientView(id?: string, tab?: string) {
     get<Row[]>(db!.from('students').select('*').eq('client_id', id).order('created_at')),
     get<Row[]>(db!.from('groups').select('id, name, archived').order('name')),
     get<Row[]>(db!.from('clients').select('id, full_name, phone, user_id').neq('id', id).order('full_name')),
-    get<Row[]>(db!.from('students').select('id, full_name, client_id').eq('archived', false).order('full_name')),
+    get<Row[]>(db!.from('students').select('id, full_name, full_name_en, client_id').eq('archived', false).order('full_name')),
   ]);
   const ids = students.map((s) => s.id);
   const [enrollments, quotes, charges, forms] = await Promise.all([
@@ -254,7 +254,7 @@ export async function clientView(id?: string, tab?: string) {
         field(t('address'), input(s.address, (v) => upd({ address: v }))),
         field(t('level'), input(s.level, (v) => upd({ level: v }))),
         // A couple: the two point at each other, and a private lesson for one offers the other.
-        field(t('partner'), select([['', '—'], ...everyone.filter((x) => x.id !== s.id).map((x): [string, string] => [x.id, x.full_name])], s.partner_id ?? '', (v) => upd({ partner_id: v || null }, true)))
+        field(t('partner'), studentPicker(everyone.filter((x) => x.id !== s.id), s.partner_id ?? '', (v) => upd({ partner_id: v || null }, true), { ariaLabel: t('partner') }))
       ),
       field(t('notes'), input(s.notes, (v) => upd({ notes: v }))),
       formFacts(s.id, client.id, forms),

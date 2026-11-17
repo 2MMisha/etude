@@ -6,7 +6,7 @@
 // came. Every call goes through the trainer_* functions in the database, which
 // work out who is asking; this page cannot reach anyone else's data.
 import { LANGS, LOCALE, getLang, setLang, t, type Key } from './i18n';
-import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, addTableTools, type Row } from './ui';
+import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, addTableTools, studentPicker, type Row } from './ui';
 import { signInView, newPasswordView } from './auth';
 import { attendanceBlock, ATTENDANCE } from './attendance';
 import { weekGrid, fitCards } from '../lib/weekGrid';
@@ -165,13 +165,12 @@ async function home() {
   );
 
   // ── Ask for a new lesson: it goes to the admin, at my own rate ──
-  const options = students.map((s): [string, string] => [s.id, s.full_name]);
   const date = h('input', { type: 'date', value: today(), min: today(), required: true });
   const time = h('input', { type: 'time', step: 300, required: true });
   const minutes = select(rates.map((r): [string, string] => [String(r.minutes), `${r.minutes}′`]), String(rates[0]?.minutes ?? ''), () => {}, { required: true });
   const hall = select((summary.halls as string[]).map((x): [string, string] => [x, x]), summary.halls[0] ?? '', () => {});
-  const others = [1, 2, 3].map((n) => select([['', '—'], ...options], '', () => {}, { ariaLabel: `${t('student')} ${n + 1}` }));
-  const first = select([['', '—'], ...options], '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true });
+  const others = [1, 2, 3].map((n) => studentPicker(students, '', undefined, { ariaLabel: `${t('student')} ${n + 1}` }));
+  const first = studentPicker(students, '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true, ariaLabel: t('student') });
   const note = h('input', { type: 'text' });
   const form = h('form', { className: 'card' },
     h('h2', { textContent: t('askLesson') }),
