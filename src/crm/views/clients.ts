@@ -1,7 +1,7 @@
 // Clients list, and one client's page: the family, each student's groups,
 // discounts, suggested monthly price and charges.
 import { t, LANGS, getLang } from '../i18n';
-import { pick } from '../forms';
+import { pick, stateOf } from '../forms';
 import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
@@ -12,11 +12,20 @@ const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
 export async function clientsView() {
   const [clients, students, enrollments, groups, owing] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online, approved, user_id').order('full_name')),
-    get<Row[]>(db!.from('students').select('id, client_id, full_name, archived').order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, archived, online, approved, user_id, lang').order('full_name')),
+    get<Row[]>(db!.from('students').select('id, client_id, full_name, archived, birth_date').order('full_name')),
     get<Row[]>(db!.from('enrollments').select('student_id, group_id')),
-    get<Row[]>(db!.from('groups').select('id, name, includes, archived').order('name')),
+    get<Row[]>(db!.from('groups').select('id, name, includes, archived, program_id').order('name')),
     get<Row[]>(db!.from('client_balances').select('client_id, balance').gt('balance', 0)),
+  ]);
+  // For the more filters: programmes, who teaches which group, private lessons around now, documents.
+  const around = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const [programs, trainers, slots, lessons, forms] = await Promise.all([
+    get<Row[]>(db!.from('programs').select('id, name, archived').order('name')),
+    get<Row[]>(db!.from('trainers').select('id, full_name, archived').order('full_name')),
+    get<Row[]>(db!.from('group_slots').select('group_id, trainer_id')),
+    get<Row[]>(db!.from('lessons').select('trainer_id, lesson_students(student_id)').gte('held_on', around(-60)).lte('held_on', around(60))),
+    get<Row[]>(db!.from('student_forms').select('student_id, form, submitted_at, needs_update').order('submitted_at', { ascending: false })),
   ]);
   const asking = await attention();
   // A family that registered online and is not checked yet, or one that asked to be contacted.
@@ -33,6 +42,28 @@ export async function clientsView() {
   const owesBox = h('input', { type: 'checkbox' });
   const waitingBox = h('input', { type: 'checkbox' });
   const contactBox = h('input', { type: 'checkbox' });
+  const programSel = h('select', { ariaLabel: fsay('Программа', 'תוכנית', 'Programme') }, h('option', { value: '', textContent: fsay('Все программы', 'כל התוכניות', 'All programmes') }),
+    ...programs.filter((x) => !x.archived).map((x) => h('option', { value: x.id, textContent: x.name })));
+  const trainerSel = h('select', { ariaLabel: fsay('Тренер', 'מאמן/ת', 'Trainer') }, h('option', { value: '', textContent: fsay('Все тренеры', 'כל המאמנים', 'All trainers') }),
+    ...trainers.filter((x) => !x.archived).map((x) => h('option', { value: x.id, textContent: x.full_name })));
+  const ageSel = h('select', { ariaLabel: fsay('Возраст', 'גיל', 'Age') },
+    ...([['', fsay('Все возрасты', 'כל הגילאים', 'All ages')], ['minor', fsay('Есть ребёнок до 18', 'יש ילד/ה מתחת ל-18', 'Has a child under 18')], ['adult', fsay('Есть взрослый ученик', 'יש תלמיד/ה בוגר/ת', 'Has an adult student')]] as [string, string][]).map(([v, t2]) => h('option', { value: v, textContent: t2 })));
+  const docsBox = h('input', { type: 'checkbox' });
+  const appBox = h('input', { type: 'checkbox' });
+  const live = (clientId: string) => students.filter((x) => x.client_id === clientId && !x.archived);
+  const groupsOf = (sid: string) => enrollments.filter((e) => e.student_id === sid).flatMap((e) => [e.group_id, ...(groups.find((g) => g.id === e.group_id)?.includes ?? [])]);
+  const adultNow = (b: string | null) => !!b && (Date.now() - new Date(`${b}T12:00:00Z`).getTime()) / (365.25 * 864e5) >= 18;
+  const missingDocs = (sid: string, birth: string | null) => {
+    const needed = adultNow(birth) ? ['f1', 'f2', 'f4', 'f6', 'f7'] : ['f1', 'f2', 'f3', 'f4', 'f6', 'f7'];
+    return needed.some((code) => {
+      const r = forms.find((f) => f.student_id === sid && f.form === code);
+      return ['none', 'update'].includes(stateOf(code, needed, r && { at: r.submitted_at, signed_by: '', needs_update: r.needs_update, ask: null, clarified: true }));
+    });
+  };
+  const byProgram = (clientId: string, pid: string) => live(clientId).some((x) => groupsOf(x.id).some((gid) => groups.find((g) => g.id === gid)?.program_id === pid));
+  const byTrainer = (clientId: string, tid: string) => live(clientId).some((x) =>
+    groupsOf(x.id).some((gid) => slots.some((sl) => sl.group_id === gid && sl.trainer_id === tid)) ||
+    lessons.some((ls) => ls.trainer_id === tid && (ls.lesson_students ?? []).some((y: Row) => y.student_id === x.id)));
   const inGroup = (clientId: string, gid: string) => students.some((s) => s.client_id === clientId && !s.archived &&
     enrollments.some((e) => e.student_id === s.id && (e.group_id === gid || (groups.find((g) => g.id === e.group_id)?.includes ?? []).includes(gid))));
   let shown: Row[] = [];
@@ -42,7 +73,12 @@ export async function clientsView() {
       && (!groupSel.value || inGroup(c.id, groupSel.value))
       && (!owesBox.checked || owing.some((b) => b.client_id === c.id))
       && (!waitingBox.checked || (c.online && !c.approved))
-      && (!contactBox.checked || students.some((s) => s.client_id === c.id && asking.has(s.id))));
+      && (!contactBox.checked || students.some((s) => s.client_id === c.id && asking.has(s.id)))
+      && (!programSel.value || byProgram(c.id, programSel.value))
+      && (!trainerSel.value || byTrainer(c.id, trainerSel.value))
+      && (!ageSel.value || live(c.id).some((x) => (ageSel.value === 'adult') === adultNow(x.birth_date)))
+      && (!docsBox.checked || (c.user_id && live(c.id).some((x) => missingDocs(x.id, x.birth_date))))
+      && (!appBox.checked || (c.user_id && c.approved)));
     shown = rows;
     body.replaceChildren(
       ...rows.map((c) => h('tr', { className: c.archived ? 'off' : '' },
@@ -53,7 +89,7 @@ export async function clientsView() {
     );
     if (!rows.length) body.append(h('tr', {}, h('td', { colSpan: 3, className: 'muted', textContent: t('emptyList') })));
   };
-  search.oninput = archived.onchange = groupSel.onchange = owesBox.onchange = waitingBox.onchange = contactBox.onchange = draw;
+  search.oninput = archived.onchange = groupSel.onchange = owesBox.onchange = waitingBox.onchange = contactBox.onchange = programSel.onchange = trainerSel.onchange = ageSel.onchange = docsBox.onchange = appBox.onchange = draw;
   draw();
 
   const name = h('input', { type: 'text', placeholder: t('name'), required: true });
@@ -71,6 +107,7 @@ export async function clientsView() {
       form,
       h('div', { className: 'row' }, search, tick(t('showArchived'), archived)),
       h('div', { className: 'row' }, groupSel, tick(fsay('Должники', 'חייבים', 'Owe money'), owesBox), tick(fsay('Ждут подтверждения', 'ממתינים לאישור', 'Waiting to be let in'), waitingBox), tick(fsay('Нужно связаться', 'צריך ליצור קשר', 'To contact'), contactBox)),
+      h('div', { className: 'row' }, programSel, trainerSel, ageSel, tick(fsay('Не хватает документов', 'חסרים מסמכים', 'Documents missing'), docsBox), tick(fsay('С приложением', 'עם האפליקציה', 'Have the app'), appBox)),
       notifyMany(() => shown),
       h('div', { className: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('students')))), body))
     ),

@@ -810,4 +810,20 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await denied(rpc('admin', 'staff_push', [[famClient], '', 'y']), /title and a text/);
 }
 
+// To several families: each in its own language, an empty language falls back.
+{
+  const famClient = (await one('admin', 'select client_id from public.students where id = $1', [oldKid])).client_id;
+  await as('admin', `update public.clients set lang = 'ru' where id = $1`, [famClient]);
+  const n = (await rpc('admin', 'staff_push_many', [[famClient], JSON.stringify({ he: ['שלום', 'טקסט'], ru: ['Привет', 'Текст'], en: ['', ''] })])).rows[0].staff_push_many;
+  assert.equal(n, 1);
+  let last = (await as('admin', 'select * from public.push_log order by id desc limit 1')).rows[0];
+  assert.deepEqual([last.lang, last.title], ['ru', 'Привет'], 'the family gets its own language');
+  await as('admin', `update public.clients set lang = 'en' where id = $1`, [famClient]);
+  await rpc('admin', 'staff_push_many', [[famClient], JSON.stringify({ he: ['שלום', 'טקסט'], ru: ['', ''], en: ['', ''] })]);
+  last = (await as('admin', 'select * from public.push_log order by id desc limit 1')).rows[0];
+  assert.equal(last.title, 'שלום', 'an empty language falls back to Hebrew');
+  await denied(rpc('admin', 'staff_push_many', [[famClient], JSON.stringify({ he: ['', ''] })]), /at least one language/);
+  await denied(rpc('client', 'staff_push_many', [[famClient], JSON.stringify({ he: ['a', 'b'] })]), /staff only/);
+}
+
 console.log('access rules: all checks passed');

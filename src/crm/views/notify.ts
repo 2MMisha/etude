@@ -22,6 +22,8 @@ const S = {
   pay: l('Напомнить об оплате', 'תזכורת על תשלום', 'Remind about payment'),
   history: l('Отправленные уведомления', 'הודעות שנשלחו', 'Notifications sent'),
   notSent: l('не отправлено', 'לא נשלח', 'not sent'),
+  families: l('семей: {n}', 'משפחות: {n}', 'families: {n}'),
+  threeLangs: l('Напишите одно и то же на трёх языках — каждая семья получит своё. Если язык оставить пустым, семьи с ним получат иврит (или русский, или английский — что заполнено).', 'כתבו את אותה הודעה בשלוש השפות — כל משפחה תקבל בשפתה. שפה שתישאר ריקה — המשפחות שלה יקבלו עברית (או רוסית או אנגלית, מה שמולא).', 'Write the same in the three languages; each family gets its own. If a language is left empty, those families get Hebrew (or Russian, or English, whichever is filled in).'),
   hint: l('Уведомление придёт на телефоны семьи, если она вошла в «Кабинет» в приложении и разрешила уведомления. Пишите на языке семьи: {lang}.', 'ההודעה תגיע לטלפונים של המשפחה אם נכנסה ל"חשבון" באפליקציה ואישרה התראות. כתבו בשפת המשפחה: {lang}.', 'It reaches the family’s phones if they signed in to the Account in the app and allowed notifications. Write in the family’s language: {lang}.'),
 };
 const LANG_NAME: Record<string, string> = { he: 'עברית', ru: 'русский', en: 'English' };
@@ -95,15 +97,41 @@ export async function notifyCard(client: Row, students: Row[]) {
   );
 }
 
-/** "Notify these clients": for whatever the Clients list shows right now. */
+/**
+ * "Notify these clients": for whatever the Clients list shows right now. Written in
+ * the three languages; each family gets its own (an empty language falls back to
+ * Hebrew, then Russian, then English).
+ */
 export function notifyMany(visible: () => Row[]) {
   const box = h('div', { className: 'stack' });
   const toggle = h('button', { type: 'button', textContent: tr(S.many), onclick: () => {
     if (box.childElementCount) return box.replaceChildren();
     const rows = visible();
     const reachable = rows.filter((c) => c.user_id && c.approved && !c.archived);
-    const c = composer((title, body) => push(reachable.map((x) => x.id), title, body));
-    box.replaceChildren(h('p', { className: 'muted', textContent: tr(S.reach).replace('{n}', String(reachable.length)).replace('{all}', String(rows.length)) }), c.node);
+    const count = (lang: string) => reachable.filter((c) => (c.lang ?? 'he') === lang).length;
+    const pair = (lang: 'he' | 'ru' | 'en') => {
+      const head = h('input', { type: 'text', maxLength: 100, placeholder: tr(S.head), lang, dir: lang === 'he' ? 'rtl' : 'ltr' });
+      const text = h('textarea', { rows: 3, maxLength: 1000, placeholder: tr(S.body), lang, dir: lang === 'he' ? 'rtl' : 'ltr' });
+      return { lang, head, text, node: h('fieldset', { className: 'lang-pair' }, h('legend', { textContent: `${LANG_NAME[lang]} — ${tr(S.families).replace('{n}', String(count(lang)))}` }), head, text) };
+    };
+    const pairs = (['he', 'ru', 'en'] as const).map(pair);
+    const button = h('button', { type: 'button', className: 'primary', textContent: tr(S.send), onclick: async () => {
+      const msg = Object.fromEntries(pairs.map((p) => [p.lang, [p.head.value.trim(), p.text.value.trim()]]));
+      if (!pairs.some((p) => p.head.value.trim() && p.text.value.trim())) return flash(`${tr(S.head)} / ${tr(S.body)}`, true);
+      button.disabled = true;
+      try {
+        const n = await get<number>(db!.rpc('staff_push_many', { client_ids: reachable.map((x) => x.id), msg }));
+        flash(n ? tr(S.sent).replace('{n}', String(n)) : tr(S.none), !n);
+        if (n) box.replaceChildren();
+      } finally {
+        button.disabled = false;
+      }
+    } });
+    box.replaceChildren(
+      h('p', { className: 'muted', textContent: tr(S.reach).replace('{n}', String(reachable.length)).replace('{all}', String(rows.length)) }),
+      h('p', { className: 'muted', textContent: tr(S.threeLangs) }),
+      ...pairs.map((p) => p.node),
+      h('div', {}, button));
   } });
   return h('div', { className: 'stack' }, h('div', {}, toggle), box);
 }

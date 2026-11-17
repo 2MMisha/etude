@@ -16,7 +16,7 @@ const T = {
   createTitle: l('Создание личного кабинета', 'יצירת אזור אישי', 'Create your account'),
   createIntro: l('Создайте личный кабинет, чтобы зарегистрировать себя или членов своей семьи в танцевальной школе. В одном аккаунте можно управлять несколькими учениками и их регистрационными документами.', 'צרו אזור אישי כדי לרשום את עצמכם או את בני המשפחה לבית הספר לריקוד. בחשבון אחד אפשר לנהל כמה תלמידים ואת מסמכי הרישום שלהם.', 'Create an account to register yourself or your family with the dance school. One account can hold several students and their registration documents.'),
   repeat: l('Повторите пароль', 'חזרו על הסיסמה', 'Repeat the password'),
-  agree: l('Я подтверждаю, что ознакомился(лась) с условиями использования личного кабинета и уведомлением о конфиденциальности', 'אני מאשר/ת שקראתי את תנאי השימוש באזור האישי ואת הודעת הפרטיות', 'I confirm I have read the terms of use of the account and the privacy notice'),
+  agree: l('Я подтверждаю, что ознакомился(лась) с уведомлением о конфиденциальности', 'אני מאשר/ת שקראתי את הודעת הפרטיות', 'I confirm I have read the privacy notice'),
   terms: l('Условия использования личного кабинета', 'תנאי השימוש באזור האישי', 'Terms of use of the account'),
   privacy: l('Уведомление о конфиденциальности', 'הודעת פרטיות', 'Privacy notice'),
   create: l('Создать кабинет', 'יצירת החשבון', 'Create the account'),
@@ -181,7 +181,7 @@ async function createView() {
   const form = h('form', { className: 'card sign wide' },
     h('h1', { textContent: t('createTitle') }), note(t('createIntro')),
     h('label', {}, t('email'), email), h('label', {}, crmT('newPassword'), pass), h('label', {}, t('repeat'), pass2),
-    docBox(t('terms'), docs.doc_terms), docBox(t('privacy'), PRIVACY), docs.doc_privacy?.url && docBox(t('privacy'), docs.doc_privacy),
+    docBox(t('privacy'), PRIVACY), docs.doc_privacy?.url && docBox(t('privacy'), docs.doc_privacy),
     h('label', { className: 'tick' }, agree, t('agree')),
     button, msg,
     h('button', { type: 'button', className: 'link', textContent: t('haveAccount'), onclick: () => { mode = 'signin'; render(); } })
