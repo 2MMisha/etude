@@ -4,7 +4,7 @@
 // reads site_timetable() from the database (supabase/migrations/
 // 20261211000000_site_timetable.sql) for the last week and the next five, and
 // turns it into the same shape the Sheet used to give: group classes as they
-// really are, master classes, private lessons (no student names) and rentals.
+// really are, master classes, private lessons (first names only) and rentals.
 // The site rebuilds every hour (.github/workflows/deploy.yml), so changes made
 // in the CRM reach the trainers' app, the studio TV and the calendar feeds.
 //

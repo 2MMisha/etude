@@ -831,9 +831,18 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   const rows = (await rpc('anon', 'site_timetable', ['2026-11-01', '2026-11-30'])).rows;
   assert.ok(rows.some((r) => r.kind === 'class' && r.trainer), 'group classes with their trainer');
   const priv = rows.filter((r) => r.kind === 'private');
-  assert.ok(priv.length > 0 && priv.every((r) => r.title === 'Private lesson'), 'private lessons without names');
-  const names = (await one('admin', `select string_agg(full_name, '|') n from public.students`)).n.split('|').filter((n) => n.length > 2);
-  assert.ok(!rows.some((r) => names.includes(r.title)), 'no student name anywhere');
+  // Private lessons by first names (owner, 2026-11-20), a couple joined by " - "; never a whole name with a surname.
+  assert.ok(priv.length > 0 && priv.every((r) => r.title && !r.title.includes('  ')), 'private lessons are named');
+  const full = (await one('admin', `select string_agg(full_name, '|') n from public.students where full_name like '% %'`)).n?.split('|') ?? [];
+  assert.ok(!rows.some((r) => full.some((n) => r.title.includes(n))), 'no surname on the public timetable');
+  const couple = (await one('admin', `select l.id from public.lessons l where l.held_on between '2026-11-01' and '2026-11-30' and l.start_time is not null
+    and l.status in ('planned','done','no_show','late_cancel') and (select count(*) from public.lesson_students ls where ls.lesson_id = l.id) = 2 limit 1`));
+  if (couple) assert.ok(priv.some((r) => / - /.test(r.title)), 'a couple as "A - B"');
+  const pair = (await one('admin', 'select public.record_lesson($1, $2) id', [JSON.stringify({ trainer_id: roman.id, minutes: 45, held_on: '2026-11-03', start_time: '06:00', hall: 'Small Hall' }), [a.id, b.id]])).id;
+  const pairTitle = (await rpc('anon', 'site_timetable', ['2026-11-03', '2026-11-03'])).rows.find((r) => r.kind === 'private' && r.start_time.startsWith('06:00')).title;
+  assert.match(pairTitle, /^\S+ - \S+$/, 'two first names with a dash');
+  await as('admin', 'delete from public.lessons where id = $1', [pair]);
+  console.log('  private lesson titles:', [...new Set(priv.map((r) => r.title))].join(' / '));
   await denied(rpc('anon', 'site_timetable', ['2026-01-01', '2026-12-31']), /ten weeks/);
 }
 
