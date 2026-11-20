@@ -60,6 +60,8 @@ async function home() {
     get<Row[]>(db!.rpc('trainer_students')),
     get<Row[]>(db!.rpc('trainer_rates_mine')),
   ]);
+  // Names in the screen's language: English names on a Russian or English screen, where they are filled in.
+  if (getLang() !== 'he') for (const l of lessons) if (l.students_en) l.students = l.students_en;
   document.getElementById('who')!.textContent = `ETUDE — ${summary.name}`;
 
   // ── My week as a table ──

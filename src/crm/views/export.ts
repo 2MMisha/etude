@@ -2,7 +2,7 @@
 // 2026-11-14). Shown at the bottom of the Clients screen. The choice of columns
 // is remembered on this computer.
 import { getLang } from '../i18n';
-import { db, h, get, today, flash, type Row } from '../ui';
+import { db, h, get, today, flash, type Row, nameIn } from '../ui';
 import { FORMS, W, STUDENT_REL, stateOf, pick, type L } from '../forms';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
@@ -60,7 +60,7 @@ const STUDENT_COLS: Col[] = [
   { id: 'address', label: l('Адрес', 'כתובת', 'Address'), get: (r) => r.address },
   { id: 'groups', label: l('Группы', 'קבוצות', 'Groups'), get: (r) => r._groups },
   { id: 'level', label: l('Уровень', 'רמה', 'Level'), get: (r) => r.level },
-  { id: 'client', label: l('Клиент', 'לקוח/ה', 'Client'), get: (r) => r._client?.full_name },
+  { id: 'client', label: l('Клиент', 'לקוח/ה', 'Client'), get: (r) => nameIn(r._client) },
   { id: 'client_phone', label: l('Телефон клиента', 'טלפון הלקוח/ה', "Client's phone"), get: (r) => r._client?.phone },
   { id: 'client_email', label: l('Эл. почта клиента', 'אימייל הלקוח/ה', "Client's email"), get: (r) => r._client?.email },
   { id: 'relation', label: l('Кем приходится', 'קרבה', 'Relation'), get: (r) => (r.is_holder ? '—' : tr(STUDENT_REL.find(([v]) => v === r.relation)?.[1] ?? l('', '', ''))) },
@@ -127,7 +127,7 @@ export function exportCard() {
     if (kind === 'clients') {
       rows = clients.filter(live).map((c) => {
         const kids = students.filter((s) => s.client_id === c.id && !s.archived);
-        return { ...c, _kids: kids.map((s) => s.full_name).join(', '), _count: kids.length };
+        return { ...c, _kids: kids.map((s) => nameIn(s)).join(', '), _count: kids.length };
       });
     } else {
       rows = students.filter(live).map((s) => {

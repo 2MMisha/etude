@@ -6,7 +6,7 @@ import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
 import { notifyCard, notifyMany } from './notify';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, studentLabel, type Row, keep } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, studentLabel, type Row, keep, nameIn } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 /** The list's view (families or students) and sort order, kept while the CRM is open. */
@@ -32,7 +32,7 @@ export async function clientsView() {
   const asking = await attention();
   // A family that registered online and is not checked yet, or one that asked to be contacted.
   const marks = (id: string) => `${students.some((s) => s.client_id === id && asking.has(s.id)) ? ' ⚠' : ''}`;
-  const kids = (id: string) => students.filter((s) => s.client_id === id && !s.archived).map((s) => s.full_name).join(', ');
+  const kids = (id: string) => students.filter((s) => s.client_id === id && !s.archived).map((s) => nameIn(s)).join(', ');
 
   const body = h('tbody');
   const search = h('input', { type: 'search', placeholder: t('search') });
@@ -98,7 +98,7 @@ export async function clientsView() {
   // The columns of each view: a heading, what it sorts by, and the cell.
   interface Col { label: string; key: (r: Row) => string | number; cell: (r: Row) => Node | string | (Node | string | false | null | undefined | '')[] }
   const famCols: Col[] = [
-    { label: t('name'), key: (c) => c.full_name, cell: (c) => [h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) })] },
+    { label: t('name'), key: (c) => nameIn(c), cell: (c) => [h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: nameIn(c) + marks(c.id) })] },
     { label: t('phone'), key: (c) => c.phone ?? '', cell: (c) => ltr(c.phone) },
     { label: t('students'), key: (c) => kids(c.id), cell: (c) => kids(c.id) },
     { label: fsay('Баланс', 'יתרה', 'Balance'), key: (c) => balance(c.id), cell: (c) => balanceCell(c.id) },
@@ -106,10 +106,10 @@ export async function clientsView() {
     { label: fsay('Добавлен', 'נוסף/ה', 'Added'), key: (c) => c.created_at, cell: (c) => ltr(dmy(c.created_at)) },
   ];
   const stuCols: Col[] = [
-    { label: t('name'), key: (x) => x.full_name, cell: (x) => [h('a', { href: `#/client/${x.client_id}/students`, textContent: studentLabel(x) + (asking.has(x.id) ? ' ⚠' : '') })] },
+    { label: t('name'), key: (x) => nameIn(x), cell: (x) => [h('a', { href: `#/client/${x.client_id}/students`, textContent: studentLabel(x) + (asking.has(x.id) ? ' ⚠' : '') })] },
     { label: fsay('Возраст', 'גיל', 'Age'), key: (x) => ageOf(x.birth_date) ?? -1, cell: (x) => String(ageOf(x.birth_date) ?? '') },
     { label: fsay('Группы', 'קבוצות', 'Groups'), key: (x) => groupNames(x.id), cell: (x) => groupNames(x.id) },
-    { label: fsay('Семья', 'משפחה', 'Family'), key: (x) => familyOf(x).full_name ?? '', cell: (x) => [h('a', { href: `#/client/${x.client_id}`, textContent: familyOf(x).full_name ?? '' })] },
+    { label: fsay('Семья', 'משפחה', 'Family'), key: (x) => nameIn(familyOf(x)), cell: (x) => [h('a', { href: `#/client/${x.client_id}`, textContent: nameIn(familyOf(x)) })] },
     { label: fsay('Документы', 'מסמכים', 'Documents'), key: (x) => (familyOf(x).user_id ? (missingDocs(x.id, x.birth_date) ? 0 : 1) : 2),
       cell: (x) => (familyOf(x).user_id ? (missingDocs(x.id, x.birth_date) ? tag(fsay('Не хватает', 'חסרים', 'Missing'), 'bad') : '✓') : '—') },
     { label: fsay('Добавлен', 'נוסף/ה', 'Added'), key: (x) => x.created_at, cell: (x) => ltr(dmy(x.created_at)) },
@@ -152,7 +152,8 @@ export async function clientsView() {
     const cols = list.mode === 'families' ? famCols : stuCols;
     const rows = list.mode === 'families' ? [...families] : studentsShown;
     const col = cols.find((c) => c.label === list.sort);
-    if (col) rows.sort((a, b) => { const x = col.key(a), y = col.key(b); const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), getLang()); return list.desc ? -r : r; });
+    if (!col) rows.sort((a, b) => nameIn(a).localeCompare(nameIn(b), getLang())); // by the name shown
+    else rows.sort((a, b) => { const x = col.key(a), y = col.key(b); const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), getLang()); return list.desc ? -r : r; });
     head.replaceChildren(h('tr', {}, ...cols.map((c) => h('th', {}, h('button', { type: 'button', className: 'link sort', textContent: `${c.label}${list.sort === c.label ? (list.desc ? ' ▼' : ' ▲') : ''}`,
       onclick: () => { list.desc = list.sort === c.label ? !list.desc : false; list.sort = c.label; draw(); } })))));
     body.replaceChildren(...rows.map((r) => {
@@ -197,7 +198,7 @@ export async function clientView(id?: string, tab?: string) {
   const [students, groups, others, everyone] = await Promise.all([
     get<Row[]>(db!.from('students').select('*').eq('client_id', id).order('created_at')),
     get<Row[]>(db!.from('groups').select('id, name, archived').order('name')),
-    get<Row[]>(db!.from('clients').select('id, full_name, phone, user_id').neq('id', id).order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, user_id').neq('id', id).order('full_name')),
     get<Row[]>(db!.from('students').select('id, full_name, full_name_en, client_id').eq('archived', false).order('full_name')),
   ]);
   const ids = students.map((s) => s.id);
@@ -229,7 +230,7 @@ export async function clientView(id?: string, tab?: string) {
       field(t('address'), input(client.address, (v) => set('clients', client, { address: v }))),
       field(t('language'), select(LANGS.map((l) => [l, l.toUpperCase()]), client.lang, (v) => set('clients', client, { lang: v })))
     ),
-    twins.length > 0 && h('p', { className: 'warn' }, `${t('samePhone')}: `, ...twins.flatMap((o, i) => [i > 0 && ', ', h('a', { href: `#/client/${o.id}`, textContent: o.full_name })])),
+    twins.length > 0 && h('p', { className: 'warn' }, `${t('samePhone')}: `, ...twins.flatMap((o, i) => [i > 0 && ', ', h('a', { href: `#/client/${o.id}`, textContent: nameIn(o) })])),
     field(t('notes'), Object.assign(h('textarea', { value: client.notes, rows: 2 }), { onchange: (e: Event) => set('clients', client, { notes: (e.target as HTMLTextAreaElement).value.trim() }) })),
     h('div', { className: 'row spread' },
       tick(t('archived'), checkbox(client.archived, (v) => set('clients', client, { archived: v }))),
@@ -389,7 +390,7 @@ export async function clientView(id?: string, tab?: string) {
 
   return h('div', { className: 'stack' },
     h('a', { href: '#/clients', textContent: t('back') }),
-    h('h1', { textContent: client.full_name }),
+    h('h1', { textContent: nameIn(client) }),
     h('nav', { className: 'subtabs' }, ...TABS.map(([k, label]) => h('a', { href: `#/client/${client.id}/${k}`, textContent: label, ariaCurrent: k === current ? 'page' : null }))),
     ...body
   );

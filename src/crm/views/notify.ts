@@ -3,7 +3,7 @@
 // every client a filtered Clients list shows. Sent by staff_push in the
 // database, through the same channel as the automatic messages; kept in push_log.
 import { getLang, type Lang } from '../i18n';
-import { db, h, get, flash, nav, money, ltr, type Row } from '../ui';
+import { db, h, get, flash, nav, money, ltr, type Row, nameIn } from '../ui';
 import { FORMS, W, stateOf, pick, type L } from '../forms';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
@@ -72,7 +72,7 @@ export async function notifyCard(client: Row, students: Row[]) {
       const r = forms.find((x) => x.student_id === s.id && x.form === f.code);
       return ['none', 'update'].includes(stateOf(f.code, needed, r && { at: r.submitted_at, signed_by: '', needs_update: r.needs_update, ask: null, clarified: true }));
     }).map((f) => `№${f.num}`);
-    return nums.length ? [`${s.full_name} — ${pick(W.appendix, L).trim()} ${nums.join(', ')}`] : [];
+    return nums.length ? [`${nameIn(s, L)} — ${pick(W.appendix, L).trim()} ${nums.join(', ')}`] : [];
   });
   const owed = Number(balance[0]?.balance ?? 0);
   const c = composer((title, body) => push([client.id], title, body), [

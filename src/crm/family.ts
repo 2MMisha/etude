@@ -6,10 +6,13 @@
 // own documents. Every call goes through database functions that work out
 // whose family it is (supabase/migrations/20261126000000_family_registration.sql).
 import { LANGS, getLang, setLang, t as crmT, type Lang } from './i18n';
-import { db, h, flash, today, money } from './ui';
+import { db, h, flash, today, money, nameIn } from './ui';
 import { receiptParts, chargeLabel, dateText, methodText } from './views/payments';
 import { signInView, newPasswordView } from './auth';
 import { FORMS, PRIVACY, W, STUDENT_REL, STATE_WORD, formOf, missing, stopped, flags, visible, stateOf, resigned, dmy, expired, shownAnswer, pick, type Answers, type Ctx, type Form, type L, type Q, type Sent } from './forms';
+
+/** The person's name in the other language, shown small next to the main one. */
+const otherName = (r: Record<string, any>) => (nameIn(r) === r.full_name ? r.full_name_en ?? '' : r.full_name ?? '');
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
 const T = {
@@ -264,7 +267,7 @@ function studentForm(s: Answers | null, holder: Answers, done: (newId?: string) 
   no.onchange = birth.onchange = sync;
   sync();
   const form = h('form', { className: 'card' },
-    h('h2', { textContent: s ? `${t('edit')}: ${s.full_name}` : t('addStudent') }),
+    h('h2', { textContent: s ? `${t('edit')}: ${nameIn(s)}` : t('addStudent') }),
     h('fieldset', { className: 'choice' }, h('legend', { textContent: t('isHolder') }), h('label', { className: 'tick' }, yes, tr(W.yes)), h('label', { className: 'tick' }, no, tr(W.no))),
     names.node,
     h('div', { className: 'grid' },
@@ -294,7 +297,7 @@ function todoFor(s: Answers): string[] {
     const state = stateOf(f.code, s.needed, s.forms[f.code]);
     const form = `${tr(W.appendix)}${f.num} — ${tr(f.title)}`;
     const word = state === 'none' ? W.missingForm : state === 'update' ? W.updateForm : state === 'ask' ? W.askForm : null;
-    return word ? [fill(tr(word), { name: s.full_name, form })] : [];
+    return word ? [fill(tr(word), { name: nameIn(s), form })] : [];
   });
 }
 
@@ -333,8 +336,8 @@ async function homeView() {
   // A new family waits until the studio lets it in.
   if (!me.approved) return h('div', { className: 'stack' },
     card(
-      h('div', { className: 'row spread' }, h('h1', { textContent: holder.full_name }), h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = 'holder'; render(); } })),
-      note(parts(holder.full_name_en, holder.phone, holder.email).join(' · ')),
+      h('div', { className: 'row spread' }, h('h1', { textContent: nameIn(holder) }), h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = 'holder'; render(); } })),
+      note(parts(otherName(holder), holder.phone, holder.email).join(' · ')),
       note(t('waiting'), 'warn')
     ));
   if (editing === 'new') return h('div', { className: 'stack' },
@@ -350,15 +353,15 @@ async function homeView() {
   const relWord = (code: string) => tr(HOLDER_REL.find(([v]) => v === code)?.[1] ?? l('', '', ''));
   return h('div', { className: 'stack' },
     card(
-      h('div', { className: 'row spread' }, h('h1', { textContent: holder.full_name }), h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = 'holder'; render(); } })),
-      note(parts(holder.full_name_en, holder.phone, holder.email, relWord(holder.relation)).join(' · '))
+      h('div', { className: 'row spread' }, h('h1', { textContent: nameIn(holder) }), h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = 'holder'; render(); } })),
+      note(parts(otherName(holder), holder.phone, holder.email, relWord(holder.relation)).join(' · '))
     ),
     card(h('h2', { textContent: todo.length ? t('todo') : tr(W.allDone) }), todo.length > 0 && h('ul', { className: 'todo' }, ...todo.map((x) => h('li', { textContent: x })))),
     ...students.map((s) => editing === s.id ? studentForm(s, holder, () => { editing = ''; render(); }) : card(
       h('div', { className: 'row spread' },
-        h('h2', {}, s.full_name, h('small', { textContent: ` ${s.full_name_en} · ${t('born')} ${s.birth_date}` })),
+        h('h2', {}, nameIn(s), h('small', { textContent: ` ${otherName(s)} · ${t('born')} ${s.birth_date}` })),
         h('button', { type: 'button', textContent: t('edit'), onclick: () => { editing = s.id; render(); } })),
-      s.needed.length === 5 && !s.is_holder && note(fill(t('adultSelf'), { name: s.full_name }), 'warn'),
+      s.needed.length === 5 && !s.is_holder && note(fill(t('adultSelf'), { name: nameIn(s) }), 'warn'),
       !(s.needed.length === 5 && !s.is_holder) && nextFormOf(s) && h('a', { className: 'btn primary big', href: `#/s/${s.token}/${nextFormOf(s)!.code}`, textContent: fill(t('continueDocs'), { form: formName(nextFormOf(s)!) }) }),
       formList(s, s.token),
       Object.keys(s.forms ?? {}).length > 0 && h('a', { className: 'btn', href: `#/s/${s.token}/pdf`, textContent: t('pdf') }),
@@ -565,8 +568,8 @@ function formView(token: string, page: Answers, f: Form) {
       scrollTo(0, 0);
     };
     box.replaceChildren(
-      card(h('p', { className: 'muted', textContent: `${page.full_name} · ${tr(W.appendix)}${f.num}` }), h('h1', { textContent: tr(f.title) }), f.intro && note(tr(f.intro)),
-        page.adult && note(fill(t('adultHere'), { name: page.full_name }), 'warn'),
+      card(h('p', { className: 'muted', textContent: `${nameIn(page)} · ${tr(W.appendix)}${f.num}` }), h('h1', { textContent: tr(f.title) }), f.intro && note(tr(f.intro)),
+        page.adult && note(fill(t('adultHere'), { name: nameIn(page) }), 'warn'),
         page.forms[f.code] && expired(page.forms[f.code].at) && note(tr(W.renewal), 'warn')),
       form
     );
@@ -587,7 +590,7 @@ function pdfView(token: string, page: Answers) {
     note(t('pdfHint'), 'muted noprint'),
     h('header', {},
       h('h1', {}, 'ETUDE — ', t('pdfTitle')),
-      h('p', {}, h('strong', { textContent: page.full_name }), ` · ${page.full_name_en} · ${t('born')} ${dmy(page.birth_date)}`),
+      h('p', {}, h('strong', { textContent: nameIn(page) }), ` · ${otherName(page)} · ${t('born')} ${dmy(page.birth_date)}`),
       h('p', { className: 'muted', textContent: `${t('pdfMade')}: ${dmy(today())}` })),
     ...sent.map((f) => {
       const a = page.last[f.code];
@@ -614,8 +617,8 @@ async function studentView(token: string, code?: string) {
   return h('div', { className: 'stack' },
     signedIn && h('a', { href: '#/', textContent: t('backHome') }),
     card(
-      h('h1', {}, page.full_name, h('small', { textContent: ` ${page.full_name_en} · ${t('born')} ${page.birth_date}` })),
-      page.adult && note(fill(t('adultHere'), { name: page.full_name }), 'warn'),
+      h('h1', {}, nameIn(page), h('small', { textContent: ` ${otherName(page)} · ${t('born')} ${page.birth_date}` })),
+      page.adult && note(fill(t('adultHere'), { name: nameIn(page) }), 'warn'),
       nextFormOf(page) && h('a', { className: 'btn primary big', href: `#/s/${token}/${nextFormOf(page)!.code}`, textContent: Object.keys(page.forms).length ? fill(t('continueDocs'), { form: formName(nextFormOf(page)!) }) : t('startDocs') }),
       formList(page, token),
       Object.keys(page.forms ?? {}).length > 0 && h('a', { className: 'btn', href: `#/s/${token}/pdf`, textContent: t('pdf') })

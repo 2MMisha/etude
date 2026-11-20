@@ -2,7 +2,7 @@
 // void, refund), the printable confirmation, the Debts list and the monthly
 // report with its Excel export.
 import { getLang, t, tIn, LOCALE, type Key, type Lang } from '../i18n';
-import { db, h, get, ok, nav, input, select, field, sureButton, flash, money, ltr, today, type Row } from '../ui';
+import { db, h, get, ok, nav, input, select, field, sureButton, flash, money, ltr, today, type Row, nameIn } from '../ui';
 
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
 const monthName = (lang: Lang, iso: string) =>
@@ -27,7 +27,7 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
   const bal = balances[0] ?? { balance: 0, credit: 0 };
   const chargeText = (id: string) => {
     const c = charges.find((x) => x.id === id);
-    return c ? `${students.find((s) => s.id === c.student_id)?.full_name ?? ''}: ${chargeLabel(getLang(), c)}` : '?';
+    return c ? `${nameIn(students.find((s) => s.id === c.student_id))}: ${chargeLabel(getLang(), c)}` : '?';
   };
   const when = (id: string) => { const c = charges.find((x) => x.id === id)!; return c.month ?? c.day ?? ''; };
   const open = perCharge
@@ -158,9 +158,9 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
  * show the very same confirmation. p has the payment with clients and payment_lines.
  */
 export function receiptParts(p: Row, biz: Row, L: Lang) {
-  const payer: string = p.clients?.full_name ?? p.payer_name;
+  const payer: string = p.clients ? nameIn(p.clients, L) : p.payer_name;
   const refund = Number(p.amount) < 0;
-  const lines: Row[] = p.payment_lines.map((l: Row) => ({ who: l.charges.students.full_name, what: chargeLabel(L, l.charges), amount: Math.abs(Number(l.amount)) }));
+  const lines: Row[] = p.payment_lines.map((l: Row) => ({ who: nameIn(l.charges.students, L), what: chargeLabel(L, l.charges), amount: Math.abs(Number(l.amount)) }));
   const spare = Math.abs(Number(p.amount)) - sum(lines);
   // From someone who is not a client there are no charges behind the payment: the line is what they paid for.
   if (!p.clients && p.what) lines.push({ who: '', what: p.what, amount: Math.abs(Number(p.amount)) });
@@ -205,7 +205,7 @@ export function receiptParts(p: Row, biz: Row, L: Lang) {
 // ── The confirmation: printed (two per A4 sheet), saved as PDF or sent as a picture, in the client's language ──
 export async function receiptView(id?: string) {
   const [p, settings] = await Promise.all([
-    get<Row>(db!.from('payments').select('*, clients(id, full_name, phone, lang), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name)))').eq('id', id).single()),
+    get<Row>(db!.from('payments').select('*, clients(id, full_name, full_name_en, phone, lang), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name, full_name_en)))').eq('id', id).single()),
     get<Row[]>(db!.from('settings').select('value').eq('id', 'business')),
   ]);
   const biz: Row = settings[0]?.value ?? {};
@@ -226,7 +226,7 @@ export async function receiptView(id?: string) {
 
   return h('div', { className: 'stack sheets' },
     h('div', { className: 'row noprint' },
-      p.clients ? h('a', { href: `#/client/${p.clients.id}/pay`, textContent: `← ${p.clients.full_name}` }) : h('a', { href: `#/lessons/${p.paid_on}`, textContent: `← ${t('lessons')}` }),
+      p.clients ? h('a', { href: `#/client/${p.clients.id}/pay`, textContent: `← ${nameIn(p.clients)}` }) : h('a', { href: `#/lessons/${p.paid_on}`, textContent: `← ${t('lessons')}` }),
       h('span', { className: 'grow' }),
       // A payment from a non-client has no client page to void it from, so it is voided here.
       !p.clients && !p.voided && h('button', { type: 'button', textContent: t('void'), onclick: (ev: Event) => {
@@ -344,7 +344,7 @@ async function receiptImage(d: ReceiptImage): Promise<Blob> {
 export async function debtsView() {
   const [balances, clients] = await Promise.all([
     get<Row[]>(db!.from('client_balances').select('client_id, balance').gt('balance', 0)),
-    get<Row[]>(db!.from('clients').select('id, full_name, phone, lang')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, lang')),
   ]);
   const rows: Row[] = balances
     .map((b): Row => ({ ...clients.find((c) => c.id === b.client_id), owed: Number(b.balance) }))
@@ -356,11 +356,11 @@ export async function debtsView() {
       ? h('div', { className: 'scroll' }, h('table', {},
           h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('owes')), h('th'))),
           h('tbody', {}, ...rows.map((r) => h('tr', {},
-            h('td', {}, h('a', { href: `#/client/${r.id}/pay`, textContent: r.full_name })),
+            h('td', {}, h('a', { href: `#/client/${r.id}/pay`, textContent: nameIn(r) })),
             h('td', {}, ltr(r.phone ?? '')),
             h('td', {}, ltr(money(r.owed))),
             h('td', { className: 'actions' }, r.phone && h('a', { className: 'btn', target: '_blank', rel: 'noopener', textContent: t('remind'),
-              href: waLink(r.phone, tIn(r.lang as Lang, 'remindText').replace('{name}', r.full_name).replace('{amount}', money(r.owed))) }))
+              href: waLink(r.phone, tIn(r.lang as Lang, 'remindText').replace('{name}', nameIn(r, r.lang)).replace('{amount}', money(r.owed))) }))
           ))),
           h('tfoot', {}, h('tr', {}, h('th', { colSpan: 2 }, t('total')), h('th', {}, ltr(money(sum(rows, 'owed')))), h('th')))
         ))
@@ -377,7 +377,7 @@ const shift = (ym: string, by: number) => {
 export async function reportsView(arg?: string) {
   const ym = /^\d{4}-\d{2}$/.test(arg ?? '') ? (arg as string) : today().slice(0, 7);
   const [payments, charges, lessons, expenses] = await Promise.all([
-    get<Row[]>(db!.from('payments').select('*, clients(full_name), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name)))').gte('paid_on', `${ym}-01`).lt('paid_on', `${shift(ym, 1)}-01`).order('number')),
+    get<Row[]>(db!.from('payments').select('*, clients(full_name, full_name_en), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name, full_name_en)))').gte('paid_on', `${ym}-01`).lt('paid_on', `${shift(ym, 1)}-01`).order('number')),
     get<Row[]>(db!.from('charges').select('id, amount').eq('month', `${ym}-01`)),
     get<Row[]>(db!.from('lessons').select('trainer_pay').gte('held_on', `${ym}-01`).lt('held_on', `${shift(ym, 1)}-01`)),
     get<Row[]>(db!.from('expenses').select('*').gte('spent_on', `${ym}-01`).lt('spent_on', `${shift(ym, 1)}-01`).order('spent_on')),
@@ -385,8 +385,8 @@ export async function reportsView(arg?: string) {
   const owed = charges.length ? sum(await get<Row[]>(db!.from('charge_balances').select('owed').in('charge_id', charges.map((c) => c.id))), 'owed') : 0;
   const live = payments.filter((p) => !p.voided);
   const lang = getLang();
-  const covers = (p: Row) => p.payment_lines.map((l: Row) => `${l.charges.students.full_name}: ${chargeLabel(lang, l.charges)} (${Number(l.amount)})`).join('; ') || p.what;
-  const payerOf = (p: Row): string => p.clients?.full_name ?? p.payer_name;
+  const covers = (p: Row) => p.payment_lines.map((l: Row) => `${nameIn(l.charges.students)}: ${chargeLabel(lang, l.charges)} (${Number(l.amount)})`).join('; ') || p.what;
+  const payerOf = (p: Row): string => (p.clients ? nameIn(p.clients) : p.payer_name);
 
   // An expense always says what it was for.
   const spentOn = h('input', { type: 'date', value: today().slice(0, 7) === ym ? today() : `${ym}-01`, required: true, ariaLabel: t('date') });

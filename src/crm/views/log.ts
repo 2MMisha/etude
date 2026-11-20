@@ -3,7 +3,7 @@
 // it. This screen shows the latest changes in plain words, with filters by
 // what was changed, by person and by date.
 import { getLang } from '../i18n';
-import { db, h, get, ltr, type Row } from '../ui';
+import { db, h, get, ltr, type Row, nameIn } from '../ui';
 import { pick, type L } from '../forms';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
@@ -37,7 +37,7 @@ const TABLES: Record<string, L> = {
 // Fields that say nothing to a person.
 const NOISE = new Set(['id', 'created_at', 'created_by', 'updated_at', 'form_token', 'user_id', 'client_id', 'student_id', 'group_id', 'program_id', 'trainer_id', 'charge_id', 'payment_id', 'lesson_id', 'slot_id', 'event_id', 'decided_by', 'answers']);
 /** A short name for a row: its name, title or description. */
-const nameOf = (r: Row | null) => (r ? r.full_name ?? r.name ?? r.title ?? r.who ?? r.description ?? r.guest_name ?? r.label ?? (r.number != null ? `№ ${r.number}` : '') : '');
+const nameOf = (r: Row | null) => (r ? (r.full_name != null ? nameIn(r) : null) ?? r.name ?? r.title ?? r.who ?? r.description ?? r.guest_name ?? r.label ?? (r.number != null ? `№ ${r.number}` : '') : '');
 const show = (v: unknown) => (v == null || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v));
 
 export async function logView(filter?: string) {

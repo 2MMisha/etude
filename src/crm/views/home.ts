@@ -5,7 +5,7 @@
 // due for renewal, debts, trainers' requests, lessons and classes not yet
 // confirmed, money owed to trainers, online sign-ups and birthdays.
 import { getLang } from '../i18n';
-import { db, h, get, money, ltr, today, type Row } from '../ui';
+import { db, h, get, money, ltr, today, type Row, nameIn } from '../ui';
 import { FORMS, stateOf, expired, dmy, pick, type L } from '../forms';
 import { ATTENDANCE } from '../attendance';
 
@@ -51,21 +51,21 @@ const ageOf = (birth: string | null) => {
 export async function homeView() {
   const d0 = today();
   const [clients, students, forms, balances, requested, changes, unconfirmed, classes, sessions, trainerOwed, signups] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, phone, online, approved, user_id, archived')),
-    get<Row[]>(db!.from('students').select('id, client_id, full_name, birth_date, archived')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, online, approved, user_id, archived')),
+    get<Row[]>(db!.from('students').select('id, client_id, full_name, full_name_en, birth_date, archived')),
     get<Row[]>(db!.from('student_forms').select('student_id, form, submitted_at, needs_update, clarified, answers').order('submitted_at', { ascending: false })),
     get<Row[]>(db!.from('client_balances').select('client_id, balance').gt('balance', 0)),
     get<Row[]>(db!.from('lessons').select('id, held_on, start_time, trainers(full_name)').eq('status', 'requested').order('held_on')),
     get<Row[]>(db!.from('lesson_requests').select('id, kind, lessons(held_on, start_time, trainers(full_name))').eq('status', 'pending')),
-    get<Row[]>(db!.from('lessons').select('id, held_on, start_time, trainers(full_name), lesson_students(students(full_name))').eq('status', 'planned').lt('held_on', d0).order('held_on')),
+    get<Row[]>(db!.from('lessons').select('id, held_on, start_time, trainers(full_name), lesson_students(students(full_name, full_name_en))').eq('status', 'planned').lt('held_on', d0).order('held_on')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: plusDays(d0, -14), d2: plusDays(d0, -1) })),
     get<Row[]>(db!.from('class_sessions').select('slot_id, held_on').gte('held_on', plusDays(d0, -30))),
     get<Row[]>(db!.from('trainer_balances').select('trainer_id, owed').gt('owed', 0)),
-    get<Row[]>(db!.from('entries').select('id, guest_name, created_at, events(title, held_on), students(full_name)').eq('online', true).gte('created_at', plusDays(d0, -7))),
+    get<Row[]>(db!.from('entries').select('id, guest_name, created_at, events(title, held_on), students(full_name, full_name_en)').eq('online', true).gte('created_at', plusDays(d0, -7))),
   ]);
   const trainerNames = trainerOwed.length ? await get<Row[]>(db!.from('trainers').select('id, full_name').in('id', trainerOwed.map((x) => x.trainer_id))) : [];
   const clientOf = (sid: string) => clients.find((c) => c.id === students.find((s) => s.id === sid)?.client_id);
-  const studentName = (sid: string) => students.find((s) => s.id === sid)?.full_name ?? '?';
+  const studentName = (sid: string) => nameIn(students.find((s) => s.id === sid)) || '?';
   const latest = new Map<string, Row>(); // newest form per student and form
   for (const f of forms) if (!latest.has(`${f.student_id}/${f.form}`)) latest.set(`${f.student_id}/${f.form}`, f);
 
@@ -82,7 +82,7 @@ export async function homeView() {
 
   // Families waiting to be let in.
   section('waiting', clients.filter((c) => c.online && !c.approved && !c.archived)
-    .map((c) => item(`#/client/${c.id}/reg`, h('strong', { textContent: c.full_name }), ' ', ltr(c.phone ?? ''))), 'urgent');
+    .map((c) => item(`#/client/${c.id}/reg`, h('strong', { textContent: nameIn(c) }), ' ', ltr(c.phone ?? ''))), 'urgent');
 
   // Families to contact: a flagged answer the studio has not marked as clarified.
   const contacts: HTMLElement[] = [];
@@ -114,16 +114,16 @@ export async function homeView() {
       if (st === 'done' && r && expired(r.submitted_at, new Date(Date.now() + 30 * 864e5))) soon.push(`№${FORMS.find((x) => x.code === code)?.num}`);
     }
     if (none || update)
-      docLines.push(item(`#/client/${c.id}/reg`, h('strong', { textContent: s.full_name }), ' — ',
+      docLines.push(item(`#/client/${c.id}/reg`, h('strong', { textContent: nameIn(s) }), ' — ',
         [none && tr(S.missing).replace('{n}', String(none)), update && tr(S.update).replace('{n}', String(update))].filter(Boolean).join(', ')));
-    if (soon.length) soonLines.push(item(`#/client/${c.id}/reg`, h('strong', { textContent: s.full_name }), ` — ${soon.join(', ')}`));
+    if (soon.length) soonLines.push(item(`#/client/${c.id}/reg`, h('strong', { textContent: nameIn(s) }), ` — ${soon.join(', ')}`));
   }
   section('docs', docLines);
   section('soon', soonLines);
 
   // Debts.
   const owing = balances.map((b) => ({ c: clients.find((x) => x.id === b.client_id), owed: Number(b.balance) })).filter((x) => x.c).sort((a, b) => b.owed - a.owed);
-  section('debts', owing.slice(0, 10).map((x) => item(`#/client/${x.c!.id}/pay`, h('strong', { textContent: x.c!.full_name }), ' — ', ltr(money(x.owed)))), '',
+  section('debts', owing.slice(0, 10).map((x) => item(`#/client/${x.c!.id}/pay`, h('strong', { textContent: nameIn(x.c) }), ' — ', ltr(money(x.owed)))), '',
     owing.length ? h('p', {}, h('a', { href: '#/debts', textContent: `${tr(S.total)}: ${money(owing.reduce((a, x) => a + x.owed, 0))} → ${tr(S.open)}` })) : undefined);
 
   // Trainers' requests: new lessons asked for, moves and cancellations.
@@ -135,7 +135,7 @@ export async function homeView() {
 
   // Past private lessons still "planned".
   section('unconfirmed', unconfirmed.map((x) => item(`#/lessons/${x.held_on}`, ltr(when(x)), ' ', h('strong', { textContent: x.trainers?.full_name ?? '' }), ' — ',
-    (x.lesson_students ?? []).map((ls: Row) => ls.students?.full_name).filter(Boolean).join(', '))));
+    (x.lesson_students ?? []).map((ls: Row) => nameIn(ls.students)).filter(Boolean).join(', '))));
 
   // Group classes of the last two weeks that nobody marked.
   if (ATTENDANCE) section('unmarked', classes
@@ -147,14 +147,14 @@ export async function homeView() {
   section('trainers', trainerOwed.map((x) => item('#/trainersTab', h('strong', { textContent: trainerNames.find((t) => t.id === x.trainer_id)?.full_name ?? '?' }), ' — ', ltr(money(x.owed)))));
 
   // Online sign-ups to one-time groups.
-  section('signups', signups.map((x) => item(`#/lessons/${x.events?.held_on ?? ''}`, h('strong', { textContent: x.guest_name || x.students?.full_name || '' }), ` — ${x.events?.title ?? ''} `, ltr(x.events?.held_on ? dmy(x.events.held_on) : ''))));
+  section('signups', signups.map((x) => item(`#/lessons/${x.events?.held_on ?? ''}`, h('strong', { textContent: x.guest_name || nameIn(x.students) }), ` — ${x.events?.title ?? ''} `, ltr(x.events?.held_on ? dmy(x.events.held_on) : ''))));
 
   // Birthdays today and in the coming week.
   const days = Array.from({ length: 7 }, (_, i) => plusDays(d0, i));
   section('birthdays', students
     .filter((s) => s.birth_date && !s.archived && days.some((d) => d.slice(5) === s.birth_date.slice(5)))
     .sort((a, b) => days.findIndex((d) => d.slice(5) === a.birth_date.slice(5)) - days.findIndex((d) => d.slice(5) === b.birth_date.slice(5)))
-    .map((s) => item(`#/client/${s.client_id}/students`, h('strong', { textContent: s.full_name }), ' — ',
+    .map((s) => item(`#/client/${s.client_id}/students`, h('strong', { textContent: nameIn(s) }), ' — ',
       s.birth_date.slice(5) === d0.slice(5) ? tr(S.today) : ltr(dmy(`${d0.slice(0, 4)}-${s.birth_date.slice(5)}`).slice(0, 5)), ` (${ageOf(s.birth_date) + (s.birth_date.slice(5) === d0.slice(5) ? 0 : 1)})`)));
 
   const total = sections.reduce((n, s) => n + Number(s.querySelector('.count')?.textContent ?? 0), 0);

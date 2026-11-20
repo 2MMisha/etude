@@ -880,6 +880,7 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
     assert.deepEqual([row.status, row.trainer_id, row.guest_name], ['planned', misha.id, 'Walk-in'], 'planned at once, as their own, whatever was sent');
     assert.notEqual(Number(row.price), 1, 'at their own rate');
     assert.ok((await rpc('trainer', 'trainer_lessons', ['2027-03-01', '2027-03-03'])).rows.some((x) => x.students === 'Walk-in'), 'the guest shows in their list');
+    assert.ok((await rpc('trainer', 'trainer_lessons', ['2027-03-01', '2027-03-03'])).rows.some((x) => x.students_en === 'Walk-in'), 'and in the English list');
   }
   await db.query(`update public.profiles set roles = '{}' where id = $1`, [U.trainer]);
 }

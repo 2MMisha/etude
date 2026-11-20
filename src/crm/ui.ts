@@ -1,7 +1,7 @@
 // The CRM's whole "framework": build DOM, show a status line, small controls.
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_KEY } from '../lib/crmConfig';
-import { t } from './i18n';
+import { t, getLang } from './i18n';
 
 export type Row = Record<string, any>;
 export interface Profile { id: string; email: string; full_name: string; lang: 'he' | 'ru' | 'en'; roles: string[]; active: boolean }
@@ -199,7 +199,11 @@ export function addTableTools(root: HTMLElement) {
 }
 
 /** How a student is named in a list: the Hebrew name, and the English one in brackets. */
-export const studentLabel = (s: Row) => (s.full_name_en ? `${s.full_name} (${s.full_name_en})` : s.full_name);
+/** A person's name in a language (the screen's by default): the Hebrew name in Hebrew;
+ *  in Russian or English the English name when there is one, else the Hebrew. */
+export const nameIn = (r: Row | null | undefined, lang: string = getLang()): string =>
+  !r ? '' : lang !== 'he' && String(r.full_name_en ?? '').trim() ? String(r.full_name_en).trim() : r.full_name ?? '';
+export const studentLabel = (s: Row) => nameIn(s);
 
 /**
  * A student picker with search, instead of the system drop-down: type part of a

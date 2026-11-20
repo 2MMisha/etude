@@ -3,7 +3,7 @@
 // waits for an answer, and income over the last six months. Every number
 // leads to the screen where it is dealt with.
 import { getLang, LOCALE, type Lang } from '../i18n';
-import { db, h, get, money, ltr, today, type Row } from '../ui';
+import { db, h, get, money, ltr, today, type Row, nameIn } from '../ui';
 import { pick, dmy, type L } from '../forms';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
@@ -61,7 +61,7 @@ export async function dashboardView() {
     get<Row[]>(db!.from('lesson_requests').select('id').eq('status', 'pending')),
     get<Row[]>(db!.from('lessons').select('id').eq('status', 'planned').lt('held_on', d0)),
     get<Row[]>(db!.rpc('group_classes_between', { d1: d0, d2: d0 })),
-    get<Row[]>(db!.from('lessons').select('start_time, minutes, status, trainers(full_name), lesson_students(students(full_name))').eq('held_on', d0).in('status', ['planned', 'done', 'no_show', 'late_cancel'])),
+    get<Row[]>(db!.from('lessons').select('start_time, minutes, status, trainers(full_name), lesson_students(students(full_name, full_name_en))').eq('held_on', d0).in('status', ['planned', 'done', 'no_show', 'late_cancel'])),
     get<Row[]>(db!.from('rentals').select('start_time, minutes, who, hall').eq('held_on', d0)),
     get<Row[]>(db!.from('events').select('start_time, minutes, title, hall').eq('held_on', d0)),
   ]);
@@ -84,7 +84,7 @@ export async function dashboardView() {
   };
   const items = [
     ...classes.map((c) => ({ t: String(c.start_time).slice(0, 5), m: c.minutes, what: c.group_name, extra: [c.hall, c.cancelled && tr(S.cancelled)].filter(Boolean).join(' · '), off: c.cancelled })),
-    ...lessons.map((x) => ({ t: String(x.start_time ?? '').slice(0, 5), m: x.minutes, what: `${tr(S.privateLesson)}: ${(x.lesson_students ?? []).map((s: Row) => s.students?.full_name).filter(Boolean).join(', ')}`, extra: x.trainers?.full_name ?? '', off: false })),
+    ...lessons.map((x) => ({ t: String(x.start_time ?? '').slice(0, 5), m: x.minutes, what: `${tr(S.privateLesson)}: ${(x.lesson_students ?? []).map((s: Row) => nameIn(s.students)).filter(Boolean).join(', ')}`, extra: x.trainers?.full_name ?? '', off: false })),
     ...events.map((e) => ({ t: String(e.start_time).slice(0, 5), m: e.minutes, what: `★ ${e.title}`, extra: e.hall, off: false })),
     ...rentals.map((r) => ({ t: String(r.start_time).slice(0, 5), m: r.minutes, what: `🔑 ${tr(S.rental)}: ${r.who}`, extra: r.hall, off: false })),
   ].filter((x) => x.t).sort((a, b) => a.t.localeCompare(b.t));

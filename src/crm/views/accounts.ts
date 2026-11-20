@@ -5,7 +5,7 @@
 // key go through the "accounts" Edge Function (supabase/functions/accounts/).
 import { t, getLang, type Key } from '../i18n';
 import { pick } from '../forms';
-import { db, h, get, ok, nav, input, checkbox, flash, state, type Profile, type Row, keep } from '../ui';
+import { db, h, get, ok, nav, input, checkbox, flash, state, type Profile, type Row, keep, nameIn } from '../ui';
 
 const ROLES = ['owner', 'admin', 'trainer', 'client'] as const;
 
@@ -26,13 +26,13 @@ export async function accountsView() {
   const me = state.me!;
   const [profiles, clients, trainers] = await Promise.all([
     get<Profile[]>(db!.from('profiles').select('id, email, full_name, lang, roles, active').order('created_at')),
-    get<Row[]>(db!.from('clients').select('id, full_name, user_id').not('user_id', 'is', null)),
-    get<Row[]>(db!.from('trainers').select('id, full_name, user_id').not('user_id', 'is', null)),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, user_id').not('user_id', 'is', null)),
+    get<Row[]>(db!.from('trainers').select('id, full_name, full_name_en, user_id').not('user_id', 'is', null)),
   ]);
   const say = (ru: string, he: string, en: string) => pick({ ru, he, en }, getLang());
   /** What a login belongs to: the client (family) and/or the trainer it is linked with. */
   const linked = (p: Profile) => [
-    ...clients.filter((c) => c.user_id === p.id).map((c) => h('a', { href: `#/client/${c.id}/reg`, textContent: `${t('client')}: ${c.full_name}` })),
+    ...clients.filter((c) => c.user_id === p.id).map((c) => h('a', { href: `#/client/${c.id}/reg`, textContent: `${t('client')}: ${nameIn(c)}` })),
     ...trainers.filter((x) => x.user_id === p.id).map((x) => h('a', { href: '#/settings', textContent: `${t('trainer')}: ${x.full_name}` })),
   ];
   const iAmOwner = me.roles.includes('owner');

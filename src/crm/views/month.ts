@@ -3,7 +3,7 @@
 // button charges everyone by the price list; changing a charge or taking a
 // payment happens on the client's page (click the name).
 import { getLang, t, LOCALE } from '../i18n';
-import { db, h, get, nav, flash, money, ltr, pctOf, today, fillThisMonth, type Row } from '../ui';
+import { db, h, get, nav, flash, money, ltr, pctOf, today, fillThisMonth, type Row, nameIn } from '../ui';
 
 const shift = (ym: string, by: number) => {
   const [y, m] = ym.split('-').map(Number);
@@ -16,12 +16,12 @@ export async function monthView(arg?: string) {
   const isNow = ym === today().slice(0, 7);
   if (isNow) await fillThisMonth();
   const [students, quotes, charges] = await Promise.all([
-    get<Row[]>(db!.from('students').select('id, full_name, client_id, clients!inner(full_name, archived)').eq('archived', false).eq('clients.archived', false)),
+    get<Row[]>(db!.from('students').select('id, full_name, full_name_en, client_id, clients!inner(full_name, full_name_en, archived)').eq('archived', false).eq('clients.archived', false)),
     get<Row[]>(db!.from('student_quotes').select('*')),
     get<Row[]>(db!.from('charges').select('*').eq('kind', 'membership').eq('month', first)),
   ]);
   const balances = charges.length ? await get<Row[]>(db!.from('charge_balances').select('charge_id, paid, owed').in('charge_id', charges.map((c) => c.id))) : [];
-  students.sort((a, b) => a.clients.full_name.localeCompare(b.clients.full_name) || a.full_name.localeCompare(b.full_name));
+  students.sort((a, b) => nameIn(a.clients).localeCompare(nameIn(b.clients)) || nameIn(a).localeCompare(nameIn(b)));
 
   const row = (s: Row) => {
     const q = quotes.find((x) => x.student_id === s.id);
@@ -31,7 +31,7 @@ export async function monthView(arg?: string) {
     const pct = pctOf(shown?.discounts);
     const owed = b ? Number(b.owed) : 0;
     return h('tr', { className: c ? '' : 'pending' },
-      h('td', {}, h('a', { href: `#/client/${s.client_id}/pay`, textContent: s.full_name }), s.clients.full_name !== s.full_name && h('small', {}, s.clients.full_name)),
+      h('td', {}, h('a', { href: `#/client/${s.client_id}/pay`, textContent: nameIn(s) }), nameIn(s.clients) !== nameIn(s) && h('small', {}, nameIn(s.clients))),
       h('td', {}, shown?.description ? ltr(shown.description) : '', pct > 0 && h('small', {}, ltr(`−${pct}%`))),
       c
         ? h('td', {}, ltr(money(c.amount)), c.manual && h('small', {}, `${t('byHand')}: ${c.comment}`))

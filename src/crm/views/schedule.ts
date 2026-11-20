@@ -4,7 +4,7 @@
 // hall rentals — by day, time and hall. Click anything on the grid to change
 // it; the forms under the grid add a private lesson or a rental.
 import { getLang, t, LOCALE, type Key } from '../i18n';
-import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, studentPicker, type Row } from '../ui';
+import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, studentPicker, type Row, nameIn } from '../ui';
 import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
 import { SITE } from '../../lib/site';
@@ -47,7 +47,7 @@ export async function scheduleView(arg?: string) {
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes, sessions] = await Promise.all([
-    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
+    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
     get<Row[]>(db!.from('rentals').select('*').gte('held_on', start).lte('held_on', end)),
@@ -57,12 +57,12 @@ export async function scheduleView(arg?: string) {
     get<Row[]>(db!.from('settings').select('value').eq('id', 'halls')),
     get<Row[]>(db!.from('lessons').select('held_on').eq('status', 'planned').lt('held_on', today()).order('held_on').limit(100)),
     get<Row[]>(db!.from('events').select('*').gte('held_on', start).lte('held_on', end)),
-    get<Row[]>(db!.from('entries').select('*, students(full_name, client_id)').gte('held_on', start).lte('held_on', end).order('created_at')),
+    get<Row[]>(db!.from('entries').select('*, students(full_name, full_name_en, client_id)').gte('held_on', start).lte('held_on', end).order('created_at')),
     get<Row[]>(db!.from('payments').select('amount, entry_id, rental_id, lesson_id').eq('voided', false).or('entry_id.not.is.null,rental_id.not.is.null,lesson_id.not.is.null')),
     get<Row[]>(db!.from('prices').select('amount').eq('kind', 'entry')),
     // Waiting for a decision, whatever week they are in: lessons trainers asked for, and their requests to move or cancel.
-    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').eq('status', 'requested').order('held_on').order('start_time')),
-    get<Row[]>(db!.from('lesson_requests').select('*, lessons(held_on, start_time, minutes, trainers(full_name), lesson_students(students(full_name)))').eq('status', 'pending').order('created_at')),
+    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name, full_name_en))').eq('status', 'requested').order('held_on').order('start_time')),
+    get<Row[]>(db!.from('lesson_requests').select('*, lessons(held_on, start_time, minutes, trainers(full_name), lesson_students(students(full_name, full_name_en)))').eq('status', 'pending').order('created_at')),
     // Group classes already marked as taken place (a class moved within a week or so keeps its own date).
     get<Row[]>(db!.from('class_sessions').select('slot_id, held_on').gte('held_on', addDays(start, -60)).lte('held_on', addDays(end, 60))),
   ]);
@@ -72,7 +72,7 @@ export async function scheduleView(arg?: string) {
   const hallOptions: [string, string][] = [['', '—'], ...halls.map((x): [string, string] => [x, x])];
   const trainerOptions = trainers.map((x): [string, string] => [x.id, x.full_name]);
   const trainerName = (id: string | null) => trainers.find((x) => x.id === id)?.full_name ?? '';
-  const names = (l: Row) => [...l.lesson_students.map((x: Row) => x.students.full_name), l.guest_name].filter(Boolean).join(' + ');
+  const names = (l: Row) => [...l.lesson_students.map((x: Row) => nameIn(x.students)), l.guest_name].filter(Boolean).join(' + ');
   const done = (p: PromiseLike<boolean>) => p.then((okay) => { if (okay) nav.refresh(); });
 
   // What goes on the grid: group classes as they really are that day, the
@@ -142,7 +142,7 @@ export async function scheduleView(arg?: string) {
         const paid = paidFor('entry_id', e.id);
         return h('div', { className: 'row' },
           h('span', { className: 'grow' },
-            e.students ? h('a', { href: `#/client/${e.students.client_id}/pay`, textContent: e.students.full_name }) : e.guest_name,
+            e.students ? h('a', { href: `#/client/${e.students.client_id}/pay`, textContent: nameIn(e.students) }) : e.guest_name,
             e.phone && ' · ', e.phone && h('a', { href: `tel:${e.phone}`, dir: 'ltr', textContent: e.phone }), ' · ', ltr(money(e.amount)),
             e.online && h('small', {}, t('signedOnline')),
             // What they filled in on the sign-up page, beyond the name and phone.

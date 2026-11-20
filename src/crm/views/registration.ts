@@ -4,7 +4,7 @@
 // family asked the studio to contact them about, and staff comments. For a
 // family that registered online and is already in the CRM: join the two.
 import { getLang, t } from '../i18n';
-import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, studentPicker, type Row } from '../ui';
+import { db, h, get, ok, nav, select, field, checkbox, tick, sureButton, flash, ltr, studentPicker, type Row, nameIn } from '../ui';
 import { FORMS, W, visible, missing, flags, answered, stateOf, dmy, shownAnswer, pick, STUDENT_REL, STATE_WORD, type Ctx, type Form, type L, type Q, type Sent } from '../forms';
 
 
@@ -83,7 +83,7 @@ export async function registrationCard(client: Row, students: Row[], everyone: R
         sureButton(tr(S.refuse), async () => { if (await ok(db!.rpc('refuse_family', { cid: client.id }))) location.hash = '#/clients'; })),
       h('h3', { textContent: tr(S.joinTitle) }),
       h('p', { className: 'muted', textContent: tr(S.joinHint) }),
-      select([['', tr(S.joinInto)], ...clients.filter((c) => c.id !== client.id && !c.user_id).map((c): [string, string] => [c.id, `${c.full_name}${c.phone ? ` · ${c.phone}` : ''}`])], '', async (into) => {
+      select([['', tr(S.joinInto)], ...clients.filter((c) => c.id !== client.id && !c.user_id).map((c): [string, string] => [c.id, `${nameIn(c)}${c.phone ? ` · ${c.phone}` : ''}`])], '', async (into) => {
         if (!into) return;
         const { error } = await db!.rpc('merge_client', { from_id: client.id, into_id: into });
         if (error) return flash(error.message, true);
