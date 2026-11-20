@@ -1,18 +1,16 @@
 ---
 // Hidden staff-only content panel — replaces the old GitHub Actions
-// "News/Schedule: Add/Update/Delete" workflows with a proper in-browser UI.
+// "News: Add/Update/Delete" workflows with a proper in-browser UI.
 // Not linked from any nav; gated by a password + a GitHub token the admin
 // supplies themselves. See README "Editing content: the admin panel".
 import { SITE } from '../../lib/site';
 import { ADMIN_PASSWORD_SHA256, ADMIN_BRANCH } from '../../lib/adminConfig';
-import { TIMETABLE_SHEET_ID } from '../../lib/loadTimetable';
 import QRCode from 'qrcode';
 import '../../styles/global.css';
 import '../../styles/week-grid.css';
 
 const REPO_OWNER = SITE.githubOrg;
 const REPO_NAME = SITE.repoName;
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${TIMETABLE_SHEET_ID}/edit`;
 // The students' app link and its QR code (for printing in the studio).
 const APP_URL = `${SITE.siteUrl}/student/`;
 const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: { dark: '#17224a', light: '#ffffff' } });
@@ -140,7 +138,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           This page writes directly to the site's GitHub repository using a personal access token you provide below —
           it is stored only in this browser (localStorage), never sent anywhere but api.github.com. Don't use this on a
           shared or public computer, and use a token scoped to only this one repository. Saving anything here —
-          a news post, a schedule slot, an instructor, the site settings, or a timetable update — pushes a commit to
+          a news post, an instructor, the site settings, the students' app, or a timetable update — pushes a commit to
           <code>{REPO_OWNER}/{REPO_NAME}</code>, which rebuilds the live site automatically within about 1–2 minutes.
         </div>
 
@@ -163,10 +161,9 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         <div class="tabs">
           <button class="tab-btn active" id="tabNewsBtn">News posts</button>
           <button class="tab-btn" id="tabStudentBtn">📱 Students' app</button>
-          <button class="tab-btn" id="tabScheduleBtn">Schedule slots</button>
           <button class="tab-btn" id="tabInstructorsBtn">Instructors</button>
           <button class="tab-btn" id="tabSettingsBtn">Site settings</button>
-          <button class="tab-btn" id="tabTimetableBtn">Timetable (Google Sheet)</button>
+          <button class="tab-btn" id="tabTimetableBtn">Timetable</button>
         </div>
 
         <section id="newsSection">
@@ -248,82 +245,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
               <button class="btn-mini primary" id="saveNewsBtn">Save post</button>
               <button class="btn-mini" id="cancelNewsBtn">Cancel</button>
               <span class="status-msg" id="newsSaveStatus"></span>
-            </div>
-          </div>
-        </section>
-
-        <section id="scheduleSection" hidden>
-          <div class="panel">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <h2 style="font-size:1.05rem">Schedule slots</h2>
-              <button class="btn-mini primary" id="newSlotBtn">+ New slot</button>
-            </div>
-            <p class="status-msg" id="scheduleListStatus"></p>
-            <div style="overflow-x:auto">
-              <table class="data-table" id="scheduleTable" hidden>
-                <thead><tr><th>Day</th><th>Time</th><th>Class (EN)</th><th>Level</th><th>ID</th><th></th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel" id="scheduleForm" hidden>
-            <h2 style="font-size:1.05rem" id="scheduleFormTitle">New slot</h2>
-            <div class="form-grid">
-              <div>
-                <label for="slotId">Slot ID (lowercase, hyphens only — reusing an existing ID overwrites it)</label>
-                <input type="text" id="slotId" placeholder="mon-latin-beginner" />
-                <p class="field-error" id="slotIdError"></p>
-              </div>
-              <div class="row-3">
-                <div>
-                  <label for="slotDay">Day</label>
-                  <select id="slotDay">
-                    <option value="sunday">Sunday</option>
-                    <option value="monday">Monday</option>
-                    <option value="tuesday">Tuesday</option>
-                    <option value="wednesday">Wednesday</option>
-                    <option value="thursday">Thursday</option>
-                    <option value="friday">Friday</option>
-                    <option value="saturday">Saturday</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="slotLevel">Level</label>
-                  <select id="slotLevel">
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                    <option value="private">Private</option>
-                  </select>
-                </div>
-                <div></div>
-              </div>
-              <div class="row-3">
-                <div>
-                  <label for="slotStart">Start time (24h)</label>
-                  <input type="time" id="slotStart" />
-                </div>
-                <div>
-                  <label for="slotEnd">End time (24h)</label>
-                  <input type="time" id="slotEnd" />
-                </div>
-                <div></div>
-              </div>
-              <p class="field-error" id="slotTimeError"></p>
-              <div>
-                <label>Class name</label>
-                <div class="lang-grid">
-                  <input type="text" id="slotNameHe" placeholder="עברית" dir="rtl" />
-                  <input type="text" id="slotNameEn" placeholder="English" />
-                  <input type="text" id="slotNameRu" placeholder="Русский" />
-                </div>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button class="btn-mini primary" id="saveSlotBtn">Save slot</button>
-              <button class="btn-mini" id="cancelSlotBtn">Cancel</button>
-              <span class="status-msg" id="scheduleSaveStatus"></span>
             </div>
           </div>
         </section>
@@ -480,12 +401,11 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             </div>
             <p class="status-msg" id="studentStatus"></p>
             <div class="subtabs" id="saSubtabs">
-              <button type="button" class="active" data-sub="notice">Important &amp; payment</button>
+              <button type="button" class="active" data-sub="notice">Important notice</button>
               <button type="button" data-sub="events">Events</button>
               <button type="button" data-sub="music">Music</button>
-              <!-- Birthdays now come from the CRM (students' birth dates); names are no longer kept in this public repo. -->
               <button type="button" data-sub="invite">Invite a friend</button>
-              <button type="button" data-sub="prices">Prices &amp; rules</button>
+              <button type="button" data-sub="prices">Studio rules</button>
               <button type="button" data-sub="access">Access code</button>
               <button type="button" data-sub="push">🔔 Send notification</button>
             </div>
@@ -533,22 +453,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
               </div>
             </div>
 
-            <div class="panel">
-              <h2 style="font-size:1.05rem">Membership payment reminder</h2>
-              <p class="hint">
-                A banner with a day countdown at the top of the app, from a few days before the payment day to a few days after it
-                (each student can hide it with "Already paid"), and a pop-up on the payment day itself. Students can also subscribe
-                to a monthly calendar reminder from the Studio tab.
-              </p>
-              <div class="form-grid">
-                <label><input type="checkbox" id="saPayActive" class="inline-check" /> Remind about the payment</label>
-                <div class="row-3">
-                  <div><label for="saPayDay">Payment day of the month</label><input type="number" id="saPayDay" min="1" max="28" /></div>
-                  <div><label for="saPayBefore">Banner — days before</label><input type="number" id="saPayBefore" min="0" max="14" /></div>
-                  <div><label for="saPayAfter">Banner — days after</label><input type="number" id="saPayAfter" min="0" max="14" /></div>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div data-subpanel="events" hidden>
@@ -577,21 +481,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             </div>
           </div>
 
-          <div data-subpanel="birthdays" hidden>
-            <div class="panel">
-              <h2 style="font-size:1.05rem">Birthdays</h2>
-              <p class="hint">
-                One per line: the name as it should appear, a dash, the day and month — e.g. <code>Маша К. — 15.03</code>. On the
-                day the app's home screen congratulates them; the next 7 days show as "coming up". No year is stored or shown.
-                <strong>Add only students whose parents (or the adult students themselves) agreed.</strong>
-              </p>
-              <div class="form-grid">
-                <textarea id="saBirthdays" rows="10"></textarea>
-                <p class="field-error" id="saBirthdaysError"></p>
-              </div>
-            </div>
-          </div>
-
           <div data-subpanel="invite" hidden>
             <div class="panel">
               <h2 style="font-size:1.05rem">Invite a friend</h2>
@@ -612,18 +501,12 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
 
           <div data-subpanel="prices" hidden>
             <div class="panel">
-              <h2 style="font-size:1.05rem">Prices &amp; studio rules</h2>
+              <h2 style="font-size:1.05rem">Studio rules</h2>
               <p class="hint">
                 One item per line. Prices: name, a dash, the price — e.g. <code>Kids group, 4 lessons a month — 300 ₪</code>. Leave
                 prices empty to show "ask us on WhatsApp".
               </p>
               <div class="form-grid">
-                <h3 style="font-size:0.95rem; margin:0">Prices</h3>
-                <div class="row-3">
-                  <div><label for="saPricesHe">עברית</label><textarea id="saPricesHe" dir="rtl" rows="8"></textarea></div>
-                  <div><label for="saPricesRu">Русский</label><textarea id="saPricesRu" rows="8"></textarea></div>
-                  <div><label for="saPricesEn">English</label><textarea id="saPricesEn" rows="8"></textarea></div>
-                </div>
                 <h3 style="font-size:0.95rem; margin:0">Studio rules</h3>
                 <div class="row-3">
                   <div><label for="saRulesHe">עברית</label><textarea id="saRulesHe" dir="rtl" rows="8"></textarea></div>
@@ -700,15 +583,15 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
 
         <section id="timetableSection" hidden>
           <div class="panel">
-            <h2 style="font-size:1.05rem">Timetable (Google Sheet)</h2>
+            <h2 style="font-size:1.05rem">Timetable</h2>
             <p class="hint">
-              The studio screen <a href="/display/" target="_blank" rel="noopener">/display/</a> shows the classes from the shared
-              Google Sheet — one tab per week. Just edit the sheet: the site rebuilds every hour and picks up the changes by itself.
-              Press <strong>Update now</strong> to rebuild right away (takes about 2–3 minutes). Columns whose name contains
-              "rent" are shown on the screen as hall rentals.
+              The studio screen <a href="/display/" target="_blank" rel="noopener">/display/</a>, the trainers' app, their
+              calendars and the site's Schedule page are built from the CRM: classes, master classes, private lessons and hall
+              rentals are entered in <a href="/crm/#/lessons" target="_blank" rel="noopener">the CRM's Schedule</a>. The site
+              rebuilds every hour by itself; press <strong>Update now</strong> to rebuild right away (about 2–3 minutes).
+              Below: the week as it is now, and its print.
             </p>
             <div class="form-actions" style="margin-block-start:0">
-              <a class="btn-mini primary" href={SHEET_URL} target="_blank" rel="noopener">Open the Google Sheet ↗</a>
               <a class="btn-mini" href="/display/" target="_blank" rel="noopener">Open display ↗</a>
               <a class="btn-mini" href="/trainers/?preview" target="_blank" rel="noopener">Trainer schedules ↗</a>
               <button class="btn-mini" id="ttRefreshBtn">Update now</button>
@@ -728,7 +611,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
 
     <script define:vars={{ REPO_OWNER, REPO_NAME, ADMIN_BRANCH, ADMIN_PASSWORD_SHA256 }}>
       const NEWS_DIR = 'src/content/news';
-      const SCHEDULE_DIR = 'src/content/schedule';
       const INSTRUCTORS_DIR = 'src/content/instructors';
       const SETTINGS_PATH = 'src/data/site-settings.json';
       const STUDENT_PATH = 'src/data/student-app.json';
@@ -874,7 +756,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
             $('tokenStatus').textContent = 'Token saved and repository is reachable.';
             $('tokenStatus').className = 'token-status ok';
             loadNews();
-            loadSchedule();
             loadInstructors();
             loadSettings();
             loadStudent();
@@ -894,7 +775,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
 
       // ---------- Tabs ----------
       $('tabNewsBtn').addEventListener('click', () => switchTab('news'));
-      $('tabScheduleBtn').addEventListener('click', () => switchTab('schedule'));
       $('tabInstructorsBtn').addEventListener('click', () => switchTab('instructors'));
       $('tabSettingsBtn').addEventListener('click', () => switchTab('settings'));
       $('tabTimetableBtn').addEventListener('click', () => switchTab('timetable'));
@@ -905,11 +785,9 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         $('tabTimetableBtn').classList.toggle('active', which === 'timetable');
         $('timetableSection').hidden = which !== 'timetable';
         $('tabNewsBtn').classList.toggle('active', which === 'news');
-        $('tabScheduleBtn').classList.toggle('active', which === 'schedule');
         $('tabInstructorsBtn').classList.toggle('active', which === 'instructors');
         $('tabSettingsBtn').classList.toggle('active', which === 'settings');
         $('newsSection').hidden = which !== 'news';
-        $('scheduleSection').hidden = which !== 'schedule';
         $('instructorsSection').hidden = which !== 'instructors';
         $('settingsSection').hidden = which !== 'settings';
       }
@@ -1067,151 +945,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         try {
           await ghDeleteFile(`${NEWS_DIR}/${post.id}.json`, post.sha, `chore(news): delete "${post.id}" via admin panel`);
           loadNews();
-        } catch (err) {
-          alert('Delete failed: ' + err.message);
-        }
-      }
-
-      // ---------- Schedule ----------
-      let scheduleCache = [];
-
-      async function loadSchedule() {
-        $('scheduleListStatus').textContent = 'Loading…';
-        $('scheduleListStatus').className = 'status-msg pending';
-        try {
-          const files = await ghListDir(SCHEDULE_DIR);
-          scheduleCache = await Promise.all(
-            files.filter((f) => f.name.endsWith('.json')).map(async (f) => {
-              const file = await ghGetFile(f.path);
-              const data = JSON.parse(file.content);
-              return { id: f.name.replace(/\.json$/, ''), sha: file.sha, data };
-            })
-          );
-          const dayOrder = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-          scheduleCache.sort((a, b) => dayOrder.indexOf(a.data.day) - dayOrder.indexOf(b.data.day) || a.data.startTime.localeCompare(b.data.startTime));
-          renderScheduleTable();
-          $('scheduleListStatus').textContent = scheduleCache.length ? '' : 'No slots yet.';
-          $('scheduleListStatus').className = 'status-msg';
-        } catch (err) {
-          $('scheduleListStatus').textContent = 'Could not load slots: ' + err.message;
-          $('scheduleListStatus').className = 'status-msg bad';
-        }
-      }
-
-      function renderScheduleTable() {
-        const table = $('scheduleTable');
-        const tbody = table.querySelector('tbody');
-        tbody.innerHTML = '';
-        table.hidden = scheduleCache.length === 0;
-        for (const slot of scheduleCache) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${escapeHtml(slot.data.day || '')}</td>
-            <td>${escapeHtml(slot.data.startTime || '')}–${escapeHtml(slot.data.endTime || '')}</td>
-            <td>${escapeHtml(slot.data.className?.en || '')}</td>
-            <td>${escapeHtml(slot.data.level || '')}</td>
-            <td><code>${escapeHtml(slot.id)}</code></td>
-            <td class="actions"></td>
-          `;
-          const actionsTd = tr.querySelector('.actions');
-          const editBtn = document.createElement('button');
-          editBtn.className = 'btn-mini';
-          editBtn.textContent = 'Edit';
-          editBtn.addEventListener('click', () => openSlotForm(slot));
-          const delBtn = document.createElement('button');
-          delBtn.className = 'btn-mini danger';
-          delBtn.textContent = 'Delete';
-          delBtn.addEventListener('click', () => deleteSlot(slot));
-          actionsTd.append(editBtn, delBtn);
-          tbody.appendChild(tr);
-        }
-      }
-
-      let editingSlotId = null;
-      let editingSlotSha = null;
-
-      $('newSlotBtn').addEventListener('click', () => openSlotForm(null));
-      $('cancelSlotBtn').addEventListener('click', () => { $('scheduleForm').hidden = true; });
-
-      function openSlotForm(slot) {
-        $('scheduleForm').hidden = false;
-        $('scheduleSaveStatus').textContent = '';
-        $('slotIdError').textContent = '';
-        $('slotTimeError').textContent = '';
-        if (slot) {
-          $('scheduleFormTitle').textContent = 'Edit slot: ' + slot.id;
-          $('slotId').value = slot.id;
-          $('slotId').disabled = true;
-          $('slotDay').value = slot.data.day;
-          $('slotLevel').value = slot.data.level;
-          $('slotStart').value = slot.data.startTime;
-          $('slotEnd').value = slot.data.endTime;
-          $('slotNameHe').value = slot.data.className?.he || '';
-          $('slotNameEn').value = slot.data.className?.en || '';
-          $('slotNameRu').value = slot.data.className?.ru || '';
-          editingSlotId = slot.id;
-          editingSlotSha = slot.sha;
-        } else {
-          $('scheduleFormTitle').textContent = 'New slot';
-          $('slotId').value = '';
-          $('slotId').disabled = false;
-          $('slotDay').value = 'sunday';
-          $('slotLevel').value = 'beginner';
-          $('slotStart').value = '';
-          $('slotEnd').value = '';
-          $('slotNameHe').value = '';
-          $('slotNameEn').value = '';
-          $('slotNameRu').value = '';
-          editingSlotId = null;
-          editingSlotSha = null;
-        }
-        $('scheduleForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-
-      $('saveSlotBtn').addEventListener('click', async () => {
-        const id = (editingSlotId || $('slotId').value).trim().toLowerCase();
-        $('slotIdError').textContent = '';
-        $('slotTimeError').textContent = '';
-        if (!SLUG_PATTERN.test(id)) {
-          $('slotIdError').textContent = 'Use lowercase letters, numbers, and hyphens only (e.g. "mon-latin-beginner").';
-          return;
-        }
-        const startTime = $('slotStart').value;
-        const endTime = $('slotEnd').value;
-        if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) {
-          $('slotTimeError').textContent = 'Pick both a start and end time.';
-          return;
-        }
-        const slot = {
-          day: $('slotDay').value,
-          startTime,
-          endTime,
-          level: $('slotLevel').value,
-          className: { he: $('slotNameHe').value, en: $('slotNameEn').value, ru: $('slotNameRu').value },
-        };
-        for (const [lang, val] of Object.entries(slot.className)) {
-          if (!val.trim()) { $('slotIdError').textContent = `Class name (${lang}) is required.`; return; }
-        }
-        $('scheduleSaveStatus').textContent = 'Saving…';
-        $('scheduleSaveStatus').className = 'status-msg pending';
-        try {
-          const sha = editingSlotId === id ? editingSlotSha : null;
-          await ghPutFile(`${SCHEDULE_DIR}/${id}.json`, slot, sha, `chore(schedule): ${editingSlotId ? 'update' : 'add'} "${id}" via admin panel`);
-          $('scheduleSaveStatus').textContent = 'Saved. The site will rebuild in about 1–2 minutes.';
-          $('scheduleSaveStatus').className = 'status-msg ok';
-          $('scheduleForm').hidden = true;
-          loadSchedule();
-        } catch (err) {
-          $('scheduleSaveStatus').textContent = 'Save failed: ' + err.message;
-          $('scheduleSaveStatus').className = 'status-msg bad';
-        }
-      });
-
-      async function deleteSlot(slot) {
-        if (!confirm(`Delete schedule slot "${slot.id}"? This cannot be undone.`)) return;
-        try {
-          await ghDeleteFile(`${SCHEDULE_DIR}/${slot.id}.json`, slot.sha, `chore(schedule): delete "${slot.id}" via admin panel`);
-          loadSchedule();
         } catch (err) {
           alert('Delete failed: ' + err.message);
         }
@@ -1520,21 +1253,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         return o;
       }
 
-      const pad2 = (n) => String(n).padStart(2, '0');
-      /** "Маша К. — 15.03" lines → [{ name, day, month }]; null + message on a bad line. */
-      function parseBirthdays(text) {
-        const out = [];
-        for (const raw of text.split('\n')) {
-          const line = raw.trim();
-          if (!line) continue;
-          const m = line.match(/^(.+?)\s*[—–-]\s*(\d{1,2})[./](\d{1,2})$/);
-          const day = m && Number(m[2]), month = m && Number(m[3]);
-          if (!m || month < 1 || month > 12 || day < 1 || day > 31) return { error: `Can't read this line: "${line}" — write it as "Name — DD.MM".` };
-          out.push({ name: m[1].trim(), day, month });
-        }
-        return { list: out };
-      }
-
       async function loadStudent() {
         $('studentStatus').textContent = 'Loading…';
         $('studentStatus').className = 'status-msg pending';
@@ -1544,7 +1262,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           studentData = s;
           studentSha = file?.sha ?? null;
           for (const [suffix, lang] of Object.entries(SA_LANGS)) {
-            $('saPrices' + suffix).value = (s.prices?.[lang] || []).join('\n');
             $('saRules' + suffix).value = (s.rules?.[lang] || []).join('\n');
             $('saNoticeTitle' + suffix).value = s.notice?.title?.[lang] || '';
             $('saNoticeBody' + suffix).value = s.notice?.body?.[lang] || '';
@@ -1553,14 +1270,8 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           $('saNoticeActive').checked = !!s.notice?.active;
           $('saNoticeMode').value = s.notice?.mode === 'popup' ? 'popup' : 'banner';
           $('saNoticeUntil').value = s.notice?.until || '';
-          const pay = { active: true, day: 1, before: 3, after: 3, ...s.payment };
-          $('saPayActive').checked = pay.active !== false;
-          $('saPayDay').value = pay.day;
-          $('saPayBefore').value = pay.before;
-          $('saPayAfter').value = pay.after;
           $('saEvents').replaceChildren(...[...(s.events || [])].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(eventCard));
           $('saMusic').replaceChildren(...(s.music || []).map(musicCard));
-          $('saBirthdays').value = (s.birthdays || []).map((b) => `${b.name} — ${pad2(b.day)}.${pad2(b.month)}`).join('\n');
           $('saInviteActive').checked = s.invite?.active !== false;
           $('saNewCode').value = '';
           $('studentStatus').textContent = '';
@@ -1582,10 +1293,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           const n = Math.round(Number($(id).value));
           return $(id).value === '' || !Number.isFinite(n) ? fallback : Math.min(hi, Math.max(lo, n));
         };
-        $('saBirthdaysError').textContent = '';
         $('saCodeError').textContent = '';
-        const birthdays = parseBirthdays($('saBirthdays').value);
-        if (birthdays.error) { $('saBirthdaysError').textContent = birthdays.error; return saveError(birthdays.error, 'birthdays'); }
         const events = [...$('saEvents').children].map((c) => ({ id: c.dataset.id, ...readCard(c) }));
         const badEvent = events.find((e) => !e.date || !(e.title.he || e.title.ru || e.title.en));
         if (badEvent) return saveError('Every event needs a date and a title (at least in one language).', 'events');
@@ -1603,22 +1311,16 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         const { playlists: _old, ...rest } = studentData; // replaced by "music"
         const data = {
           ...rest,
-          prices: {},
+          prices: { he: [], ru: [], en: [] }, // the app shows the CRM's price list; never prices in this public repo
           rules: {},
           notice: { active: $('saNoticeActive').checked, mode: $('saNoticeMode').value, until: $('saNoticeUntil').value, title: {}, body: {} },
-          payment: {
-            active: $('saPayActive').checked,
-            day: num('saPayDay', 1, 28, 10),
-            before: num('saPayBefore', 0, 14, 3),
-            after: num('saPayAfter', 0, 14, 3),
-          },
+          // payment: kept as it is; the payment day and the reminders are set in the CRM (Settings).
           events: events.sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || '')),
           music,
           birthdays: [], // from the CRM now; never store names here (the repo is public)
           invite: { active: $('saInviteActive').checked, text: {} },
         };
         for (const [suffix, lang] of Object.entries(SA_LANGS)) {
-          data.prices[lang] = lines('saPrices' + suffix);
           data.rules[lang] = lines('saRules' + suffix);
           data.notice.title[lang] = $('saNoticeTitle' + suffix).value.trim();
           data.notice.body[lang] = $('saNoticeBody' + suffix).value.trim();
@@ -1668,7 +1370,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       });
 
 
-      // ---------- Timetable (Google Sheet) ----------
+      // ---------- Timetable (from the CRM) ----------
       // Shows exactly what the deployed site serves to /display/ (built from the
       // sheet), so it always matches the screen.
       const RENT = /\brent\b|השכרה|аренд/i;
@@ -1846,7 +1548,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           const tt = await res.json();
           const days = (tt.days || []).filter((d) => d.date).sort((a, b) => a.date.localeCompare(b.date));
           if (!days.length) {
-            $('ttCurrentStatus').textContent = 'No classes found in the sheet yet.';
+            $('ttCurrentStatus').textContent = 'No classes found yet.';
             $('ttCurrentStatus').className = 'status-msg';
             $('ttCurrent').hidden = true;
             $('ttDays').innerHTML = '';
@@ -1860,7 +1562,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           $('ttCurrent').hidden = false;
           $('ttCurrent').innerHTML = `
             <div><strong>${fmtDate(days[0].date)} – ${fmtDate(days[days.length - 1].date)}</strong>${ttWeeks.length} weeks · ${classes} entries</div>
-            ${tt.updatedAt ? `<div><strong>${escapeHtml(new Date(tt.updatedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}</strong>last read from the sheet</div>` : ''}`;
+            ${tt.updatedAt ? `<div><strong>${escapeHtml(new Date(tt.updatedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}</strong>built from the CRM</div>` : ''}`;
           renderTtWeek();
           $('ttCurrentStatus').textContent = '';
           $('ttCurrentStatus').className = 'status-msg';
@@ -1871,7 +1573,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
       }
 
       // "Update now": an empty commit on the branch triggers the deploy workflow,
-      // which re-reads the sheet. Needs only the token's Contents permission.
+      // which reads the timetable from the CRM again. Needs only the token's Contents permission.
       async function ghApi(path, options = {}) {
         const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${path}`, {
           cache: 'no-store',
@@ -1901,7 +1603,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           const parent = await ghApi(`git/commits/${ref.object.sha}`);
           const commit = await ghApi('git/commits', {
             method: 'POST',
-            body: JSON.stringify({ message: 'chore(timetable): refresh from Google Sheet via admin panel', tree: parent.tree.sha, parents: [ref.object.sha] }),
+            body: JSON.stringify({ message: 'chore(timetable): rebuild from the CRM via admin panel', tree: parent.tree.sha, parents: [ref.object.sha] }),
           });
           await ghApi(`git/refs/heads/${ADMIN_BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
           $('ttRefreshStatus').textContent = 'Update started — the screen and this list refresh in about 2–3 minutes.';
@@ -1997,7 +1699,6 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
         refreshTokenUi();
         if (getToken()) {
           loadNews();
-          loadSchedule();
           loadInstructors();
           loadSettings();
           loadStudent();

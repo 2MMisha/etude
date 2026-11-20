@@ -20,18 +20,7 @@ const news = defineCollection({
   }),
 });
 
-// Each Schedule entry is one JSON file per class slot: src/content/schedule/<id>.json
-// Written/updated via the hidden /admin/ panel.
-const schedule = defineCollection({
-  loader: glob({ pattern: '**/*.json', base: 'src/content/schedule' }),
-  schema: z.object({
-    day: z.enum(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']),
-    startTime: z.string(), // "18:00"
-    endTime: z.string(), // "19:00"
-    level: z.enum(['beginner', 'intermediate', 'advanced', 'private']),
-    className: z.object({ he: z.string(), en: z.string(), ru: z.string() }),
-  }),
-});
+// The weekly schedule comes from the CRM since 2026-11-20 (src/lib/publicWeek.ts), not from files here.
 
 // Each Instructor is one JSON file per person: src/content/instructors/<id>.json
 // Written/updated via the hidden /admin/ panel.
@@ -45,4 +34,4 @@ const instructors = defineCollection({
   }),
 });
 
-export const collections = { news, schedule, instructors };
+export const collections = { news, instructors };

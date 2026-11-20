@@ -642,7 +642,7 @@ for (const fn of ['family_me', 'hall_check', 'record_payment', 'group_classes_be
 }
 const anonFns = (await db.query(`select array_agg(p.proname order by p.proname) x from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')`)).rows[0].x;
-assert.deepEqual(anonFns, ['public_docs', 'public_event', 'public_signup', 'site_timetable', 'student_by_token', 'submit_student_form']);
+assert.deepEqual(anonFns, ['public_docs', 'public_event', 'public_signup', 'public_week', 'site_timetable', 'student_by_token', 'submit_student_form']);
 
 {
 // Personal pushes: a change to a family's future private lesson or group class is logged for that family.
@@ -971,6 +971,19 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   assert.equal(await bal(), before);
   await denied(as('anon', 'select * from public.lesson_earnings'), /permission denied/);
   assert.equal(await count('client', 'lesson_earnings'), 0);
+}
+
+// The public week and the family's price list (owner, 2026-11-20).
+{
+  const week = (await rpc('anon', 'public_week', [])).rows;
+  assert.ok(week.length > 0 && week.every((r) => r.group_name && r.program && r.start_time), 'the regular weekly classes, public');
+  assert.ok(!week.some((r) => 'price' in r || 'amount' in r));
+  const studio = async (who) => (await rpc(who, 'family_studio', [])).rows[0].family_studio;
+  const st = await studio('admin');
+  assert.ok(st.groups.length > 0 && st.groups.every((g) => g.program && g.per_week && g.amount != null), 'memberships by programme');
+  assert.ok(Array.isArray(st.private) && st.reminder && st.reminder.day, 'private lessons and the payment day');
+  assert.equal(await studio('nobody'), null, 'a stranger gets no prices');
+  await denied(rpc('anon', 'family_studio', []), /permission denied/);
 }
 
 // Stage 8: a stranger who signed up (a login with no role, no family) and a visitor

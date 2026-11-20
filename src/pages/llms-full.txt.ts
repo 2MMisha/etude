@@ -5,6 +5,7 @@ import { localizePath } from '../lib/languages';
 import { translations } from '../lib/translations';
 import { SITE, freeTrialActive, olimOfferActive } from '../lib/site';
 import { plainText } from '../lib/richText';
+import { getPublicWeek } from '../lib/publicWeek';
 
 export const prerender = true;
 
@@ -15,9 +16,8 @@ export const GET: APIRoute = async () => {
   const t = translations.en;
   const url = (path: string) => `${SITE.siteUrl}${localizePath('en', path)}`;
   const instructors = (await getCollection('instructors')).sort((a, b) => a.data.order - b.data.order);
-  const schedule = await getCollection('schedule');
+  const schedule = await getPublicWeek(); // the regular weekly classes from the CRM
   const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  schedule.sort((a, b) => DAYS.indexOf(a.data.day) - DAYS.indexOf(b.data.day) || a.data.startTime.localeCompare(b.data.startTime));
   // General FAQ: items[0] is the free trial, items[1] the Olim offer.
   const generalFaq = t.faq.items.filter((_, i) => (i === 0 ? freeTrialActive : i === 1 ? olimOfferActive : true));
 
@@ -45,8 +45,8 @@ export const GET: APIRoute = async () => {
 
   h(`Weekly schedule (${url('/schedule')})`);
   schedule.forEach((s) => {
-    const d = s.data;
-    L.push(`- ${d.day[0].toUpperCase()}${d.day.slice(1)} ${d.startTime}–${d.endTime}: ${d.className.en} (${d.level})`);
+    const day = DAYS[s.weekday];
+    L.push(`- ${day[0].toUpperCase()}${day.slice(1)} ${s.start}–${s.end}: ${s.group}${s.trainer ? ` (${s.trainer})` : ''}`);
   });
 
   h(`Instructors (${url('/instructors')})`);

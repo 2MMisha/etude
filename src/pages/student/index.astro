@@ -90,7 +90,7 @@ const data = {
   // Wording of the share dialog (src/lib/shareCard.ts), the same as on the site.
   shareText: Object.fromEntries(ALL_LANGS.map((l) => [l, tr(l).share])),
   classes,
-  prices: app.prices,
+  prices: { he: [], ru: [], en: [] }, // from the CRM's price list after sign-in (family_studio); never in the page
   rules: app.rules,
   notice,
   events: appEvents().map(({ text: _text, body, ...e }) => ({ ...e, html: Object.fromEntries(ALL_LANGS.map((l) => [l, renderRichText(body[l])])) })),
@@ -1103,9 +1103,26 @@ const data = {
             data.groups = [];
             data.names = [];
             data.birthdays = [];
+            data.prices = { he: [], ru: [], en: [] };
             return render();
           }
           // Birthdays of the school's students (first names, day and month), from the CRM.
+          // The price list and the payment day, from the CRM (family_studio): nothing typed in /admin/ any more.
+          const st = (await crm.rpc('family_studio')).data;
+          if (st) {
+            const w = { he: ['פעם בשבוע', 'פעמים בשבוע', 'דק׳', 'ללא הגבלה', 'כניסה חד-פעמית', 'שיעור פרטי'], ru: ['раз в неделю', 'раза в неделю', 'мин', 'Безлимит', 'Разовое посещение', 'Индивидуальный урок'], en: ['class a week', 'classes a week', 'min', 'Unlimited', 'One-time class', 'Private lesson'] } as const;
+            for (const L of ['he', 'ru', 'en'] as const) {
+              const x = w[L];
+              data.prices[L] = [
+                ...st.groups.map((g: any) => `${g.program}, ${g.per_week} ${g.per_week === 1 ? x[0] : x[1]} (${g.minutes} ${x[2]}) — ${Number(g.amount)} ₪`),
+                ...(st.unlimited != null ? [`${x[3]} — ${Number(st.unlimited)} ₪`] : []),
+                ...(st.entry != null ? [`${x[4]} — ${Number(st.entry)} ₪`] : []),
+                ...st.private.map((p: any) => `${x[5]}, ${p.trainer}, ${p.minutes} ${x[2]} — ${Number(p.amount)} ₪`),
+              ];
+            }
+            const r = st.reminder ?? {};
+            data.payment = { ...data.payment, day: Number(r.day) || data.payment.day, before: Number(r.before ?? data.payment.before), after: Number(r.after ?? data.payment.after) };
+          }
           const bd = await crm.rpc('school_birthdays');
           if (Array.isArray(bd.data))
             data.birthdays = bd.data.map((b: any) => ({ name: (lang === 'he' ? b.he : b.en || b.he) || b.he, he: b.he, en: b.en, day: b.day, month: b.month }));

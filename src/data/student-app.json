@@ -1,74 +1,8 @@
 {
   "prices": {
-    "he": [
-      "Kids (Beg 4–5 / Adv 5–6), ‏4 שיעורים בחודש, 45 דק׳ — 230 ₪",
-      "Kids (Beg 4–5 / Adv 5–6), ‏8 שיעורים בחודש, 45 דק׳ — 380 ₪",
-      "Hobby (Solo Beg / Adv, Couples), ‏4 שיעורים בחודש, 60 דק׳ — 300 ₪",
-      "Hobby (Solo Beg / Adv, Couples), ‏8 שיעורים בחודש, 60 דק׳ — 450 ₪",
-      "Ballroom Dance Jun, ‏8 שיעורים בחודש, 60 דק׳ — 450 ₪",
-      "Ballroom Dance Jun, ‏12 שיעורים בחודש, 60 דק׳ — 550 ₪",
-      "Ballroom Dance (Standard / Latin), ‏4 שיעורים בחודש, 90 דק׳ — לתלמידים ממשיכים בלבד — 320 ₪",
-      "Ballroom Dance (Standard / Latin), ‏8 שיעורים בחודש, 90 דק׳ — 550 ₪",
-      "Ballroom Dance (Standard / Latin), ‏12 שיעורים בחודש, 90 דק׳ — 700 ₪",
-      "שיעור פרטי, יבגניה ורומן, 45 דק׳ — 250 ₪",
-      "שיעור פרטי, יבגניה ורומן, 60 דק׳ — 333 ₪",
-      "שיעור פרטי, תומר (לטין), 45 דק׳ — 270 ₪",
-      "שיעור פרטי, תומר (לטין), 60 דק׳ — 360 ₪",
-      "שיעור פרטי, אסיסטנט/ית, 45 דק׳ — 150 ₪",
-      "שיעור פרטי, אסיסטנט/ית, 60 דק׳ — 200 ₪",
-      "השכרת אולם גדול לקבוצה, 60 דק׳ — 250 ₪",
-      "השכרת אולם קטן לקבוצה, 60 דק׳ — 100 ₪",
-      "אימון עצמי, 60 דק׳ — 30 ₪ לאדם",
-      "אימון עצמי, 90 דק׳ — 45 ₪ לאדם",
-      "מאמן + זוג או סולו, 60 דק׳ — 60 ₪",
-      "מאמן + זוג או סולו, 90 דק׳ — 90 ₪"
-    ],
-    "ru": [
-      "Kids (Beg 4–5 / Adv 5–6), 4 занятия в месяц по 45 мин — 230 ₪",
-      "Kids (Beg 4–5 / Adv 5–6), 8 занятий в месяц по 45 мин — 380 ₪",
-      "Hobby (Solo Beg / Adv, Couples), 4 занятия в месяц по 60 мин — 300 ₪",
-      "Hobby (Solo Beg / Adv, Couples), 8 занятий в месяц по 60 мин — 450 ₪",
-      "Ballroom Dance Jun, 8 занятий в месяц по 60 мин — 450 ₪",
-      "Ballroom Dance Jun, 12 занятий в месяц по 60 мин — 550 ₪",
-      "Ballroom Dance (Standard / Latin), 4 занятия в месяц по 90 мин — только для учеников с прошлого года — 320 ₪",
-      "Ballroom Dance (Standard / Latin), 8 занятий в месяц по 90 мин — 550 ₪",
-      "Ballroom Dance (Standard / Latin), 12 занятий в месяц по 90 мин — 700 ₪",
-      "Индивидуальное занятие, Евгения и Роман, 45 мин — 250 ₪",
-      "Индивидуальное занятие, Евгения и Роман, 60 мин — 333 ₪",
-      "Индивидуальное занятие, Томер (ЛА), 45 мин — 270 ₪",
-      "Индивидуальное занятие, Томер (ЛА), 60 мин — 360 ₪",
-      "Индивидуальное занятие, ассистент, 45 мин — 150 ₪",
-      "Индивидуальное занятие, ассистент, 60 мин — 200 ₪",
-      "Аренда большого зала для группы, 60 мин — 250 ₪",
-      "Аренда малого зала для группы, 60 мин — 100 ₪",
-      "Самостоятельная тренировка, 60 мин — 30 ₪ с человека",
-      "Самостоятельная тренировка, 90 мин — 45 ₪ с человека",
-      "Тренер + пара или соло, 60 мин — 60 ₪",
-      "Тренер + пара или соло, 90 мин — 90 ₪"
-    ],
-    "en": [
-      "Kids (Beg 4–5 / Adv 5–6), 4 lessons a month, 45 min — 230 ₪",
-      "Kids (Beg 4–5 / Adv 5–6), 8 lessons a month, 45 min — 380 ₪",
-      "Hobby (Solo Beg / Adv, Couples), 4 lessons a month, 60 min — 300 ₪",
-      "Hobby (Solo Beg / Adv, Couples), 8 lessons a month, 60 min — 450 ₪",
-      "Ballroom Dance Jun, 8 lessons a month, 60 min — 450 ₪",
-      "Ballroom Dance Jun, 12 lessons a month, 60 min — 550 ₪",
-      "Ballroom Dance (Standard / Latin), 4 lessons a month, 90 min — returning students only — 320 ₪",
-      "Ballroom Dance (Standard / Latin), 8 lessons a month, 90 min — 550 ₪",
-      "Ballroom Dance (Standard / Latin), 12 lessons a month, 90 min — 700 ₪",
-      "Private lesson, Evgeniia and Roman, 45 min — 250 ₪",
-      "Private lesson, Evgeniia and Roman, 60 min — 333 ₪",
-      "Private lesson, Tomer (LA), 45 min — 270 ₪",
-      "Private lesson, Tomer (LA), 60 min — 360 ₪",
-      "Private lesson, assistant, 45 min — 150 ₪",
-      "Private lesson, assistant, 60 min — 200 ₪",
-      "Big hall rental for a group, 60 min — 250 ₪",
-      "Small hall rental for a group, 60 min — 100 ₪",
-      "Self-practice, 60 min — 30 ₪ per person",
-      "Self-practice, 90 min — 45 ₪ per person",
-      "Coach + couple or solo, 60 min — 60 ₪",
-      "Coach + couple or solo, 90 min — 90 ₪"
-    ]
+    "he": [],
+    "ru": [],
+    "en": []
   },
   "rules": {
     "he": [
@@ -121,9 +55,9 @@
       "en": "Important: registration in the app is required"
     },
     "body": {
-      "he": "**ההרשמה לאפליקציה היא חובה לכולם.**\n\nETUDE עוברת למערכת אקולוגית מלאה שפותחה על ידי סוכנות הקריאייטיב **2M Media**. מערכת השעות, המסמכים, התשלומים וההודעות יהיו עכשיו במקום אחד.\n\n**אם במשפחה יש יותר מתלמיד אחד**, אנא הירשמו **בחשבון אחד**. אין צורך לפתוח חשבון נפרד לכל אחד.\n\nההרשמה בלשונית \"החשבון\" בתפריט האפליקציה.\n\n**בינתיים אין צורך למלא טפסים.** בהמשך יהיה צורך למלא טפסים בחשבון, אבל רק אחרי שנודיע על כך.\n\nבינתיים ייתכנו תקלות במערכת השעות באפליקציה. מערכת השעות העדכנית בקישור: [מערכת השעות של ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
-      "ru": "**Регистрация в приложении обязательна для всех.**\n\nETUDE переходит на полную экосистему, разработанную креативным агентством **2M Media**. Расписание, документы, оплаты и уведомления теперь будут в одном месте.\n\n**Если в семье больше одного ученика**, пожалуйста, зарегистрируйтесь **одним аккаунтом**. Не нужно создавать отдельный аккаунт для каждого.\n\nЗарегистрироваться можно во вкладке «Аккаунт» в меню приложения.\n\n**Формы пока заполнять не нужно.** Позже в аккаунте нужно будет заполнить формы, но только после того, как мы сообщим.\n\nПока расписание в приложении может работать с ошибками. Актуальное расписание по ссылке: [Расписание ETUDE](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)",
-      "en": "**Registration in the app is required for everyone.**\n\nETUDE is moving to a complete ecosystem developed by the creative agency **2M Media**. The schedule, documents, payments and notifications will now be in one place.\n\n**If your family has more than one student**, please register with **one account**. There's no need to create a separate account for each.\n\nYou can register in the \"Account\" tab in the app menu.\n\n**Please don't fill in the forms yet.** Later you will need to fill in forms in the account, but only once we let you know.\n\nFor now, the schedule in the app may show mistakes. The current schedule is here: [ETUDE schedule](https://docs.google.com/spreadsheets/d/1mgk4XGmdvvTjJUij1tzKIBMwBSXvXK7XT74NrmVGmi0/edit?gid=1586081868#gid=1586081868)"
+      "he": "**ההרשמה לאפליקציה היא חובה לכולם.**\n\nETUDE עוברת למערכת אקולוגית מלאה שפותחה על ידי סוכנות הקריאייטיב **2M Media**. מערכת השעות, המסמכים, התשלומים וההודעות יהיו עכשיו במקום אחד.\n\n**אם במשפחה יש יותר מתלמיד אחד**, אנא הירשמו **בחשבון אחד**. אין צורך לפתוח חשבון נפרד לכל אחד.\n\nההרשמה בלשונית \"החשבון\" בתפריט האפליקציה.\n\n**בינתיים אין צורך למלא טפסים.** בהמשך יהיה צורך למלא טפסים בחשבון, אבל רק אחרי שנודיע על כך.",
+      "ru": "**Регистрация в приложении обязательна для всех.**\n\nETUDE переходит на полную экосистему, разработанную креативным агентством **2M Media**. Расписание, документы, оплаты и уведомления теперь будут в одном месте.\n\n**Если в семье больше одного ученика**, пожалуйста, зарегистрируйтесь **одним аккаунтом**. Не нужно создавать отдельный аккаунт для каждого.\n\nЗарегистрироваться можно во вкладке «Аккаунт» в меню приложения.\n\n**Формы пока заполнять не нужно.** Позже в аккаунте нужно будет заполнить формы, но только после того, как мы сообщим.",
+      "en": "**Registration in the app is required for everyone.**\n\nETUDE is moving to a complete ecosystem developed by the creative agency **2M Media**. The schedule, documents, payments and notifications will now be in one place.\n\n**If your family has more than one student**, please register with **one account**. There's no need to create a separate account for each.\n\nYou can register in the \"Account\" tab in the app menu.\n\n**Please don't fill in the forms yet.** Later you will need to fill in forms in the account, but only once we let you know."
     }
   },
   "payment": {

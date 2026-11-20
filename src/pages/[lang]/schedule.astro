@@ -4,7 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import { ALL_LANGS, type Lang } from '../../lib/languages';
 import { translations } from '../../lib/translations';
-import { getCollection } from 'astro:content';
+import { getPublicWeek } from '../../lib/publicWeek';
 import { hoursDisplay } from '../../lib/site';
 
 export function getStaticPaths() {
@@ -23,19 +23,16 @@ const DAY_LABELS: Record<(typeof DAY_ORDER)[number], Record<Lang, string>> = {
   friday: { he: 'שישי', en: 'Friday', ru: 'Пятница' },
   saturday: { he: 'שבת', en: 'Saturday', ru: 'Суббота' },
 };
-const LEVEL_LABELS: Record<string, Record<Lang, string>> = {
-  beginner: { he: 'מתחילים', en: 'Beginner', ru: 'Начинающие' },
-  intermediate: { he: 'ממשיכים', en: 'Intermediate', ru: 'Продолжающие' },
-  advanced: { he: 'מתקדמים', en: 'Advanced', ru: 'Продвинутые' },
-  private: { he: 'פרטי', en: 'Private', ru: 'Индивидуальные' },
+const HALLS: Record<string, Record<Lang, string>> = {
+  'Big Hall': { he: 'אולם גדול', en: 'Big Hall', ru: 'Большой зал' },
+  'Small Hall': { he: 'אולם קטן', en: 'Small Hall', ru: 'Малый зал' },
 };
 
-const allSlots = await getCollection('schedule');
-const byDay = DAY_ORDER.map((day) => ({
+// The regular weekly group classes from the CRM (src/lib/publicWeek.ts).
+const allSlots = await getPublicWeek();
+const byDay = DAY_ORDER.map((day, n) => ({
   day,
-  slots: allSlots
-    .filter((s) => s.data.day === day)
-    .sort((a, b) => a.data.startTime.localeCompare(b.data.startTime)),
+  slots: allSlots.filter((s) => s.weekday === n),
 })).filter((group) => group.slots.length > 0);
 
 ---
@@ -55,9 +52,9 @@ const byDay = DAY_ORDER.map((day) => ({
               <ul class="schedule-slots">
                 {group.slots.map((slot) => (
                   <li>
-                    <span class="schedule-time" dir="ltr">{slot.data.startTime}–{slot.data.endTime}</span>
-                    <span class="schedule-name">{slot.data.className[lang]}</span>
-                    <span class="badge">{LEVEL_LABELS[slot.data.level][lang]}</span>
+                    <span class="schedule-time" dir="ltr">{slot.start}–{slot.end}</span>
+                    <span class="schedule-name" dir="auto">{slot.group}</span>
+                    <span class="badge" dir="auto">{[slot.trainer, slot.hall && (HALLS[slot.hall]?.[lang] ?? slot.hall)].filter(Boolean).join(' · ')}</span>
                   </li>
                 ))}
               </ul>
