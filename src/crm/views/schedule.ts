@@ -109,9 +109,17 @@ export async function scheduleView(arg?: string) {
     isDone: (iso) => iso < today(),
     now: { date: today(), min: nowParts[0] * 60 + nowParts[1] },
     perDay: matchMedia('(max-width: 760px)').matches,
+    hourPx: 100, // room for a couple's names in a 45-minute lesson
+    cardMin: 115, // several lessons at once in a hall: the week scrolls sideways instead of squeezing them
     noClasses: t('emptyList'),
   }) || `<p class="muted">${t('emptyList')}</p>`;
-  setTimeout(() => fitCards(grid)); // once it is on the page and has a size
+  setTimeout(() => {
+    fitCards(grid); // once it is on the page and has a size
+    // A busy week is wider than the window: start scrolled to today (or the day asked for).
+    const box = grid.closest<HTMLElement>('.scroll');
+    const head = grid.querySelector<HTMLElement>('.wg-head.is-today') ?? grid.querySelectorAll<HTMLElement>('.wg-head')[weekdayOf(day)];
+    if (box && head && box.scrollWidth > box.clientWidth) box.scrollLeft += head.getBoundingClientRect().left - box.getBoundingClientRect().left - 40;
+  });
 
   // ── Money from someone who is not a client: a method, an amount, and straight to the confirmation ──
   const paidFor = (key: 'entry_id' | 'rental_id' | 'lesson_id', id: string) => guestPaid.filter((p) => p[key] === id).reduce((s, p) => s + Number(p.amount), 0);

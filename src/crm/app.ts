@@ -39,6 +39,7 @@ let signedIn: string | null | undefined; // undefined = not heard from Supabase 
 
 const card = (key: Key) => h('p', { className: 'card sign', textContent: t(key) });
 function drawChrome(current: string) {
+  document.body.dataset.route = current; // the Schedule takes the whole window width (crm.css)
   const me = state.me;
   const staff = !!me && me.active && (me.roles.includes('owner') || me.roles.includes('admin'));
   signOutBtn.hidden = !me;

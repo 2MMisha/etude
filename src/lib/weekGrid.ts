@@ -16,6 +16,8 @@ export interface WeekGridOptions {
   now?: { date: string; min: number };
   perDay?: boolean; // narrow screens: every day its own grid, stacked
   fitHeight?: number; // px for the grid body: the hour height is chosen to fill it (the studio TV)
+  hourPx?: number; // px per hour, when not fitHeight (default HOUR_PX)
+  cardMin?: number; // px: the narrowest a card may get; the week grows wider instead (the caller lets it scroll)
   noClasses: string;
 }
 
@@ -74,9 +76,19 @@ function grid(o: WeekGridOptions, dates: string[]): string {
     ),
   ].sort((a, b) => a - b);
   const lanes = [...new Set(all.map((i) => i.hall ?? ''))].sort();
+  // Overlapping classes sit side by side, so a hall gets as wide as the most it holds at once,
+  // and a day as wide as its halls together: a busy day is wider than a quiet one.
+  const placed = new Map(dates.map((d) => {
+    const items = itemsOf(d).map((item, n) => ({ item, n }));
+    return [d, lanes.map((l) => place(items.filter((x) => (x.item.hall ?? '') === l)))];
+  }));
+  const laneW = (d: string) => placed.get(d)!.map((ps) => Math.max(1, ...ps.map((p) => p.of)));
+  const dayW = (d: string) => laneW(d).reduce((a, b) => a + b, 0);
+  const minPx = o.fitHeight || o.perDay ? 0 : o.cardMin ?? 0;
+  const columns = `var(--axis, 3em) ${dates.map((d) => `minmax(${dayW(d) * minPx}px, ${dayW(d)}fr)`).join(' ')}`;
 
   const gapCount = hours.filter((h, k) => k && h !== hours[k - 1] + 1).length;
-  const HOUR = o.fitHeight ? Math.max(24, (o.fitHeight - 2 * PAD - gapCount * GAP) / hours.length) : HOUR_PX;
+  const HOUR = o.fitHeight ? Math.max(24, (o.fitHeight - 2 * PAD - gapCount * GAP) / hours.length) : o.hourPx ?? HOUR_PX;
   const top = new Map<number, number>();
   const gaps: number[] = [];
   const ends: number[] = [];
@@ -109,20 +121,19 @@ function grid(o: WeekGridOptions, dates: string[]): string {
     const empty = !itemsOf(d).length && o.perDay ? `<span class="wg-none">${esc(o.noClasses)}</span>` : '';
     const laneHead =
       lanes.length > 1
-        ? `<span class="wg-lanes-head">${lanes.map((l) => `<span>${esc(o.hallName(l))}</span>`).join('')}</span>`
+        ? `<span class="wg-lanes-head">${lanes.map((l, k) => `<span style="flex:${laneW(d)[k]}">${esc(o.hallName(l))}</span>`).join('')}</span>`
         : '';
     const none = itemsOf(d).length ? '' : ' wg-head--empty';
     return `<div class="wg-head${today}${none}">${o.dayHead(d)}${empty}${laneHead}</div>`;
   };
 
   const body = (d: string) => {
-    const items = itemsOf(d).map((item, n) => ({ item, n }));
     const today = o.now?.date === d;
     const now =
       today && top.has(Math.floor(o.now!.min / 60)) ? `<i class="wg-now" style="top:${yOf(o.now!.min)}px"></i>` : '';
     const laneHtml = lanes
-      .map((l) => {
-        const evs = place(items.filter((x) => (x.item.hall ?? '') === l))
+      .map((_, k) => {
+        const evs = placed.get(d)![k]
           .map(({ item, n, col, of }) => {
             const t = yOf(timeToMinutes(item.start));
             const h = Math.max(22, yOf(timeToMinutes(item.end), true) - t);
@@ -143,7 +154,7 @@ function grid(o: WeekGridOptions, dates: string[]): string {
             </button>`;
           })
           .join('');
-        return `<div class="wg-lane">${evs}</div>`;
+        return `<div class="wg-lane" style="flex:${laneW(d)[k]}">${evs}</div>`;
       })
       .join('');
     return `<div class="wg-body${today ? ' is-today' : ''}" style="height:${height}px">${lines}${now}<div class="wg-lanes">${laneHtml}</div></div>`;
@@ -151,7 +162,7 @@ function grid(o: WeekGridOptions, dates: string[]): string {
 
   if (!hours.length)
     return o.perDay ? `<div class="wg wg--empty">${dates.map(head).join('')}</div>` : '';
-  return `<div class="wg" style="--days:${dates.length}">
+  return `<div class="wg" style="--days:${dates.length};grid-template-columns:${columns}">
     <div></div>${dates.map(head).join('')}
     <div class="wg-axis" style="height:${height}px">${axis}</div>${dates.map(body).join('')}
   </div>`;
