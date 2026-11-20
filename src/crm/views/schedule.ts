@@ -276,8 +276,7 @@ export async function scheduleView(arg?: string) {
         field(t('time'), h('input', { type: 'time', step: 300, value: hhmm(slot.start_time), onchange: (ev: Event) => { const v = (ev.target as HTMLInputElement).value; if (v) always({ start_time: v }); } })),
         field(t('minutes'), h('input', { type: 'number', min: 1, className: 'num', value: slot.minutes, onchange: (ev: Event) => { const v = Number((ev.target as HTMLInputElement).value); if (v > 0) always({ minutes: v }); } })),
         field(t('hall'), select(hallOptions, slot.hall, (v) => always({ hall: v }))),
-        field(t('trainer'), select([['', '—'], ...trainerOptions], slot.trainer_id ?? '', (v) => always({ trainer_id: v || null }))),
-        field(t('classPay'), h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: Number(slot.class_pay), onchange: (ev: Event) => always({ class_pay: Number((ev.target as HTMLInputElement).value) || 0 }) }))
+        field(t('trainer'), select([['', '—'], ...trainerOptions], slot.trainer_id ?? '', (v) => always({ trainer_id: v || null })))
       ),
       ...entriesBlock({ group_id: c.group_id, held_on: c.held_on }, entryPrice, `${t('oneTimeEntry')}: ${c.group_name}, ${dayText(c.held_on)}`),
     ];
