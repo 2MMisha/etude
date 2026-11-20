@@ -25,10 +25,10 @@ let cached: Promise<Timetable> | undefined;
 
 /**
  * Read the timetable from the CRM (true) or still from the Google Sheet (false).
- * Off until the CRM holds everything the Sheet does, regular private lessons
- * included (compared 2026-11-17: most private lessons were only in the Sheet).
+ * On since 2026-11-20: the owner marked the Sheet "moved to CRM" and the two
+ * matched day by day except one group's time, settled with the owner.
  */
-export const FROM_CRM = false;
+export const FROM_CRM = true;
 
 export function getTimetable(): Promise<Timetable> {
   cached ??= (FROM_CRM ? fromCrm() : Promise.reject(new Error('the CRM is not the source yet')))
