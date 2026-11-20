@@ -27,7 +27,7 @@ export async function accountsView() {
   const [profiles, clients, trainers] = await Promise.all([
     get<Profile[]>(db!.from('profiles').select('id, email, full_name, lang, roles, active').order('created_at')),
     get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, user_id').not('user_id', 'is', null)),
-    get<Row[]>(db!.from('trainers').select('id, full_name, full_name_en, user_id').not('user_id', 'is', null)),
+    get<Row[]>(db!.from('trainers').select('id, full_name, user_id').not('user_id', 'is', null)),
   ]);
   const say = (ru: string, he: string, en: string) => pick({ ru, he, en }, getLang());
   /** What a login belongs to: the client (family) and/or the trainer it is linked with. */
