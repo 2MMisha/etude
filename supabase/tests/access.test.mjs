@@ -251,7 +251,7 @@ assert.equal((await earned(misha)).earned, 100);
 await lesson('admin', { trainer_id: misha.id, minutes: 60, price: 300, status: 'done' }, [b.id]);
 assert.equal((await earned(misha)).earned, 280);
 // Refused: no rate for that length, no students, three students.
-await denied(lesson('admin', { trainer_id: roman.id, minutes: 90 }, [a.id]), /no price/);
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 75 }, [a.id]), /no price/);
 await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one to four people/);
 const fourth = await ins('students', { client_id: stranger.id, full_name: 'Fourth' });
 const fifth = await ins('students', { client_id: stranger.id, full_name: 'Fifth' });
@@ -475,7 +475,7 @@ await denied(as('anon', 'select * from public.trainer_students()'), /permission 
 for (const table of ['lessons', 'students', 'lesson_requests', 'trainer_rates']) assert.equal(await count('trainer', table), 0, `the trainer still reads no table: ${table}`);
 // Names only, to choose from; and their own lesson lengths.
 assert.deepEqual(Object.keys((await rpc('trainer', 'trainer_students')).rows[0]).sort(), ['full_name', 'full_name_en', 'id', 'partner_id']);
-assert.deepEqual((await rpc('trainer', 'trainer_rates_mine')).rows.map((r) => r.minutes), [45, 60]);
+assert.deepEqual((await rpc('trainer', 'trainer_rates_mine')).rows.map((r) => r.minutes), [45, 60, 90]);
 
 // Asking for a lesson: it is theirs whatever they send, at their own rate, and waits for the admin.
 const asked = (await rpc('trainer', 'trainer_request_lesson', [JSON.stringify({ trainer_id: roman.id, price: 1, trainer_pay: 9999, status: 'done', minutes: 45, held_on: '2027-06-01', start_time: '10:00' }), [a.id]])).rows[0].trainer_request_lesson;
@@ -873,6 +873,16 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
     assert.ok((await rpc('trainer', 'trainer_lessons', ['2027-03-01', '2027-03-03'])).rows.some((x) => x.students === 'Walk-in'), 'the guest shows in their list');
   }
   await db.query(`update public.profiles set roles = '{}' where id = $1`, [U.trainer]);
+}
+
+// 90 minutes = two 45-minute lessons, kept in step with the 45-minute rate.
+{
+  const r90 = (tid) => one('admin', 'select price::float, pay_kind, pay_value::float from public.trainer_rates where trainer_id = $1 and minutes = 90', [tid]);
+  assert.deepEqual(await r90(misha.id), { price: 300, pay_kind: 'fixed', pay_value: 200 }, 'fixed pay doubles');
+  assert.deepEqual(await r90(roman.id), { price: 500, pay_kind: 'percent', pay_value: 100 }, 'a percent stays');
+  await as('admin', 'update public.trainer_rates set price = 160 where trainer_id = $1 and minutes = 45', [misha.id]);
+  assert.equal((await r90(misha.id)).price, 320, 'follows a change');
+  await as('admin', 'update public.trainer_rates set price = 150 where trainer_id = $1 and minutes = 45', [misha.id]);
 }
 
 console.log('access rules: all checks passed');

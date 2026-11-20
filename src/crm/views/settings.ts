@@ -152,7 +152,10 @@ export async function settingsView() {
       h('div', { className: 'scroll' }, h('table', {},
         h('thead', {}, h('tr', {}, h('th', {}, t('minutes')), h('th', {}, t('price')), h('th', { colSpan: 2 }, t('trainerGets')), h('th'))),
         h('tbody', {},
-          ...rates.filter((r) => r.trainer_id === x.id).map((r) => h('tr', {},
+          ...rates.filter((r) => r.trainer_id === x.id).map((r) => r.minutes === 90 && rates.some((q) => q.trainer_id === x.id && q.minutes === 45)
+            // Kept by the database as two 45-minute lessons; changes follow the 45-minute row.
+            ? h('tr', {}, h('td', {}, '90'), h('td', {}, String(Number(r.price))), h('td', {}, String(Number(r.pay_value))), h('td', {}, KINDS.find((k) => k[0] === r.pay_kind)?.[1] ?? ''), h('td', { className: 'muted' }, '= 2 × 45'))
+            : h('tr', {},
             h('td', {}, String(r.minutes)),
             h('td', {}, number(r.price, (v, el) => (v == null ? (el.value = r.price) : set('trainer_rates', r.id, { price: v })), { ariaLabel: t('price') })),
             h('td', {}, number(r.pay_value, (v, el) => (v == null ? (el.value = r.pay_value) : set('trainer_rates', r.id, { pay_value: v })), { ariaLabel: t('trainerGets') })),
