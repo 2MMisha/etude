@@ -2,7 +2,7 @@
 // void, refund), the printable confirmation, the Debts list and the monthly
 // report with its Excel export.
 import { getLang, t, tIn, LOCALE, type Key, type Lang } from '../i18n';
-import { db, h, get, ok, nav, input, select, field, sureButton, flash, money, ltr, today, type Row, nameIn } from '../ui';
+import { db, h, get, ok, nav, input, select, field, sureButton, flash, money, ltr, today, type Row, nameIn, addTableTools, discountText } from '../ui';
 
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
 const monthName = (lang: Lang, iso: string) =>
@@ -139,10 +139,55 @@ export async function paymentsCard(client: Row, students: Row[], charges: Row[])
     );
   };
 
+  // ── A statement for the family: one month, what is still owed, or everything; Excel and Print come with the table ──
+  const lang = getLang();
+  const monthOf = (c: Row) => String(c.month ?? c.day ?? '').slice(0, 7);
+  const owedOf = (id: string) => Number(perCharge.find((b) => b.charge_id === id)?.owed ?? 0);
+  const months = [...new Set([...charges.map(monthOf), ...payments.map((p) => String(p.paid_on).slice(0, 7))].filter(Boolean))].sort().reverse();
+  const stHead = h('h3');
+  const stBody = h('tbody');
+  const stTable = h('table', {},
+    h('thead', {}, h('tr', {}, ...[t('date'), t('student'), t('whatFor'), t('stCharge'), t('paid'), t('owed')].map((x) => h('th', {}, x)))),
+    stBody);
+  const stScroll = h('div', { className: 'scroll' }, stTable);
+  const stEmpty = h('p', { className: 'muted', textContent: t('emptyList') });
+  const stBox = h('div', { className: 'stack' }, stScroll, stEmpty);
+  const scope = select([['owed', t('stOwed')], ['all', t('stAll')], ...months.map((m): [string, string] => [m, monthName(lang, `${m}-01`)])], 'owed', () => drawStatement(), { ariaLabel: t('statement') });
+  const drawStatement = () => {
+    const v = scope.value;
+    const inScope = (ym: string) => v === 'all' || v === ym;
+    const rows = charges
+      .filter((c) => (v === 'owed' ? owedOf(c.id) > 0 : inScope(monthOf(c))))
+      .sort((a, b) => monthOf(a).localeCompare(monthOf(b)) || String(a.day ?? '').localeCompare(String(b.day ?? '')));
+    const pays = v === 'owed' ? [] : payments.filter((p) => !p.voided && inScope(String(p.paid_on).slice(0, 7)));
+    stHead.textContent = `${t('statement')}: ${nameIn(client)} — ${scope.selectedOptions[0]?.textContent ?? ''}`;
+    const cell = (x: unknown) => h('td', {}, x === '' ? '' : ltr(money(x)));
+    const totals = rows.reduce((s, c) => [s[0] + Number(c.amount), s[1] + Number(c.amount) - owedOf(c.id), s[2] + owedOf(c.id)], [0, 0, 0]);
+    stBody.replaceChildren(
+      ...rows.map((c) => h('tr', {},
+        h('td', {}, ltr(c.month ? monthName(lang, c.month) : c.day ? dateText(lang, c.day) : '')),
+        h('td', {}, nameIn(students.find((s) => s.id === c.student_id))),
+        h('td', {}, chargeLabel(lang, c), discountText(c.discounts) && h('small', {}, ltr(discountText(c.discounts)))),
+        cell(c.amount), cell(Number(c.amount) - owedOf(c.id)), cell(owedOf(c.id)))),
+      ...pays.map((p) => h('tr', {},
+        h('td', {}, ltr(dateText(lang, p.paid_on))), h('td', {}, ''),
+        h('td', {}, `${t('stPayment')} № ${p.number} · ${methodText(lang, p)}`),
+        cell(''), cell(p.amount), cell(''))),
+      h('tr', { className: 'total' }, h('th', {}, t('total')), h('th', {}, ''), h('th', {}, ''),
+        h('th', {}, ltr(money(totals[0]))), h('th', {}, ltr(money(totals[1]))), h('th', {}, ltr(money(totals[2]))))
+    );
+    // The table stays the same element, so its Excel / Print buttons always take what is shown now.
+    stScroll.hidden = !(rows.length || pays.length);
+    stEmpty.hidden = !stScroll.hidden;
+    addTableTools(stBox);
+  };
+  drawStatement();
+
   return h('section', { className: 'card' },
     h('h2', { textContent: t('payments') }),
     headline,
     form,
+    h('div', { className: 'stack' }, stHead, h('div', { className: 'row' }, scope), stBox),
     payments.length
       ? h('div', { className: 'scroll' }, h('table', {},
           h('thead', {}, h('tr', {}, ...['№', t('date'), t('method'), t('amount'), t('covers'), t('paperDoc'), ''].map((x) => h('th', {}, x)))),

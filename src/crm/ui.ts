@@ -172,7 +172,9 @@ function tableRows(table: HTMLTableElement): string[][] {
 /** "Excel" and "Print" above every table with data on a screen (owner, 2026-11-14). */
 export function addTableTools(root: HTMLElement) {
   for (const table of root.querySelectorAll<HTMLTableElement>('table')) {
-    if (table.closest('.receipt, .no-tools') || (table.tBodies[0]?.rows.length ?? 0) < 2) continue;
+    // Once per table (a view that redraws a table may call this again), and only for real lists.
+    if (table.dataset.tools || table.closest('.receipt, .no-tools') || (table.tBodies[0]?.rows.length ?? 0) < 2) continue;
+    table.dataset.tools = '1';
     const box = table.closest('.scroll') ?? table;
     const title = () => {
       // The nearest heading above the table names the file and the printout.
