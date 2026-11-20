@@ -179,6 +179,7 @@ async function home() {
     controls: [qDate, qHall],
     where: () => ({ date: qDate.value, hall: qHall.value }),
     lengths: () => rates.map((r) => r.minutes),
+    direct: true,
     create: async (x) => {
       const id = await get<string>(db!.rpc('trainer_add_lesson', { l: { held_on: qDate.value, hall: qHall.value, start_time: x.start_time, minutes: x.minutes, guest_name: x.guest_name }, student_ids: x.student_ids }));
       flash(t('saved'));

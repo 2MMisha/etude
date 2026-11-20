@@ -55,6 +55,8 @@ export function quickAdd(o: {
   where: () => { date: string; hall: string; who?: string };
   lengths: () => number[];
   create: (x: QuickLesson) => Promise<unknown>;
+  /** Set it at once, without the card that shows it first (the trainers' app). A group class in the hall still stops it. */
+  direct?: boolean;
 }) {
   const input = h('input', { type: 'text', placeholder: t('quickHint'), ariaLabel: t('quickAdd'), className: 'grow' });
   const out = h('div', { className: 'stack' });
@@ -64,6 +66,12 @@ export function quickAdd(o: {
 
   const confirm = async (q: { time: string; minutes: number }, ids: string[], guest: string) => {
     const w = o.where();
+    if (o.direct) {
+      if (await notice.check(w.date, q.time, q.minutes, w.hall)) return out.replaceChildren(notice.el, h('div', { className: 'row' }, close));
+      await o.create({ start_time: q.time, minutes: q.minutes, student_ids: ids, guest_name: guest });
+      input.value = '';
+      return out.replaceChildren();
+    }
     const who = [...ids.map((id) => studentLabel(o.students.find((s) => s.id === id)!)), guest].filter(Boolean).join(' + ');
     const day = new Date(`${w.date}T12:00:00Z`).toLocaleDateString(LOCALE[getLang()], { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'numeric' });
     const set = btn(t('putOnSchedule'), async () => {
