@@ -46,7 +46,7 @@ export async function scheduleView(arg?: string) {
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes] = await Promise.all([
-    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
+    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(id, discount_pct, students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
     get<Row[]>(db!.from('rentals').select('*').gte('held_on', start).lte('held_on', end)),
@@ -244,6 +244,20 @@ export async function scheduleView(arg?: string) {
         field(t('trainer'), select(trainerOptions, l.trainer_id, changeTrainer))
       ),
       planned && notice.el,
+      // A discount for each student of the lesson, on their share only; the charge follows it, also after the lesson.
+      l.status !== 'cancelled' && l.lesson_students.length > 0 && h('div', { className: 'stack' },
+        ...l.lesson_students.map((x: Row) => {
+          const share = Number(l.price) / (l.lesson_students.length + (l.guest_name ? 1 : 0));
+          const pays = h('span', { className: 'muted' });
+          const show = (pct: number) => (pays.replaceChildren('→ ', ltr(money(Math.round(share * (1 - pct / 100) * 100) / 100))));
+          show(Number(x.discount_pct));
+          return h('div', { className: 'row' },
+            h('span', { className: 'grow' }, `${nameIn(x.students)} · `, ltr(money(Math.round(share * 100) / 100))),
+            h('label', { className: 'tick' }, `${t('discount')} %`, h('input', { type: 'number', min: 0, max: 100, step: 'any', className: 'num', value: Number(x.discount_pct),
+              oninput: (ev: Event) => show(Number((ev.target as HTMLInputElement).value) || 0),
+              onchange: (ev: Event) => { const v = Math.min(100, Math.max(0, Number((ev.target as HTMLInputElement).value) || 0)); done(ok(db!.from('lesson_students').update({ discount_pct: v }).eq('id', x.id))); } })),
+            pays);
+        })),
       l.guest_name && (CHARGED as readonly string[]).includes(l.status) && (guestOwes > 0
         ? h('div', { className: 'row' }, h('span', {}, `${t('guestPays')} (${l.guest_name}): `, ltr(money(guestOwes))),
             guestPay(l.guest_name, `${t('privateLesson')}, ${l.trainers.full_name} ${l.minutes}′, ${dayText(l.held_on)}`, guestOwes, { lesson_id: l.id }))

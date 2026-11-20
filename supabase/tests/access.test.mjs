@@ -899,6 +899,33 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await as('admin', 'update public.trainer_rates set price = 150 where trainer_id = $1 and minutes = 45', [misha.id]);
 }
 
+// Lessons count by themselves once ended; a discount per participant (owner, 2026-11-20).
+{
+  const r45 = (await one('admin', 'select minutes from public.trainer_rates where trainer_id = $1 and minutes = 45', [roman.id])).minutes;
+  const mk = (d, t, ids) => one('admin', 'select public.record_lesson($1, $2) id', [JSON.stringify({ trainer_id: roman.id, minutes: r45, held_on: d, start_time: t, hall: 'Small Hall', price: 200 }), ids]);
+  const past = (await mk('2026-11-02', '06:00', [a.id, b.id])).id;
+  const future = (await mk('2030-01-07', '06:00', [a.id])).id;
+  // A discount before the lesson is charged: the share less 25%.
+  await as('admin', 'update public.lesson_students set discount_pct = 25 where lesson_id = $1 and student_id = $2', [past, a.id]);
+  await db.query('select public.lessons_autodone()');
+  assert.equal((await one('admin', 'select status from public.lessons where id = $1', [past])).status, 'done', 'ended = took place');
+  assert.equal((await one('admin', 'select status from public.lessons where id = $1', [future])).status, 'planned', 'not before its time');
+  const charge = async (sid) => one('admin', 'select list_amount::float l, amount::float a from public.charges where lesson_id = $1 and student_id = $2', [past, sid]);
+  assert.deepEqual(await charge(a.id), { l: 100, a: 75 });
+  assert.deepEqual(await charge(b.id), { l: 100, a: 100 });
+  // Changed afterwards: the charge follows.
+  await as('admin', 'update public.lesson_students set discount_pct = 50 where lesson_id = $1 and student_id = $2', [past, b.id]);
+  assert.deepEqual(await charge(b.id), { l: 100, a: 50 });
+  // No-show afterwards keeps it charged; cancelled in time takes it away.
+  await as('admin', `select public.set_lesson_status($1, 'no_show')`, [past]);
+  assert.equal((await charge(a.id)).a, 75);
+  await as('admin', `select public.set_lesson_status($1, 'cancelled')`, [past]);
+  assert.equal((await one('admin', 'select count(*)::int n from public.charges where lesson_id = $1', [past])).n, 0);
+  await denied(as('admin', 'update public.lesson_students set discount_pct = 120 where lesson_id = $1', [future]), /check/);
+  await denied(as('client', 'select public.lessons_autodone()'), /permission denied/);
+  for (const l of [past, future]) await as('admin', 'delete from public.lessons where id = $1', [l]);
+}
+
 // Stage 8: a stranger who signed up (a login with no role, no family) and a visitor
 // without a login try every function that writes. Each is refused or changes nothing.
 {
