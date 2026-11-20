@@ -106,7 +106,7 @@ export async function clientsView() {
     { label: fsay('Добавлен', 'נוסף/ה', 'Added'), key: (c) => c.created_at, cell: (c) => ltr(dmy(c.created_at)) },
   ];
   const stuCols: Col[] = [
-    { label: t('name'), key: (x) => nameIn(x), cell: (x) => [h('a', { href: `#/client/${x.client_id}/students`, textContent: studentLabel(x) + (asking.has(x.id) ? ' ⚠' : '') })] },
+    { label: t('name'), key: (x) => nameIn(x), cell: (x) => [h('a', { href: `#/client/${x.client_id}/students/${x.id}`, textContent: studentLabel(x) + (asking.has(x.id) ? ' ⚠' : '') })] },
     { label: fsay('Возраст', 'גיל', 'Age'), key: (x) => ageOf(x.birth_date) ?? -1, cell: (x) => String(ageOf(x.birth_date) ?? '') },
     { label: fsay('Группы', 'קבוצות', 'Groups'), key: (x) => groupNames(x.id), cell: (x) => groupNames(x.id) },
     { label: fsay('Семья', 'משפחה', 'Family'), key: (x) => nameIn(familyOf(x)), cell: (x) => [h('a', { href: `#/client/${x.client_id}`, textContent: nameIn(familyOf(x)) })] },
@@ -192,7 +192,8 @@ export async function clientsView() {
   );
 }
 
-export async function clientView(id?: string, tab?: string) {
+/** focus: a student's id, to open the Students tab at that student's card (from the Students list). */
+export async function clientView(id?: string, tab?: string, focus?: string) {
   const client = await get<Row>(db!.from('clients').select('*').eq('id', id).single());
   await fillThisMonth();
   const [students, groups, others, everyone] = await Promise.all([
@@ -312,7 +313,7 @@ export async function clientView(id?: string, tab?: string) {
       if (await ok(db!.from('charges').insert({ student_id: s.id, kind: 'membership', month: `${newMonth.value}-01`, ...line }))) nav.refresh();
     };
 
-    return h('section', { className: `card${s.archived ? ' off' : ''}` },
+    return h('section', { className: `card${s.archived ? ' off' : ''}`, id: `student-${s.id}` },
       h('div', { className: 'grid' },
         field(t('name'), nameInput('students', s)),
         field(`${t('name')} (EN)`, input(s.full_name_en, (v) => upd({ full_name_en: v }), { dir: 'ltr' })),
@@ -387,6 +388,15 @@ export async function clientView(id?: string, tab?: string) {
     : current === 'reg' ? await registrationCard(client, students, everyone, others)
     : current === 'students' ? [...students.map(studentCard), h('section', { className: 'card' }, addForm)]
     : [clientCard, await notifyCard(client, students)];
+
+  // Opened for one student of the family: bring that card into view once it is on the page, and mark it for a moment.
+  if (focus && current === 'students') setTimeout(() => {
+    const card = document.getElementById(`student-${focus}`);
+    if (!card) return;
+    card.scrollIntoView({ block: 'start' });
+    card.classList.add('is-focus');
+    setTimeout(() => card.classList.remove('is-focus'), 2000);
+  });
 
   return h('div', { className: 'stack' },
     h('a', { href: '#/clients', textContent: t('back') }),

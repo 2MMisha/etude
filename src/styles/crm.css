@@ -20,6 +20,8 @@ body { background: var(--color-ground); }
   width: 100%; min-width: 0; box-sizing: border-box;
 }
 .crm input.num { width: 6.5em; }
+/* The student a family was opened for, marked for a moment. */
+.crm .card.is-focus { outline: 3px solid var(--color-blue-600); transition: outline-color 1s; }
 /* A discount: the number and its % / ₪ switch side by side. */
 .crm .discount { flex-wrap: nowrap; gap: 0.3rem; }
 .crm .discount select { width: auto; }

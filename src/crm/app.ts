@@ -14,7 +14,7 @@ import { homeView } from './views/home';
 import { dashboardView } from './views/dashboard';
 import { logView } from './views/log';
 
-const ROUTES: Record<string, (arg?: string, sub?: string) => Promise<HTMLElement>> = {
+const ROUTES: Record<string, (arg?: string, sub?: string, extra?: string) => Promise<HTMLElement>> = {
   home: homeView,
   dashboard: dashboardView,
   log: logView,
@@ -155,13 +155,19 @@ let drawn = ''; // the route drawn on the page (under the window, when one is op
 let drawnHash = '';
 const scrolls = new Map<string, number>(); // where each screen was scrolled to, for coming back
 
+/** Each render's number: a screen that finishes loading after a newer one started is dropped, not drawn over it. */
+let renderSeq = 0;
+
 async function render() {
-  const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
+  const seq = ++renderSeq;
+  const [name = '', arg, sub, extra] = location.hash.replace(/^#\/?/, '').split('/');
   const route = name in ROUTES ? name : 'dashboard';
   if (route === 'client' && state.me && (pop.open || (UNDER.has(drawn) && roomy()))) {
     const y = pop.scrollTop;
     try {
-      popBody.replaceChildren(await ROUTES.client(arg, sub));
+      const el = await ROUTES.client(arg, sub, extra);
+      if (seq !== renderSeq) return;
+      popBody.replaceChildren(el);
       addTableTools(popBody);
     } catch (e) {
       popBody.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
@@ -184,7 +190,9 @@ async function render() {
   if (!state.me) return view.replaceChildren(signInView());
   if (!staff) return view.replaceChildren(card('noAccess'));
   try {
-    view.replaceChildren(await ROUTES[route](arg, sub));
+    const el = await ROUTES[route](arg, sub, extra);
+    if (seq !== renderSeq) return;
+    view.replaceChildren(el);
     drawn = route;
     drawnHash = location.hash;
     drawBell();
