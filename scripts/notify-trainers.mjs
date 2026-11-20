@@ -9,6 +9,7 @@
 import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { scheduleChanges } from '../src/lib/scheduleDiff.ts';
+import { RENTAL_COLUMN } from '../src/lib/timetable.ts';
 
 const SITE = 'https://etude.ristar.co';
 const KEY = process.env.ONESIGNAL_TRAINERS_REST_API_KEY;
@@ -65,7 +66,10 @@ if (process.env.MESSAGES) {
     const res = await fetch(url).catch(() => null);
     const was = res?.ok ? pageData(await res.text()) : null; // a new page: nothing to compare with
     if (!was) continue;
-    const lines = scheduleChanges(was.days, now.days, today, now.slug === 'all' || now.slug === 'rentals');
+    // A trainer's page also shows the hall rentals; those are not the trainer's news.
+    const own = (days) => (now.slug === 'all' || now.slug === 'rentals' || /rent/.test(now.slug) ? days
+      : days.map((d) => ({ ...d, items: d.items.filter((i) => !RENTAL_COLUMN.test(i.column)) })));
+    const lines = scheduleChanges(own(was.days), own(now.days), today, now.slug === 'all' || now.slug === 'rentals');
     if (lines.length) messages.push({ slug: now.slug, appId: now.pushAppId, updatedAt: now.updatedAt, url, lines });
   }
   console.log(JSON.stringify(messages, null, 2));

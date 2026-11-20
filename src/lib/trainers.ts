@@ -32,7 +32,8 @@ export const trainersFrom = (tt: Timetable) => columnsFrom(tt, false);
 export const hallsFrom = (tt: Timetable) => columnsFrom(tt, true);
 
 /** Dated days with only this trainer's items (or everything for "all"). */
-export function daysFor(tt: Timetable, slug: string) {
+/** withRentals: a trainer's page also shows the hall rentals (owner, 2026-11-20), so they see when a hall is taken. */
+export function daysFor(tt: Timetable, slug: string, withRentals = false) {
   return tt.days
     .filter((d) => d.date)
     .map((d) => ({
@@ -42,7 +43,7 @@ export function daysFor(tt: Timetable, slug: string) {
           ? d.items
           : slug === RENTALS_SLUG
             ? d.items.filter((i) => RENTAL_COLUMN.test(i.column))
-            : d.items.filter((i) => columnsOf(i).some((c) => slugify(c) === slug)),
+            : d.items.filter((i) => columnsOf(i).some((c) => slugify(c) === slug) || (withRentals && RENTAL_COLUMN.test(i.column))),
     }));
 }
 

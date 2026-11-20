@@ -30,7 +30,7 @@ const data = {
   name: current?.name ?? '',
   trainers,
   halls,
-  days: daysFor(tt, slug),
+  days: daysFor(tt, slug, true), // the page shows rentals too; calendar feeds (eventsFor) do not
   location: STUDIO_LOCATION,
   feedUrl: `${SITE.siteUrl}${feedPath}`,
   updatedAt: tt.updatedAt,
