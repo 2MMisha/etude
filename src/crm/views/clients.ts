@@ -6,17 +6,19 @@ import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
 import { notifyCard, notifyMany } from './notify';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, type Row, keep } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, studentLabel, type Row, keep } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
+/** The list's view (families or students) and sort order, kept while the CRM is open. */
+const list = { mode: 'families' as 'families' | 'students', sort: '', desc: false };
 
 export async function clientsView() {
   const [clients, students, enrollments, groups, owing] = await Promise.all([
-    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, email, archived, online, approved, user_id, lang').order('full_name')),
-    get<Row[]>(db!.from('students').select('id, client_id, full_name, full_name_en, phone, email, id_number, archived, birth_date').order('full_name')),
+    get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, email, archived, online, approved, user_id, lang, created_at').order('full_name')),
+    get<Row[]>(db!.from('students').select('id, client_id, full_name, full_name_en, phone, email, id_number, archived, birth_date, created_at').order('full_name')),
     get<Row[]>(db!.from('enrollments').select('student_id, group_id')),
     get<Row[]>(db!.from('groups').select('id, name, includes, archived, program_id').order('name')),
-    get<Row[]>(db!.from('client_balances').select('client_id, balance').gt('balance', 0)),
+    get<Row[]>(db!.from('client_balances').select('client_id, balance')),
   ]);
   // For the more filters: programmes, who teaches which group, private lessons around now, documents.
   const around = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
@@ -74,29 +76,93 @@ export async function clientsView() {
     const words = [c.full_name, c.full_name_en, c.phone, c.email, ...kidsRows.flatMap((s) => [s.full_name, s.full_name_en, s.phone, s.email, s.id_number])];
     return `${words.join(' ')} ${words.map(digitsOf).filter((d) => d.length >= 3).join(' ')}`.toLowerCase();
   };
+  // Each family's balance: more than 0 = owes, less than 0 = has credit.
+  const balance = (id: string) => Number(owing.find((b) => b.client_id === id)?.balance ?? 0);
+  const owes = (id: string) => balance(id) > 0;
+  const docsMissing = (c: Row) => !!c.user_id && live(c.id).some((x) => missingDocs(x.id, x.birth_date));
+  const ageOf = (b: string | null) => (b ? Math.floor((Date.now() - new Date(`${b}T12:00:00Z`).getTime()) / (365.25 * 864e5)) : null);
+  const dmy = (iso: string) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '');
+  const groupNames = (sid: string) => enrollments.filter((e) => e.student_id === sid).map((e) => groups.find((g) => g.id === e.group_id)?.name).filter(Boolean).join(', ');
+  const familyOf = (s: Row) => clients.find((c) => c.id === s.client_id) ?? {};
+  const tag = (text: string, cls = '') => h('small', { className: `tag ${cls}`, textContent: text });
+  const status = (c: Row) => [
+    c.online && !c.approved && tag(`🆕 ${regWord('waiting')}`),
+    docsMissing(c) && tag(fsay('Не хватает документов', 'חסרים מסמכים', 'Documents missing'), 'bad'),
+    c.user_id && c.approved && tag(`📱 ${fsay('Приложение', 'אפליקציה', 'App')}`),
+  ];
+  const balanceCell = (id: string) => {
+    const b = balance(id);
+    return b === 0 ? '' : h('span', { className: b > 0 ? 'bad' : 'good' }, ltr(money(Math.abs(b))), b < 0 ? ` ${fsay('кредит', 'זיכוי', 'credit')}` : '');
+  };
+
+  // The columns of each view: a heading, what it sorts by, and the cell.
+  interface Col { label: string; key: (r: Row) => string | number; cell: (r: Row) => Node | string | (Node | string | false | null | undefined | '')[] }
+  const famCols: Col[] = [
+    { label: t('name'), key: (c) => c.full_name, cell: (c) => [h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) })] },
+    { label: t('phone'), key: (c) => c.phone ?? '', cell: (c) => ltr(c.phone) },
+    { label: t('students'), key: (c) => kids(c.id), cell: (c) => kids(c.id) },
+    { label: fsay('Баланс', 'יתרה', 'Balance'), key: (c) => balance(c.id), cell: (c) => balanceCell(c.id) },
+    { label: fsay('Статус', 'סטטוס', 'Status'), key: (c) => (c.online && !c.approved ? 0 : docsMissing(c) ? 1 : c.user_id ? 2 : 3), cell: (c) => status(c).filter((x): x is HTMLElement => !!x) },
+    { label: fsay('Добавлен', 'נוסף/ה', 'Added'), key: (c) => c.created_at, cell: (c) => ltr(dmy(c.created_at)) },
+  ];
+  const stuCols: Col[] = [
+    { label: t('name'), key: (x) => x.full_name, cell: (x) => [h('a', { href: `#/client/${x.client_id}/students`, textContent: studentLabel(x) + (asking.has(x.id) ? ' ⚠' : '') })] },
+    { label: fsay('Возраст', 'גיל', 'Age'), key: (x) => ageOf(x.birth_date) ?? -1, cell: (x) => String(ageOf(x.birth_date) ?? '') },
+    { label: fsay('Группы', 'קבוצות', 'Groups'), key: (x) => groupNames(x.id), cell: (x) => groupNames(x.id) },
+    { label: fsay('Семья', 'משפחה', 'Family'), key: (x) => familyOf(x).full_name ?? '', cell: (x) => [h('a', { href: `#/client/${x.client_id}`, textContent: familyOf(x).full_name ?? '' })] },
+    { label: fsay('Документы', 'מסמכים', 'Documents'), key: (x) => (familyOf(x).user_id ? (missingDocs(x.id, x.birth_date) ? 0 : 1) : 2),
+      cell: (x) => (familyOf(x).user_id ? (missingDocs(x.id, x.birth_date) ? tag(fsay('Не хватает', 'חסרים', 'Missing'), 'bad') : '✓') : '—') },
+    { label: fsay('Добавлен', 'נוסף/ה', 'Added'), key: (x) => x.created_at, cell: (x) => ltr(dmy(x.created_at)) },
+  ];
+
+  // One student passes the filters the same way a family does, but by its own groups, age and documents.
+  const q = () => search.value.trim().toLowerCase();
+  const found = (text: string) => !q() || text.includes(q()) || (digitsOf(q()).length >= 3 && text.includes(digitsOf(q())));
+  const familyOk = (c: Row) => (!owesBox.checked || owes(c.id)) && (!waitingBox.checked || (c.online && !c.approved)) && (!appBox.checked || (c.user_id && c.approved));
+  const studentOk = (x: Row) => {
+    const c = familyOf(x);
+    const own = [x.full_name, x.full_name_en, x.phone, x.email, x.id_number, c.full_name, c.full_name_en, c.phone];
+    return (archived.checked || (!x.archived && !c.archived)) && found(`${own.join(' ')} ${own.map(digitsOf).filter((d) => d.length >= 3).join(' ')}`.toLowerCase())
+      && familyOk(c)
+      && (!groupSel.value || groupsOf(x.id).includes(groupSel.value))
+      && (!contactBox.checked || asking.has(x.id))
+      && (!programSel.value || groupsOf(x.id).some((gid) => groups.find((g) => g.id === gid)?.program_id === programSel.value))
+      && (!trainerSel.value || groupsOf(x.id).some((gid) => slots.some((sl) => sl.group_id === gid && sl.trainer_id === trainerSel.value)) ||
+          lessons.some((ls) => ls.trainer_id === trainerSel.value && (ls.lesson_students ?? []).some((y: Row) => y.student_id === x.id)))
+      && (!ageSel.value || (ageSel.value === 'adult') === adultNow(x.birth_date))
+      && (!docsBox.checked || (c.user_id && missingDocs(x.id, x.birth_date)));
+  };
+
   let shown: Row[] = [];
+  const head = h('thead');
+  const modeBtns = (['families', 'students'] as const).map((m) => h('button', { type: 'button', textContent: m === 'families' ? fsay('Семьи', 'משפחות', 'Families') : t('students'),
+    ariaPressed: String(list.mode === m), onclick: () => { list.mode = m; list.sort = ''; modeBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(['families', 'students'][i] === m))); draw(); } }));
   const draw = () => {
-    const q = search.value.trim().toLowerCase();
-    const rows = clients.filter((c) => (archived.checked || !c.archived) && (!q || searchText(c).includes(q) || (digitsOf(q).length >= 3 && searchText(c).includes(digitsOf(q))))
+    const families = clients.filter((c) => (archived.checked || !c.archived) && found(searchText(c))
       && (!groupSel.value || inGroup(c.id, groupSel.value))
-      && (!owesBox.checked || owing.some((b) => b.client_id === c.id))
-      && (!waitingBox.checked || (c.online && !c.approved))
+      && familyOk(c)
       && (!contactBox.checked || students.some((s) => s.client_id === c.id && asking.has(s.id)))
       && (!programSel.value || byProgram(c.id, programSel.value))
       && (!trainerSel.value || byTrainer(c.id, trainerSel.value))
       && (!ageSel.value || live(c.id).some((x) => (ageSel.value === 'adult') === adultNow(x.birth_date)))
-      && (!docsBox.checked || (c.user_id && live(c.id).some((x) => missingDocs(x.id, x.birth_date))))
-      && (!appBox.checked || (c.user_id && c.approved)));
-    shown = rows;
-    body.replaceChildren(
-      ...rows.map((c) => h('tr', { className: c.archived ? 'off' : '' },
-        h('td', {}, h('a', { href: `#/client/${c.id}${c.online ? '/reg' : ''}`, textContent: c.full_name + marks(c.id) }), c.online && h('small', { textContent: ` 🆕 ${regWord('waiting')}` })),
-        h('td', {}, ltr(c.phone)),
-        h('td', {}, kids(c.id))
-      ))
-    );
-    if (!rows.length) body.append(h('tr', {}, h('td', { colSpan: 3, className: 'muted', textContent: t('emptyList') })));
+      && (!docsBox.checked || docsMissing(c)));
+    const studentsShown = list.mode === 'students' ? students.filter(studentOk) : [];
+    // "Notify these clients" reaches the families of what is on the screen.
+    shown = list.mode === 'families' ? families : clients.filter((c) => studentsShown.some((x) => x.client_id === c.id));
+    const cols = list.mode === 'families' ? famCols : stuCols;
+    const rows = list.mode === 'families' ? [...families] : studentsShown;
+    const col = cols.find((c) => c.label === list.sort);
+    if (col) rows.sort((a, b) => { const x = col.key(a), y = col.key(b); const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), getLang()); return list.desc ? -r : r; });
+    head.replaceChildren(h('tr', {}, ...cols.map((c) => h('th', {}, h('button', { type: 'button', className: 'link sort', textContent: `${c.label}${list.sort === c.label ? (list.desc ? ' ▼' : ' ▲') : ''}`,
+      onclick: () => { list.desc = list.sort === c.label ? !list.desc : false; list.sort = c.label; draw(); } })))));
+    body.replaceChildren(...rows.map((r) => {
+      const off = r.archived || (list.mode === 'students' && familyOf(r).archived);
+      return h('tr', { className: off ? 'off' : '' }, ...cols.map((c) => { const v = c.cell(r); return h('td', {}, ...(Array.isArray(v) ? v.filter((x): x is Node | string => !!x) : [v])); }));
+    }));
+    if (!rows.length) body.append(h('tr', {}, h('td', { colSpan: cols.length, className: 'muted', textContent: t('emptyList') })));
+    count.textContent = `${rows.length}`;
   };
+  const count = h('span', { className: 'muted' });
   for (const [k, el] of Object.entries({ search, archived, groupSel, owesBox, waitingBox, contactBox, programSel, trainerSel, ageSel, docsBox, appBox })) keep(`clients.${k}`, el);
   search.oninput = archived.onchange = groupSel.onchange = owesBox.onchange = waitingBox.onchange = contactBox.onchange = programSel.onchange = trainerSel.onchange = ageSel.onchange = docsBox.onchange = appBox.onchange = draw;
   draw();
@@ -118,7 +184,8 @@ export async function clientsView() {
       h('div', { className: 'row' }, groupSel, tick(fsay('Должники', 'חייבים', 'Owe money'), owesBox), tick(fsay('Ждут подтверждения', 'ממתינים לאישור', 'Waiting to be let in'), waitingBox), tick(fsay('Нужно связаться', 'צריך ליצור קשר', 'To contact'), contactBox)),
       h('div', { className: 'row' }, programSel, trainerSel, ageSel, tick(fsay('Не хватает документов', 'חסרים מסמכים', 'Documents missing'), docsBox), tick(fsay('С приложением', 'עם האפליקציה', 'Have the app'), appBox)),
       notifyMany(() => shown),
-      h('div', { className: 'scroll' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, t('name')), h('th', {}, t('phone')), h('th', {}, t('students')))), body))
+      h('div', { className: 'row' }, ...modeBtns, count),
+      h('div', { className: 'scroll' }, h('table', {}, head, body))
     ),
     exportCard()
   );
