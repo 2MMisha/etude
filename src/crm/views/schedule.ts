@@ -9,6 +9,7 @@ import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
 import { SITE } from '../../lib/site';
 import { attendanceBlock } from '../attendance';
+import { hallNotice, quickAdd } from '../quickLesson';
 
 const CHARGED = ['done', 'no_show', 'late_cancel'] as const;
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
@@ -55,7 +56,7 @@ export async function scheduleView(arg?: string) {
     get<Row[]>(db!.from('lessons').select('held_on').eq('status', 'planned').lt('held_on', today()).order('held_on').limit(100)),
     get<Row[]>(db!.from('events').select('*').gte('held_on', start).lte('held_on', end)),
     get<Row[]>(db!.from('entries').select('*, students(full_name, client_id)').gte('held_on', start).lte('held_on', end).order('created_at')),
-    get<Row[]>(db!.from('payments').select('amount, entry_id, rental_id').eq('voided', false).or('entry_id.not.is.null,rental_id.not.is.null')),
+    get<Row[]>(db!.from('payments').select('amount, entry_id, rental_id, lesson_id').eq('voided', false).or('entry_id.not.is.null,rental_id.not.is.null,lesson_id.not.is.null')),
     get<Row[]>(db!.from('prices').select('amount').eq('kind', 'entry')),
     // Waiting for a decision, whatever week they are in: lessons trainers asked for, and their requests to move or cancel.
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name))').eq('status', 'requested').order('held_on').order('start_time')),
@@ -69,7 +70,7 @@ export async function scheduleView(arg?: string) {
   const hallOptions: [string, string][] = [['', '—'], ...halls.map((x): [string, string] => [x, x])];
   const trainerOptions = trainers.map((x): [string, string] => [x.id, x.full_name]);
   const trainerName = (id: string | null) => trainers.find((x) => x.id === id)?.full_name ?? '';
-  const names = (l: Row) => l.lesson_students.map((x: Row) => x.students.full_name).join(' + ');
+  const names = (l: Row) => [...l.lesson_students.map((x: Row) => x.students.full_name), l.guest_name].filter(Boolean).join(' + ');
   const done = (p: PromiseLike<boolean>) => p.then((okay) => { if (okay) nav.refresh(); });
 
   // What goes on the grid: group classes as they really are that day, the
@@ -115,7 +116,7 @@ export async function scheduleView(arg?: string) {
   setTimeout(() => fitCards(grid)); // once it is on the page and has a size
 
   // ── Money from someone who is not a client: a method, an amount, and straight to the confirmation ──
-  const paidFor = (key: 'entry_id' | 'rental_id', id: string) => guestPaid.filter((p) => p[key] === id).reduce((s, p) => s + Number(p.amount), 0);
+  const paidFor = (key: 'entry_id' | 'rental_id' | 'lesson_id', id: string) => guestPaid.filter((p) => p[key] === id).reduce((s, p) => s + Number(p.amount), 0);
   const guestPay = (payer: string, what: string, amount: number, ref: Row) => {
     const method = select(METHODS.map((m): [string, string] => [m, t(m)]), 'cash', () => {});
     const sum = h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: amount, ariaLabel: t('amount') });
@@ -218,6 +219,12 @@ export async function scheduleView(arg?: string) {
       }
       move({ trainer_id: id, price: r.price, trainer_pay: r.pay_kind === 'fixed' ? r.pay_value : Math.round(Number(r.price) * Number(r.pay_value)) / 100 });
     };
+    const planned = l.status === 'planned' || l.status === 'requested';
+    const notice = hallNotice();
+    if (planned && l.start_time) notice.check(l.held_on, hhmm(l.start_time), l.minutes, l.hall, l.id);
+    // A guest's share: the price split evenly between everyone in the lesson.
+    const guestShare = l.guest_name ? Math.round((Number(l.price) / (l.lesson_students.length + 1)) * 100) / 100 : 0;
+    const guestOwes = guestShare - paidFor('lesson_id', l.id);
     return [
       h('p', { className: 'quote' },
         `${names(l)} · ${l.trainers.full_name} ${l.minutes}′ · `, ltr(money(l.price)), ` (${t('trainerGets')}: `, ltr(money(l.trainer_pay)), `) · ${t(l.status as Key)}`,
@@ -230,6 +237,11 @@ export async function scheduleView(arg?: string) {
         field(t('hall'), select(hallOptions, l.hall, (v) => move({ hall: v }))),
         field(t('trainer'), select(trainerOptions, l.trainer_id, changeTrainer))
       ),
+      planned && notice.el,
+      l.guest_name && (CHARGED as readonly string[]).includes(l.status) && (guestOwes > 0
+        ? h('div', { className: 'row' }, h('span', {}, `${t('guestPays')} (${l.guest_name}): `, ltr(money(guestOwes))),
+            guestPay(l.guest_name, `${t('privateLesson')}, ${l.trainers.full_name} ${l.minutes}′, ${dayText(l.held_on)}`, guestOwes, { lesson_id: l.id }))
+        : h('p', { className: 'muted' }, `✓ ${t('paid')}: ${l.guest_name}`)),
       h('div', { className: 'row' }, ...lessonActions(l)),
     ];
   };
@@ -331,8 +343,12 @@ export async function scheduleView(arg?: string) {
   minutes.onchange = showRate;
   const hall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {});
   const others = [1, 2, 3].map((n) => studentPicker(students, '', undefined, { ariaLabel: `${t('student')} ${n + 1}` }));
-  const first = studentPicker(students, '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true, ariaLabel: t('student') });
+  const first = studentPicker(students, '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { ariaLabel: t('student') });
+  const guest = h('input', { type: 'text', ariaLabel: t('guestName') });
   const note = h('input', { type: 'text' });
+  const notice = hallNotice();
+  const recheck = () => notice.check(date.value, time.value, Number(minutes.value), hall.value);
+  for (const x of [date, time, minutes, hall]) x.addEventListener('change', recheck);
   const goTo = (iso: string) => {
     flash(t('saved'));
     // Show the week it landed in: a new address redraws by itself, the same one needs a nudge.
@@ -344,21 +360,39 @@ export async function scheduleView(arg?: string) {
     h('h2', { textContent: t('scheduleLesson') }),
     h('div', { className: 'grid' },
       field(t('date'), date), field(t('time'), time), field(t('trainer'), trainer), field(t('minutes'), minutes),
-      field(t('hall'), hall), field(t('student'), first), field(t('price'), price), field(t('comment'), note),
+      field(t('hall'), hall), field(t('student'), first), field(t('guestName'), guest), field(t('price'), price), field(t('comment'), note, 'wide'),
       field(t('secondStudent'), h('div', { className: 'row' }, ...others), 'full')
     ),
+    notice.el,
     h('p', { className: 'muted', textContent: t('lessonPriceHint') }),
     h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('scheduleLesson') }))
   );
   lessonForm.onsubmit = async (ev) => {
     ev.preventDefault();
     const group = [first.value, ...others.map((o) => o.value)].filter((id, i, all) => id && all.indexOf(id) === i);
+    if (!group.length && !guest.value.trim()) return flash(t('needName'), true);
+    if (await recheck()) return flash(t('hallBlocked'), true);
     await get(db!.rpc('record_lesson', {
-      l: { trainer_id: trainer.value, held_on: date.value, start_time: time.value, minutes: Number(minutes.value), hall: hall.value, price: price.value, note: note.value.trim() },
+      l: { trainer_id: trainer.value, held_on: date.value, start_time: time.value, minutes: Number(minutes.value), hall: hall.value, price: price.value, note: note.value.trim(), guest_name: guest.value.trim() },
       student_ids: group,
     }));
     goTo(date.value);
   };
+
+  // ── Quick add ──
+  const qDate = h('input', { type: 'date', value: firstDay, ariaLabel: t('date') });
+  const qTrainer = select(trainerOptions, trainerOptions[0]?.[0] ?? '', () => {}, { ariaLabel: t('trainer') });
+  const qHall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {}, { ariaLabel: t('hall') });
+  const quick = quickAdd({
+    students,
+    controls: [qDate, qTrainer, qHall],
+    where: () => ({ date: qDate.value, hall: qHall.value, who: trainerName(qTrainer.value) }),
+    lengths: () => rates.filter((r) => r.trainer_id === qTrainer.value).map((r) => r.minutes),
+    create: async (x) => {
+      await get(db!.rpc('record_lesson', { l: { trainer_id: qTrainer.value, held_on: qDate.value, hall: qHall.value, start_time: x.start_time, minutes: x.minutes, guest_name: x.guest_name }, student_ids: x.student_ids }));
+      goTo(qDate.value);
+    },
+  });
 
   // ── Add a hall rental ──
   const rDate = h('input', { type: 'date', value: firstDay, required: true });
@@ -428,6 +462,7 @@ export async function scheduleView(arg?: string) {
   const overdue = [...new Set(waiting.map((l) => addDays(l.held_on, -weekdayOf(l.held_on))))]; // weeks with a planned lesson whose day has passed
   return h('div', { className: 'stack' },
     requestsCard,
+    h('section', { className: 'card' }, quick),
     h('section', { className: 'card' },
       h('div', { className: 'row monthbar' },
         h('a', { href: `#/lessons/${addDays(start, -7)}`, className: 'btn', textContent: '‹', ariaLabel: addDays(start, -7) }),

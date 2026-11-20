@@ -1,7 +1,9 @@
 // /trainers/me/ — a trainer's own page inside the trainers' app. After signing
 // in they see only what is theirs: their week as a table (private lessons and
-// group classes), what is waiting for a word from them, a form to ask for a new
-// lesson, and their earnings. Tapping a lesson or a class on the table opens
+// group classes), what is waiting for a word from them, a quick-add line and a
+// form to put a new lesson on the schedule (at their own rate, for students or a
+// guest; a group class in the hall refuses it, other lessons there only warn),
+// and their earnings. Tapping a lesson or a class on the table opens
 // what can be done with it: say what happened, ask to move or cancel, mark who
 // came. Every call goes through the trainer_* functions in the database, which
 // work out who is asking; this page cannot reach anyone else's data.
@@ -9,6 +11,7 @@ import { LANGS, LOCALE, getLang, setLang, t, type Key } from './i18n';
 import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, addTableTools, studentPicker, type Row } from './ui';
 import { signInView, newPasswordView } from './auth';
 import { attendanceBlock, ATTENDANCE } from './attendance';
+import { hallNotice, quickAdd } from './quickLesson';
 import { weekGrid, fitCards } from '../lib/weekGrid';
 import type { TimetableItem } from '../lib/timetable';
 
@@ -164,28 +167,49 @@ async function home() {
     ))
   );
 
-  // ── Ask for a new lesson: it goes to the admin, at my own rate ──
+  // ── Put a new lesson on the schedule, at my own rate ──
+  const halls = summary.halls as string[];
+  const qDate = h('input', { type: 'date', value: today(), min: today(), ariaLabel: t('date') });
+  const qHall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {}, { ariaLabel: t('hall') });
+  const quick = h('section', { className: 'card' }, quickAdd({
+    students,
+    controls: [qDate, qHall],
+    where: () => ({ date: qDate.value, hall: qHall.value }),
+    lengths: () => rates.map((r) => r.minutes),
+    create: async (x) => {
+      const id = await get<string>(db!.rpc('trainer_add_lesson', { l: { held_on: qDate.value, hall: qHall.value, start_time: x.start_time, minutes: x.minutes, guest_name: x.guest_name }, student_ids: x.student_ids }));
+      flash(t('saved'));
+      goTo(qDate.value, `l:${id}`);
+    },
+  }));
   const date = h('input', { type: 'date', value: today(), min: today(), required: true });
   const time = h('input', { type: 'time', step: 300, required: true });
   const minutes = select(rates.map((r): [string, string] => [String(r.minutes), `${r.minutes}′`]), String(rates[0]?.minutes ?? ''), () => {}, { required: true });
   const hall = select((summary.halls as string[]).map((x): [string, string] => [x, x]), summary.halls[0] ?? '', () => {});
   const others = [1, 2, 3].map((n) => studentPicker(students, '', undefined, { ariaLabel: `${t('student')} ${n + 1}` }));
-  const first = studentPicker(students, '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { required: true, ariaLabel: t('student') });
+  const first = studentPicker(students, '', (v) => (others[0].value = students.find((s) => s.id === v)?.partner_id ?? ''), { ariaLabel: t('student') });
+  const guest = h('input', { type: 'text', ariaLabel: t('guestName') });
   const note = h('input', { type: 'text' });
+  const notice = hallNotice();
+  const recheck = () => notice.check(date.value, time.value, Number(minutes.value), hall.value);
+  for (const x of [date, time, minutes, hall]) x.addEventListener('change', recheck);
   const form = h('form', { className: 'card' },
-    h('h2', { textContent: t('askLesson') }),
+    h('h2', { textContent: t('scheduleLesson') }),
     h('div', { className: 'grid' },
       field(t('date'), date), field(t('time'), time), field(t('minutes'), minutes), field(t('hall'), hall),
-      field(t('student'), first), field(t('comment'), note, 'wide'),
+      field(t('student'), first), field(t('guestName'), guest), field(t('comment'), note, 'wide'),
       field(t('secondStudent'), h('div', { className: 'row' }, ...others), 'full')
     ),
-    h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('send') }))
+    notice.el,
+    h('div', {}, h('button', { className: 'primary', type: 'submit', textContent: t('putOnSchedule') }))
   );
   form.onsubmit = async (e) => {
     e.preventDefault();
     const group = [first.value, ...others.map((o) => o.value)].filter((id, i, all) => id && all.indexOf(id) === i);
-    const id = await get<string>(db!.rpc('trainer_request_lesson', {
-      l: { held_on: date.value, start_time: time.value, minutes: Number(minutes.value), hall: hall.value, note: note.value.trim() },
+    if (!group.length && !guest.value.trim()) return flash(t('needName'), true);
+    if (await recheck()) return flash(t('hallBlocked'), true);
+    const id = await get<string>(db!.rpc('trainer_add_lesson', {
+      l: { held_on: date.value, start_time: time.value, minutes: Number(minutes.value), hall: hall.value, note: note.value.trim(), guest_name: guest.value.trim() },
       student_ids: group,
     }));
     flash(t('saved'));
@@ -201,7 +225,7 @@ async function home() {
     )))))
   );
 
-  return h('div', { className: 'stack' }, dueCard, weekCard, form, earnings);
+  return h('div', { className: 'stack' }, dueCard, quick, weekCard, form, earnings);
 }
 
 async function render() {

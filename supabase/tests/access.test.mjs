@@ -252,10 +252,10 @@ await lesson('admin', { trainer_id: misha.id, minutes: 60, price: 300, status: '
 assert.equal((await earned(misha)).earned, 280);
 // Refused: no rate for that length, no students, three students.
 await denied(lesson('admin', { trainer_id: roman.id, minutes: 90 }, [a.id]), /no price/);
-await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one to four students/);
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, []), /one to four people/);
 const fourth = await ins('students', { client_id: stranger.id, full_name: 'Fourth' });
 const fifth = await ins('students', { client_id: stranger.id, full_name: 'Fifth' });
-await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id, b.id, partner.id, fourth.id, fifth.id]), /one to four students/);
+await denied(lesson('admin', { trainer_id: roman.id, minutes: 45 }, [a.id, b.id, partner.id, fourth.id, fifth.id]), /one to four people/);
 // Three or four share the price; the parts always add up to it exactly.
 const trio = (await lesson('admin', { trainer_id: roman.id, minutes: 45, held_on: '2026-11-11', status: 'done' }, [fourth.id, fifth.id, partner.id])).id;
 const parts = (await as('admin', 'select amount::float from public.charges where lesson_id = $1 order by amount desc', [trio])).rows.map((r) => r.amount);
@@ -835,6 +835,44 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   const names = (await one('admin', `select string_agg(full_name, '|') n from public.students`)).n.split('|').filter((n) => n.length > 2);
   assert.ok(!rows.some((r) => names.includes(r.title)), 'no student name anywhere');
   await denied(rpc('anon', 'site_timetable', ['2026-01-01', '2026-12-31']), /ten weeks/);
+}
+
+// Guests, the hall check, and the trainer setting a lesson.
+{
+  const rmins = (await one('admin', 'select minutes from public.trainer_rates where trainer_id = $1 limit 1', [roman.id])).minutes;
+  const rec = (l, ids = []) => one('admin', 'select public.record_lesson($1, $2) id', [JSON.stringify({ trainer_id: roman.id, minutes: rmins, ...l }), ids]);
+  // A guest lesson: no student, nothing charged to an account; the trainer earns it.
+  const g = (await rec({ held_on: '2027-03-01', start_time: '07:00', hall: 'Small Hall', guest_name: 'Visitor One' })).id;
+  await as('admin', `select public.set_lesson_status($1, 'done')`, [g]);
+  assert.equal((await one('admin', 'select count(*)::int n from public.charges where lesson_id = $1', [g])).n, 0, 'nothing charged for a guest');
+  assert.ok(Number((await one('admin', 'select trainer_pay from public.lessons where id = $1', [g])).trainer_pay) >= 0);
+  await denied(rec({ held_on: '2027-03-01', start_time: '08:00', hall: 'Small Hall' }), /one to four people/);
+  // A student with a guest pays half.
+  const sg = (await rec({ held_on: '2027-03-01', start_time: '09:00', hall: 'Small Hall', guest_name: 'Visitor Two', price: 300 }, [a.id])).id;
+  await as('admin', `select public.set_lesson_status($1, 'done')`, [sg]);
+  assert.equal(Number((await one('admin', 'select sum(amount) s from public.charges where lesson_id = $1', [sg])).s), 150, 'the guest takes a share');
+  // A group class in the hall refuses the lesson; another hall is fine; another lesson in the same hall only warns.
+  const thu = '2026-11-19';
+  await denied(rec({ held_on: thu, start_time: '19:30', hall: 'Big Hall', guest_name: 'G' }), /group class/);
+  const ok1 = (await rec({ held_on: thu, start_time: '19:30', hall: 'Small Hall', guest_name: 'G' })).id;
+  const busy = (await one('admin', `select public.hall_check($1, '19:45', 30, 'Small Hall') x`, [thu])).x;
+  assert.ok(busy.some((x) => x.kind === 'lesson' && x.trainer === 'Roman' && !x.title), 'another lesson there is listed, without names');
+  const bigHall = (await one('admin', `select public.hall_check($1, '19:30', 30, 'Big Hall') x`, [thu])).x;
+  assert.ok(bigHall.some((x) => x.kind === 'group'), 'the group class there is listed');
+  await denied(rpc('anon', 'hall_check', [thu, '19:30', 30, 'Big Hall']), /permission denied/);
+  // Only a move into the class refuses: confirming a lesson does not.
+  await as('admin', `select public.set_lesson_status($1, 'done')`, [ok1]);
+  // The trainer sets a lesson straight away, theirs, at their rate.
+  await db.query(`update public.profiles set roles = '{trainer}' where id = $1`, [U.trainer]);
+  const mmins = (await one('admin', 'select minutes from public.trainer_rates where trainer_id = $1 limit 1', [misha.id]))?.minutes;
+  if (mmins) {
+    const t = (await rpc('trainer', 'trainer_add_lesson', [JSON.stringify({ held_on: '2027-03-02', start_time: '09:00', minutes: mmins, hall: 'Small Hall', guest_name: 'Walk-in', trainer_id: roman.id, price: 1 }), []])).rows[0].trainer_add_lesson;
+    const row = await one('admin', 'select status, trainer_id, guest_name, price from public.lessons where id = $1', [t]);
+    assert.deepEqual([row.status, row.trainer_id, row.guest_name], ['planned', misha.id, 'Walk-in'], 'planned at once, as their own, whatever was sent');
+    assert.notEqual(Number(row.price), 1, 'at their own rate');
+    assert.ok((await rpc('trainer', 'trainer_lessons', ['2027-03-01', '2027-03-03'])).rows.some((x) => x.students === 'Walk-in'), 'the guest shows in their list');
+  }
+  await db.query(`update public.profiles set roles = '{}' where id = $1`, [U.trainer]);
 }
 
 console.log('access rules: all checks passed');
