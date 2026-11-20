@@ -6,7 +6,7 @@ import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
 import { notifyCard, notifyMany } from './notify';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, type Row } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, type Row, keep } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 
@@ -97,6 +97,7 @@ export async function clientsView() {
     );
     if (!rows.length) body.append(h('tr', {}, h('td', { colSpan: 3, className: 'muted', textContent: t('emptyList') })));
   };
+  for (const [k, el] of Object.entries({ search, archived, groupSel, owesBox, waitingBox, contactBox, programSel, trainerSel, ageSel, docsBox, appBox })) keep(`clients.${k}`, el);
   search.oninput = archived.onchange = groupSel.onchange = owesBox.onchange = waitingBox.onchange = contactBox.onchange = programSel.onchange = trainerSel.onchange = ageSel.onchange = docsBox.onchange = appBox.onchange = draw;
   draw();
 

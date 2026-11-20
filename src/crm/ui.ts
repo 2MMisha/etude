@@ -29,6 +29,18 @@ export function flash(text: string, bad = false) {
   timer = window.setTimeout(() => (el.hidden = true), bad ? 8000 : 1800);
 }
 
+/** Filters remembered while the CRM is open, so coming back to a list finds them as they were. */
+const kept = new Map<string, string | boolean>();
+export function keep<T extends HTMLInputElement | HTMLSelectElement>(key: string, el: T): T {
+  const box = el instanceof HTMLInputElement && el.type === 'checkbox';
+  const v = kept.get(key);
+  if (v !== undefined) box ? ((el as HTMLInputElement).checked = v as boolean) : (el.value = v as string);
+  const save = () => kept.set(key, box ? (el as HTMLInputElement).checked : el.value);
+  el.addEventListener('input', save);
+  el.addEventListener('change', save);
+  return el;
+}
+
 type Result<T> = PromiseLike<{ data: T; error: { message: string; code?: string } | null }>;
 /** The database refusing a delete because other records point at the row. */
 const FOREIGN_KEY = '23503';

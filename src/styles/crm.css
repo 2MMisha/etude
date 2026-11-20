@@ -115,6 +115,16 @@ body { background: var(--color-ground); }
 .sign label { display: grid; gap: 0.3em; font-weight: 600; font-size: 0.9rem; }
 .msg { margin: 0; min-height: 1.4em; font-size: 0.9rem; color: var(--color-ink-soft); }
 .msg.bad { color: #b3261e; }
+/* A client in a window over the list (computers only, see app.ts). */
+dialog.popup { width: min(1040px, 94vw); max-height: 92vh; padding: var(--space-sm); border: 0; border-radius: var(--radius-md); background: var(--color-ground); overflow: auto; box-shadow: 0 20px 60px rgb(23 34 74 / 0.35); }
+dialog.popup::backdrop { background: rgb(23 34 74 / 0.45); }
+dialog.popup .popup-close { position: sticky; top: 0; display: block; margin-inline-start: auto; margin-block-end: -2.4rem; z-index: 2; font-size: 1.3rem; line-height: 1; padding: 0.3em 0.6em; }
+/* Printing with a client open prints the client, not the list under it. */
+@media print {
+  body:has(dialog.popup[open]) #view { display: none !important; }
+  dialog.popup[open] { position: static; width: auto; max-height: none; overflow: visible; padding: 0; box-shadow: none; background: #fff; }
+  dialog.popup::backdrop, dialog.popup .popup-close { display: none !important; }
+}
 .status {
   position: fixed; inset-block-end: 1rem; inset-inline: 0; margin-inline: auto; width: fit-content; max-width: min(92vw, 640px); z-index: 5;
   padding: 0.6em 1.1em; border-radius: 999px; background: #1f7a4d; color: #fff; font-weight: 600; font-size: 0.9rem; box-shadow: 0 6px 20px rgba(23, 34, 74, 0.25);

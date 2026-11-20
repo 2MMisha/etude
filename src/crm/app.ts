@@ -125,9 +125,58 @@ installBtn.onclick = async () => {
 addEventListener('appinstalled', () => (installBtn.hidden = true));
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/crm/sw.js', { scope: '/crm/' }).catch(() => {});
 
+// On a computer a client opens in a window over the list it was chosen from;
+// closing it (×, Esc, a click outside, or Back) returns to that list as it was.
+// On a phone the client is its own screen, as before.
+const UNDER = new Set(['dashboard', 'clients', 'month', 'lessons', 'debts', 'trainersTab', 'reports', 'log', 'home', 'accounts', 'settings']);
+const roomy = () => matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)').matches;
+const status = document.getElementById('status')!;
+const popBody = h('div', {});
+const pop = h('dialog', { className: 'popup' },
+  h('button', { type: 'button', className: 'popup-close', textContent: '×', ariaLabel: t('close'), onclick: () => pop.close() }), popBody);
+view.after(pop);
+let closedByNav = false;
+pop.addEventListener('close', () => {
+  view.after(status); // messages show over the page again
+  if (!closedByNav) history.back();
+  closedByNav = false;
+});
+pop.addEventListener('click', (e) => {
+  if (e.target === pop) return pop.close(); // the dimmed area outside
+  // Moving inside the window (the client's tabs, another client) takes no extra Back step, so closing returns to the list.
+  const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#/client/"]');
+  if (a && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    e.preventDefault();
+    location.replace(a.getAttribute('href')!);
+  }
+});
+let drawn = ''; // the route drawn on the page (under the window, when one is open)
+let drawnHash = '';
+const scrolls = new Map<string, number>(); // where each screen was scrolled to, for coming back
+
 async function render() {
   const [name = '', arg, sub] = location.hash.replace(/^#\/?/, '').split('/');
   const route = name in ROUTES ? name : 'dashboard';
+  if (route === 'client' && state.me && (pop.open || (UNDER.has(drawn) && roomy()))) {
+    const y = pop.scrollTop;
+    try {
+      popBody.replaceChildren(await ROUTES.client(arg, sub));
+      addTableTools(popBody);
+    } catch (e) {
+      popBody.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
+    }
+    if (!pop.open) {
+      pop.showModal();
+      pop.append(status);
+      pop.scrollTop = 0;
+    } else pop.scrollTop = y;
+    return;
+  }
+  if (pop.open) {
+    closedByNav = true;
+    pop.close();
+  }
+  if (drawnHash) scrolls.set(drawnHash, scrollY);
   const staff = drawChrome(route);
   if (!db) return view.replaceChildren(card('notConnected'));
   if (recovering) return view.replaceChildren(newPasswordView(() => { recovering = false; render(); }));
@@ -135,8 +184,11 @@ async function render() {
   if (!staff) return view.replaceChildren(card('noAccess'));
   try {
     view.replaceChildren(await ROUTES[route](arg, sub));
+    drawn = route;
+    drawnHash = location.hash;
     drawBell();
     addTableTools(view);
+    scrollTo(0, scrolls.get(location.hash) ?? 0);
   } catch (e) {
     view.replaceChildren(h('p', { className: 'card msg bad', textContent: e instanceof Error ? e.message : String(e) }));
   }
@@ -146,7 +198,7 @@ nav.refresh = async () => {
   const y = scrollY;
   await render();
   updateBell();
-  scrollTo(0, y);
+  if (!pop.open) scrollTo(0, y);
 };
 
 // Local development only: the signed-in client, for poking at data from the console.

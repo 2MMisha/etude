@@ -5,7 +5,7 @@
 // key go through the "accounts" Edge Function (supabase/functions/accounts/).
 import { t, getLang, type Key } from '../i18n';
 import { pick } from '../forms';
-import { db, h, get, ok, nav, input, checkbox, flash, state, type Profile, type Row } from '../ui';
+import { db, h, get, ok, nav, input, checkbox, flash, state, type Profile, type Row, keep } from '../ui';
 
 const ROLES = ['owner', 'admin', 'trainer', 'client'] as const;
 
@@ -82,6 +82,8 @@ export async function accountsView() {
   const body = h('tbody', {}, ...rows.map((r) => r.tr));
   const search = h('input', { type: 'search', placeholder: say('Поиск по имени или почте', 'חיפוש לפי שם או אימייל', 'Search by name or email') });
   search.oninput = () => rows.forEach((r) => (r.tr.hidden = !r.text.includes(search.value.trim().toLowerCase())));
+  keep('accounts.search', search);
+  search.dispatchEvent(new Event('input'));
 
   // A new login: the email they sign in with, a first password to hand them, a name and what they may do.
   const email = h('input', { type: 'email', placeholder: t('email'), required: true, autocomplete: 'off', dir: 'ltr' });

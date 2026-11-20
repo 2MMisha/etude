@@ -4,6 +4,7 @@ export const LANGS: Lang[] = ['he', 'ru', 'en'];
 export const LOCALE: Record<Lang, string> = { he: 'he-IL', ru: 'ru-RU', en: 'en-GB' };
 
 const en = {
+  close: "Close",
   guestName: "A guest (not a client)", hallAlso: "Also in this hall then:", hallBlocked: "There is a group class or a master class in this hall then. Choose another time or hall.",
   masterClass: "Master class", quickAdd: "Quick add", quickHint: "Time, name, minutes. For example: 18:30 Dana 45", quickBad: "Write it as: time name minutes, for example 18:30 Dana 45",
   quickWho: "Which student?", quickNone: "No student with that name. The lesson will be for a guest (not a client):", alone: "Alone", withPartner: "With", putOnSchedule: "Put on the schedule", guestPays: "The guest pays",
@@ -153,6 +154,7 @@ const en = {
 export type Key = keyof typeof en;
 
 const ru: Record<Key, string> = {
+  close: "Закрыть",
   guestName: "Гость (не клиент)", hallAlso: "В этом зале в это время уже есть:", hallBlocked: "В этом зале в это время групповой урок или мастер-класс. Выберите другое время или зал.",
   masterClass: "Мастер-класс", quickAdd: "Быстрое добавление", quickHint: "Время, имя, минуты. Например: 18:30 Dana 45", quickBad: "Напишите так: время имя минуты, например 18:30 Dana 45",
   quickWho: "Какой ученик?", quickNone: "Ученика с таким именем нет. Урок будет для гостя (не клиента):", alone: "Один", withPartner: "В паре с", putOnSchedule: "Поставить в расписание", guestPays: "Оплата гостя",
@@ -294,6 +296,7 @@ const ru: Record<Key, string> = {
 };
 
 const he: Record<Key, string> = {
+  close: "סגירה",
   guestName: "אורח/ת (לא לקוח/ה)", hallAlso: "באולם הזה באותה שעה כבר יש:", hallBlocked: "באולם הזה באותה שעה יש שיעור קבוצתי או כיתת אמן. בחרו שעה או אולם אחרים.",
   masterClass: "כיתת אמן", quickAdd: "הוספה מהירה", quickHint: "שעה, שם, דקות. לדוגמה: 18:30 דנה 45", quickBad: "כתבו כך: שעה שם דקות, לדוגמה 18:30 דנה 45",
   quickWho: "איזה תלמיד/ה?", quickNone: "אין תלמיד/ה בשם הזה. השיעור יהיה לאורח/ת (לא לקוח/ה):", alone: "לבד", withPartner: "בזוג עם", putOnSchedule: "להכניס למערכת", guestPays: "תשלום האורח/ת",
