@@ -23,6 +23,7 @@ let signedIn: string | null | undefined; // undefined = not heard from Supabase 
 let recovering = false;
 let week = ''; // the Sunday of the week on the table ('' = this week)
 let picked = ''; // what was open before the last change, so its panel comes back
+const quickPick = { date: '', hall: '' }; // the quick-add line's choices, kept across redraws
 
 const addDays = (iso: string, n: number) => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -169,8 +170,8 @@ async function home() {
 
   // ── Put a new lesson on the schedule, at my own rate ──
   const halls = summary.halls as string[];
-  const qDate = h('input', { type: 'date', value: today(), min: today(), ariaLabel: t('date') });
-  const qHall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {}, { ariaLabel: t('hall') });
+  const qDate = h('input', { type: 'date', value: quickPick.date >= today() ? quickPick.date : today(), min: today(), ariaLabel: t('date'), onchange: () => (quickPick.date = qDate.value) });
+  const qHall = select(halls.map((x): [string, string] => [x, x]), quickPick.hall || (halls[0] ?? ''), (v) => (quickPick.hall = v), { ariaLabel: t('hall') });
   const quick = h('section', { className: 'card' }, quickAdd({
     students,
     controls: [qDate, qHall],

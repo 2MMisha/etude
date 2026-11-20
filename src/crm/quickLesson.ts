@@ -76,6 +76,8 @@ export function quickAdd(o: {
         set.disabled = false;
       }
     }, true);
+    set.disabled = true; // until the hall has been checked
+    notice.el.replaceChildren();
     out.replaceChildren(
       h('p', { className: 'quote' }, h('span', { dir: 'ltr' }, `${day} ${q.time}, ${q.minutes}′`), ` · ${w.hall}${w.who ? ` · ${w.who}` : ''} · ${who}`),
       notice.el,

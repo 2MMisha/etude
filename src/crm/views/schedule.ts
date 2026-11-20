@@ -15,6 +15,8 @@ const CHARGED = ['done', 'no_show', 'late_cancel'] as const;
 const METHODS = ['cash', 'transfer', 'bit', 'cheque', 'standing_order'] as const;
 /** What was open before the last change, so the panel comes back after the redraw. */
 let picked = '';
+/** The quick-add line's date, trainer and hall, kept across redraws. */
+const quickPick = { date: '', trainer: '', hall: '' };
 const MARK: Record<string, string> = { done: '✓ ', no_show: '✗ ', late_cancel: '✗ ', requested: '? ' };
 const addDays = (iso: string, n: number) => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -380,9 +382,10 @@ export async function scheduleView(arg?: string) {
   };
 
   // ── Quick add ──
-  const qDate = h('input', { type: 'date', value: firstDay, ariaLabel: t('date') });
-  const qTrainer = select(trainerOptions, trainerOptions[0]?.[0] ?? '', () => {}, { ariaLabel: t('trainer') });
-  const qHall = select(halls.map((x): [string, string] => [x, x]), halls[0] ?? '', () => {}, { ariaLabel: t('hall') });
+  // Kept across redraws, so a row of lessons for one trainer and day goes in one after another.
+  const qDate = h('input', { type: 'date', value: quickPick.date && dates.includes(quickPick.date) ? quickPick.date : firstDay, ariaLabel: t('date'), onchange: () => (quickPick.date = qDate.value) });
+  const qTrainer = select(trainerOptions, quickPick.trainer || (trainerOptions[0]?.[0] ?? ''), (v) => (quickPick.trainer = v), { ariaLabel: t('trainer') });
+  const qHall = select(halls.map((x): [string, string] => [x, x]), quickPick.hall || (halls[0] ?? ''), (v) => (quickPick.hall = v), { ariaLabel: t('hall') });
   const quick = quickAdd({
     students,
     controls: [qDate, qTrainer, qHall],
