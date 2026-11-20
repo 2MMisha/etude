@@ -926,6 +926,28 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   for (const l of [past, future]) await as('admin', 'delete from public.lessons where id = $1', [l]);
 }
 
+// Discounts in shekels as well as percents (owner, 2026-11-20).
+{
+  const q = await one('admin', 'select student_id, list_amount::float l, amount::float a from public.student_quotes where amount > 100 and discounts = $1::jsonb limit 1', ['{}']);
+  assert.ok(q, 'a student with a plain price');
+  await as('admin', 'update public.students set olim_ils = 40, olim_pct = 10 where id = $1', [q.student_id]);
+  const after = await one('admin', 'select amount::float a, discounts from public.student_quotes where student_id = $1', [q.student_id]);
+  assert.equal(after.a, Math.max(0, Math.round(q.l * 0.9 - 40)), 'percent first, then the shekels');
+  assert.deepEqual(after.discounts, { olim: 10, olim_ils: 40 });
+  await denied(as('admin', 'update public.students set custom_ils = 30 where id = $1', [q.student_id]), /custom_ils_needs_comment/);
+  await as('admin', 'update public.students set olim_ils = 0, olim_pct = 0 where id = $1', [q.student_id]);
+  // A lesson share less shekels; never below zero.
+  const r45 = (await one('admin', 'select minutes from public.trainer_rates where trainer_id = $1 and minutes = 45', [roman.id])).minutes;
+  const lid = (await one('admin', 'select public.record_lesson($1, $2) id', [JSON.stringify({ trainer_id: roman.id, minutes: r45, held_on: '2026-11-03', start_time: '05:00', hall: 'Small Hall', price: 200 }), [a.id, b.id]])).id;
+  await as('admin', 'update public.lesson_students set discount_ils = 30 where lesson_id = $1 and student_id = $2', [lid, a.id]);
+  await db.query('select public.lessons_autodone()');
+  const ch = async (sid) => (await one('admin', 'select amount::float a from public.charges where lesson_id = $1 and student_id = $2', [lid, sid])).a;
+  assert.equal(await ch(a.id), 70);
+  await as('admin', 'update public.lesson_students set discount_ils = 500 where lesson_id = $1 and student_id = $2', [lid, b.id]);
+  assert.equal(await ch(b.id), 0, 'not below zero');
+  await as('admin', 'delete from public.lessons where id = $1', [lid]);
+}
+
 // Stage 8: a stranger who signed up (a login with no role, no family) and a visitor
 // without a login try every function that writes. Each is refused or changes nothing.
 {

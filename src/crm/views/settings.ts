@@ -3,7 +3,7 @@
 import { t, getLang } from '../i18n';
 import { pick, type L } from '../forms';
 import { WEEKDAY } from './schedule';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, flash, type Row } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, sureButton, flash, type Row, discountField } from '../ui';
 
 const PER_WEEK = [1, 2, 3];
 
@@ -116,13 +116,16 @@ export async function settingsView() {
     programOptions.length > 0 && groupForm
   );
 
-  const pct = (id: string, title: string) =>
-    h('label', { className: 'row' }, h('span', { className: 'grow' }, title),
-      number(settings.find((x) => x.id === id)?.value, (v) => ok(db!.from('settings').upsert({ id, value: v ?? 0 })), { max: 100, ariaLabel: title }));
+  // Each in percent or in shekels a month: two settings, the unused one 0.
+  const pct = (key: string, title: string) => {
+    const val = (id: string) => Number(settings.find((x) => x.id === id)?.value ?? 0);
+    return h('div', { className: 'row' }, h('span', { className: 'grow' }, title),
+      discountField(val(`${key}_pct`), val(`${key}_ils`), (p, i) => ok(db!.from('settings').upsert([{ id: `${key}_pct`, value: p }, { id: `${key}_ils`, value: i }])), { ariaLabel: title }));
+  };
   const discounts = h('section', { className: 'card' },
     h('h2', { textContent: t('discountsTitle') }),
-    pct('second_child_pct', t('secondChild')),
-    pct('full_year_pct', t('fullYear'))
+    pct('second_child', t('secondChild')),
+    pct('full_year', t('fullYear'))
   );
 
   // Printed at the top of every payment confirmation.

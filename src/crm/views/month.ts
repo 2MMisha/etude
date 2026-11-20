@@ -3,7 +3,7 @@
 // button charges everyone by the price list; changing a charge or taking a
 // payment happens on the client's page (click the name).
 import { getLang, t, LOCALE } from '../i18n';
-import { db, h, get, nav, flash, money, ltr, pctOf, today, fillThisMonth, type Row, nameIn } from '../ui';
+import { db, h, get, nav, flash, money, ltr, pctOf, today, fillThisMonth, type Row, nameIn, discountText } from '../ui';
 
 const shift = (ym: string, by: number) => {
   const [y, m] = ym.split('-').map(Number);
@@ -32,7 +32,7 @@ export async function monthView(arg?: string) {
     const owed = b ? Number(b.owed) : 0;
     return h('tr', { className: c ? '' : 'pending' },
       h('td', {}, h('a', { href: `#/client/${s.client_id}/pay`, textContent: nameIn(s) }), nameIn(s.clients) !== nameIn(s) && h('small', {}, nameIn(s.clients))),
-      h('td', {}, shown?.description ? ltr(shown.description) : '', pct > 0 && h('small', {}, ltr(`−${pct}%`))),
+      h('td', {}, shown?.description ? ltr(shown.description) : '', discountText(shown?.discounts) && h('small', {}, ltr(discountText(shown?.discounts)))),
       c
         ? h('td', {}, ltr(money(c.amount)), c.manual && h('small', {}, `${t('byHand')}: ${c.comment}`))
         : h('td', { className: 'muted' }, t('notCharged'), q?.amount != null && h('small', {}, ltr(money(q.amount)))),

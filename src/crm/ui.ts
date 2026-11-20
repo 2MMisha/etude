@@ -118,8 +118,31 @@ export async function fillThisMonth() {
 export const money = (n: unknown) => (n == null ? '—' : `${Number(n)} ₪`);
 /** A formula or amount that must read left to right inside Hebrew text. */
 export const ltr = (text: string) => h('bdi', { dir: 'ltr', textContent: text });
-/** Sum of a charge's or quote's discount percentages. */
-export const pctOf = (discounts: Row | null | undefined) => Object.values(discounts ?? {}).reduce((a: number, b) => a + Number(b), 0);
+/** Sum of a charge's or quote's discount percentages (shekel discounts are kept under name + '_ils'). */
+export const pctOf = (discounts: Row | null | undefined) =>
+  Object.entries(discounts ?? {}).reduce((a: number, [k, v]) => (k.endsWith('_ils') ? a : a + Number(v)), 0);
+/** Sum of its shekel discounts. */
+export const ilsOf = (discounts: Row | null | undefined) =>
+  Object.entries(discounts ?? {}).reduce((a: number, [k, v]) => (k.endsWith('_ils') ? a + Number(v) : a), 0);
+/** "−10% −50 ₪" for a charge's or quote's discounts ('' when none). */
+export const discountText = (discounts: Row | null | undefined) =>
+  [pctOf(discounts) && `−${pctOf(discounts)}%`, ilsOf(discounts) && `−${money(ilsOf(discounts))}`].filter(Boolean).join(' ');
+/**
+ * A discount in percent or in shekels: a number and a % / ₪ switch. Saves (pct, ils) with the
+ * unused one at 0; switching the unit keeps the number. onInput (optional) sees it while typing.
+ */
+export function discountField(pct: number, ils: number, save: (pct: number, ils: number) => void, opts: { ariaLabel?: string; onInput?: (pct: number, ils: number) => void } = {}) {
+  const value = h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: ils > 0 ? ils : pct || '', ariaLabel: opts.ariaLabel ?? '' });
+  const unit = h('select', { ariaLabel: opts.ariaLabel ?? '' }, h('option', { value: '%', textContent: '%', selected: !(ils > 0) }), h('option', { value: '₪', textContent: '₪', selected: ils > 0 }));
+  const read = (): [number, number] => {
+    let v = Math.max(0, Number(value.value) || 0);
+    if (unit.value === '%') v = Math.min(100, v);
+    return unit.value === '%' ? [v, 0] : [0, v];
+  };
+  value.oninput = () => opts.onInput?.(...read());
+  value.onchange = unit.onchange = () => { opts.onInput?.(...read()); save(...read()); };
+  return h('span', { className: 'row discount' }, value, unit);
+}
 
 /** What a table cell shows: typed values and chosen options too, not only plain text. */
 function cellText(td: Element): string {

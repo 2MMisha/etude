@@ -20,6 +20,9 @@ body { background: var(--color-ground); }
   width: 100%; min-width: 0; box-sizing: border-box;
 }
 .crm input.num { width: 6.5em; }
+/* A discount: the number and its % / ₪ switch side by side. */
+.crm .discount { flex-wrap: nowrap; gap: 0.3rem; }
+.crm .discount select { width: auto; }
 /* In a table a text field would shrink to nothing on a phone; the table scrolls sideways instead. */
 .crm td input[type='text'], .crm td select { min-width: 9em; }
 .crm input[type='checkbox'] { width: 1.1em; height: 1.1em; accent-color: var(--color-blue-600); }

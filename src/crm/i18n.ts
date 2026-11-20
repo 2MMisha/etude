@@ -6,7 +6,7 @@ export const LOCALE: Record<Lang, string> = { he: 'he-IL', ru: 'ru-RU', en: 'en-
 const en = {
   close: "Close",
   guestName: "A guest (not a client)", hallAlso: "Also in this hall then:", hallBlocked: "There is a group class or a master class in this hall then. Choose another time or hall.",
-  masterClass: "Master class", quickAdd: "Quick add", quickHint: "Time, name, minutes. For example: 18:30 Dana 45", quickBad: "Write it as: time name minutes, for example 18:30 Dana 45",
+  masterClass: "Master class", quickAdd: "Quick add", quickHint: "Time, name, minutes. For example: 18:30 Dana 45 (a couple: 18:30 Dana - Avi 45)", quickFour: "Up to four people in one lesson", quickOneGuest: "Only one guest (not a client) per lesson: the other names must be students", quickBad: "Write it as: time name minutes, for example 18:30 Dana 45",
   quickWho: "Which student?", quickNone: "No student with that name. The lesson will be for a guest (not a client):", alone: "Alone", withPartner: "With", putOnSchedule: "Put on the schedule", guestPays: "The guest pays",
   // sign-in
   email: 'Email', password: 'Password', signIn: 'Sign in', signOut: 'Sign out', forgot: 'Forgot password?',
@@ -30,7 +30,7 @@ const en = {
   samePhone: 'Same phone as', addStudent: 'Add student', clientIsStudent: 'The client is the student',
   birthDate: 'Date of birth', level: 'Level', membership: 'Membership', perWeek: 'a week', addGroup: '+ Group…',
   unlimited: 'Unlimited', discounts: 'Discounts', secondChild: 'Second child', fullYear: 'Paid for the full year',
-  olimPct: 'Olim, %', customPct: 'Other discount, %', customComment: 'Reason for the discount',
+  olimPct: 'Olim discount', customPct: 'Other discount', customComment: 'Reason for the discount',
   noGroups: 'Not in any group yet.', noPrice: 'No price for this combination: set it by hand on the Month screen.',
   perMonth: 'a month', charges: "To pay, by month", noCharges: "Nothing to pay yet.",
   // month
@@ -40,7 +40,7 @@ const en = {
   programmes: 'Programmes and monthly prices', minutes: 'Minutes', addProgramme: 'Add programme',
   priceHint: 'Monthly price for 1, 2 or 3 classes a week. Leave a cell empty if that option does not exist.',
   otherPrices: 'Other prices', oneTimeEntry: 'One-time group entry', privateLessons: 'Private lessons', rentals: 'Hall rental',
-  label: 'Name', groupsTitle: 'Groups', programme: 'Programme', discountsTitle: 'Discounts, %',
+  label: 'Name', groupsTitle: 'Groups', programme: 'Programme', discountsTitle: 'Discounts',
   historyHint: 'A change applies to new charges only. Charges already made keep their price.',
   // stage 3: trainers, private lessons, expenses
   dashboard: "Dashboard", log: "Log",
@@ -156,7 +156,7 @@ export type Key = keyof typeof en;
 const ru: Record<Key, string> = {
   close: "Закрыть",
   guestName: "Гость (не клиент)", hallAlso: "В этом зале в это время уже есть:", hallBlocked: "В этом зале в это время групповой урок или мастер-класс. Выберите другое время или зал.",
-  masterClass: "Мастер-класс", quickAdd: "Быстрое добавление", quickHint: "Время, имя, минуты. Например: 18:30 Dana 45", quickBad: "Напишите так: время имя минуты, например 18:30 Dana 45",
+  masterClass: "Мастер-класс", quickAdd: "Быстрое добавление", quickHint: "Время, имя, минуты. Например: 18:30 Dana 45 (пара: 18:30 Dana - Avi 45)", quickFour: "В одном уроке не больше четырёх человек", quickOneGuest: "В уроке может быть только один гость (не клиент): остальные имена должны быть учениками", quickBad: "Напишите так: время имя минуты, например 18:30 Dana 45",
   quickWho: "Какой ученик?", quickNone: "Ученика с таким именем нет. Урок будет для гостя (не клиента):", alone: "Один", withPartner: "В паре с", putOnSchedule: "Поставить в расписание", guestPays: "Оплата гостя",
   email: 'Эл. почта', password: 'Пароль', signIn: 'Войти', signOut: 'Выйти', forgot: 'Забыли пароль?',
   sent: 'Если адрес зарегистрирован, на него отправлена ссылка для сброса.', needEmail: 'Сначала введите почту.',
@@ -175,7 +175,7 @@ const ru: Record<Key, string> = {
   samePhone: 'Тот же телефон у', addStudent: 'Добавить ученика', clientIsStudent: 'Клиент сам занимается',
   birthDate: 'Дата рождения', level: 'Уровень', membership: 'Абонемент', perWeek: 'в неделю', addGroup: '+ Группа…',
   unlimited: 'Безлимит', discounts: 'Скидки', secondChild: 'Второй ребёнок', fullYear: 'Оплата за весь год',
-  olimPct: 'Олим, %', customPct: 'Другая скидка, %', customComment: 'Причина скидки',
+  olimPct: 'Скидка олим', customPct: 'Другая скидка', customComment: 'Причина скидки',
   noGroups: 'Пока не записан ни в одну группу.', noPrice: 'Для такого сочетания нет цены: задайте её вручную на экране «Месяц».',
   perMonth: 'в месяц', charges: "К оплате по месяцам", noCharges: "Пока нечего оплачивать.",
   createCharges: "Заполнить этот месяц по прайсу", added: 'добавлено', plan: 'Программа', list: 'Цена по прайсу', discount: 'Скидка',
@@ -183,7 +183,7 @@ const ru: Record<Key, string> = {
   programmes: 'Программы и цены за месяц', minutes: 'Минут', addProgramme: 'Добавить программу',
   priceHint: 'Цена за месяц при 1, 2 или 3 занятиях в неделю. Оставьте ячейку пустой, если такого варианта нет.',
   otherPrices: 'Другие цены', oneTimeEntry: 'Разовое занятие в группе', privateLessons: 'Индивидуальные занятия', rentals: 'Аренда зала',
-  label: 'Название', groupsTitle: 'Группы', programme: 'Программа', discountsTitle: 'Скидки, %',
+  label: 'Название', groupsTitle: 'Группы', programme: 'Программа', discountsTitle: 'Скидки',
   historyHint: 'Изменение действует только на новые начисления. Уже сделанные сохраняют свою цену.',
   // stage 3: trainers, private lessons, expenses
   dashboard: "Сводка", log: "Журнал",
@@ -298,7 +298,7 @@ const ru: Record<Key, string> = {
 const he: Record<Key, string> = {
   close: "סגירה",
   guestName: "אורח/ת (לא לקוח/ה)", hallAlso: "באולם הזה באותה שעה כבר יש:", hallBlocked: "באולם הזה באותה שעה יש שיעור קבוצתי או כיתת אמן. בחרו שעה או אולם אחרים.",
-  masterClass: "כיתת אמן", quickAdd: "הוספה מהירה", quickHint: "שעה, שם, דקות. לדוגמה: 18:30 דנה 45", quickBad: "כתבו כך: שעה שם דקות, לדוגמה 18:30 דנה 45",
+  masterClass: "כיתת אמן", quickAdd: "הוספה מהירה", quickHint: "שעה, שם, דקות. לדוגמה: 18:30 דנה 45 (זוג: 18:30 דנה - אבי 45)", quickFour: "עד ארבעה אנשים בשיעור אחד", quickOneGuest: "רק אורח/ת אחד/ת (לא לקוח/ה) בשיעור: שאר השמות צריכים להיות תלמידים", quickBad: "כתבו כך: שעה שם דקות, לדוגמה 18:30 דנה 45",
   quickWho: "איזה תלמיד/ה?", quickNone: "אין תלמיד/ה בשם הזה. השיעור יהיה לאורח/ת (לא לקוח/ה):", alone: "לבד", withPartner: "בזוג עם", putOnSchedule: "להכניס למערכת", guestPays: "תשלום האורח/ת",
   email: 'אימייל', password: 'סיסמה', signIn: 'כניסה', signOut: 'יציאה', forgot: 'שכחתי סיסמה',
   sent: 'אם הכתובת רשומה, נשלח אליה קישור לאיפוס.', needEmail: 'הקלידו את האימייל קודם.',
@@ -317,7 +317,7 @@ const he: Record<Key, string> = {
   samePhone: 'אותו טלפון אצל', addStudent: 'הוספת תלמיד/ה', clientIsStudent: 'הלקוח/ה הוא/היא התלמיד/ה',
   birthDate: 'תאריך לידה', level: 'רמה', membership: 'מנוי', perWeek: 'בשבוע', addGroup: '+ קבוצה…',
   unlimited: 'ללא הגבלה', discounts: 'הנחות', secondChild: 'ילד/ה שני/ה', fullYear: 'תשלום לכל השנה',
-  olimPct: 'עולים, %', customPct: 'הנחה אחרת, %', customComment: 'סיבת ההנחה',
+  olimPct: 'הנחת עולים', customPct: 'הנחה אחרת', customComment: 'סיבת ההנחה',
   noGroups: 'עדיין לא רשום/ה לאף קבוצה.', noPrice: 'אין מחיר לשילוב הזה: קבעו אותו ידנית במסך "חודש".',
   perMonth: 'לחודש', charges: "לתשלום לפי חודשים", noCharges: "עדיין אין מה לשלם.",
   createCharges: "למלא את החודש הזה לפי המחירון", added: 'נוספו', plan: 'תוכנית', list: 'מחיר מחירון', discount: 'הנחה',
@@ -325,7 +325,7 @@ const he: Record<Key, string> = {
   programmes: 'תוכניות ומחירים לחודש', minutes: 'דקות', addProgramme: 'הוספת תוכנית',
   priceHint: 'מחיר לחודש עבור 1, 2 או 3 שיעורים בשבוע. השאירו תא ריק אם אין אפשרות כזו.',
   otherPrices: 'מחירים נוספים', oneTimeEntry: 'כניסה חד-פעמית לקבוצה', privateLessons: 'שיעורים פרטיים', rentals: 'השכרת אולם',
-  label: 'שם', groupsTitle: 'קבוצות', programme: 'תוכנית', discountsTitle: 'הנחות, %',
+  label: 'שם', groupsTitle: 'קבוצות', programme: 'תוכנית', discountsTitle: 'הנחות',
   historyHint: 'שינוי חל רק על חיובים חדשים. חיובים שכבר נוצרו שומרים על המחיר שלהם.',
   // stage 3: trainers, private lessons, expenses
   dashboard: "סיכום", log: "יומן",

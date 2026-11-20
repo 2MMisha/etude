@@ -6,7 +6,7 @@ import { paymentsCard } from './payments';
 import { registrationCard, attention, regWord, formFacts } from './registration';
 import { exportCard } from './export';
 import { notifyCard, notifyMany } from './notify';
-import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, studentLabel, type Row, keep, nameIn } from '../ui';
+import { db, h, get, ok, nav, input, number, checkbox, select, field, tick, sureButton, flash, money, ltr, pctOf, today, fillThisMonth, studentPicker, studentLabel, type Row, keep, nameIn, discountField, discountText } from '../ui';
 
 const digits = (s: string) => s.replace(/\D/g, '').replace(/^972/, '0');
 /** The list's view (families or students) and sort order, kept while the CRM is open. */
@@ -247,23 +247,23 @@ export async function clientView(id?: string, tab?: string) {
     const free = groups.filter((g) => !g.archived && !mine.some((e) => e.group_id === g.id));
     const upd = (patch: Row, redraw = false) => set('students', s, patch, redraw);
 
-    const customPct = number(s.custom_pct || null, () => saveCustom());
-    const customNote = input(s.custom_comment, () => saveCustom());
-    // The two go to the database together: a discount without a reason is refused there.
+    // The other discount and its reason go to the database together: a discount without a reason is refused there.
+    let custom: [number, number] = [Number(s.custom_pct), Number(s.custom_ils)];
     const saveCustom = () => {
-      const pct = Number(customPct.value) || 0;
-      if (pct > 0 && !customNote.value.trim()) {
+      if ((custom[0] > 0 || custom[1] > 0) && !customNote.value.trim()) {
         flash(t('commentRequired'), true);
         return customNote.focus();
       }
-      upd({ custom_pct: pct, custom_comment: customNote.value.trim() }, true);
+      upd({ custom_pct: custom[0], custom_ils: custom[1], custom_comment: customNote.value.trim() }, true);
     };
+    const customPct = discountField(custom[0], custom[1], (p, i) => { custom = [p, i]; saveCustom(); }, { ariaLabel: t('customPct') });
+    const customNote = input(s.custom_comment, () => saveCustom());
 
     const pct = pctOf(q?.discounts);
     const quote =
       !mine.length && !s.unlimited ? t('noGroups')
       : q?.amount == null ? t('noPrice')
-      : h('span', {}, ltr(`${q.description}: ${money(q.list_amount)}${pct ? ` − ${pct}%` : ''} = ${money(q.amount)}`), ` ${t('perMonth')}`);
+      : h('span', {}, ltr(`${q.description}: ${money(q.list_amount)}${discountText(q.discounts) ? ` ${discountText(q.discounts)}` : ''} = ${money(q.amount)}`), ` ${t('perMonth')}`);
 
     const lines = charges.filter((c) => c.student_id === s.id);
     const byPriceList = q?.amount != null && { amount: q.amount, description: q.description, list_amount: q.list_amount, discounts: q.discounts, manual: false, comment: '' };
@@ -349,7 +349,7 @@ export async function clientView(id?: string, tab?: string) {
         tick(t('fullYear'), checkbox(s.full_year, (v) => upd({ full_year: v }, true)))
       ),
       h('div', { className: 'grid' },
-        field(t('olimPct'), number(s.olim_pct || null, (v) => upd({ olim_pct: v ?? 0 }, true), { max: 100 })),
+        field(t('olimPct'), discountField(Number(s.olim_pct), Number(s.olim_ils), (p, i) => upd({ olim_pct: p, olim_ils: i }, true), { ariaLabel: t('olimPct') })),
         field(t('customPct'), customPct),
         field(t('customComment'), customNote, 'wide')
       ),

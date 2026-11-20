@@ -4,7 +4,7 @@
 // hall rentals — by day, time and hall. Click anything on the grid to change
 // it; the forms under the grid add a private lesson or a rental.
 import { getLang, t, LOCALE, type Key } from '../i18n';
-import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, studentPicker, type Row, nameIn } from '../ui';
+import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, studentPicker, type Row, nameIn, discountField } from '../ui';
 import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
 import { SITE } from '../../lib/site';
@@ -46,7 +46,7 @@ export async function scheduleView(arg?: string) {
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes] = await Promise.all([
-    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(id, discount_pct, students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
+    get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(id, discount_pct, discount_ils, students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
     get<Row[]>(db!.from('rentals').select('*').gte('held_on', start).lte('held_on', end)),
@@ -249,13 +249,15 @@ export async function scheduleView(arg?: string) {
         ...l.lesson_students.map((x: Row) => {
           const share = Number(l.price) / (l.lesson_students.length + (l.guest_name ? 1 : 0));
           const pays = h('span', { className: 'muted' });
-          const show = (pct: number) => (pays.replaceChildren('→ ', ltr(money(Math.round(share * (1 - pct / 100) * 100) / 100))));
-          show(Number(x.discount_pct));
+          // The same sum the database makes: the share less the percent, less the shekels, not below 0.
+          const show = (pct: number, ils: number) => pays.replaceChildren('= ', ltr(money(Math.max(0, Math.round((share * (1 - pct / 100) - ils) * 100) / 100))));
+          show(Number(x.discount_pct), Number(x.discount_ils));
           return h('div', { className: 'row' },
             h('span', { className: 'grow' }, `${nameIn(x.students)} · `, ltr(money(Math.round(share * 100) / 100))),
-            h('label', { className: 'tick' }, `${t('discount')} %`, h('input', { type: 'number', min: 0, max: 100, step: 'any', className: 'num', value: Number(x.discount_pct),
-              oninput: (ev: Event) => show(Number((ev.target as HTMLInputElement).value) || 0),
-              onchange: (ev: Event) => { const v = Math.min(100, Math.max(0, Number((ev.target as HTMLInputElement).value) || 0)); done(ok(db!.from('lesson_students').update({ discount_pct: v }).eq('id', x.id))); } })),
+            h('span', { className: 'muted' }, t('discount')),
+            discountField(Number(x.discount_pct), Number(x.discount_ils),
+              (p, i) => done(ok(db!.from('lesson_students').update({ discount_pct: p, discount_ils: i }).eq('id', x.id))),
+              { ariaLabel: `${t('discount')}: ${nameIn(x.students)}`, onInput: show }),
             pays);
         })),
       l.guest_name && (CHARGED as readonly string[]).includes(l.status) && (guestOwes > 0

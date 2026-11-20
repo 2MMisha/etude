@@ -103,11 +103,31 @@ export function quickAdd(o: {
       close));
   };
 
+  /** One name after another: a single match is taken, several ask which, none is the guest (one at most). */
+  const together = (q: { time: string; minutes: number }, parts: string[], ids: string[], guest: string): unknown => {
+    if (!parts.length) return confirm(q, ids, guest);
+    if (parts.length + ids.length + (guest ? 1 : 0) > 4) return flash(t('quickFour'), true);
+    const [name, ...rest] = parts;
+    const found = findStudents(o.students, name).filter((s) => !ids.includes(s.id));
+    if (found.length === 1) return together(q, rest, [...ids, found[0].id], guest);
+    if (found.length > 1) {
+      return out.replaceChildren(h('p', { textContent: `${t('quickWho')} (${name})` }),
+        h('div', { className: 'row' }, ...found.slice(0, 12).map((s) => btn(studentLabel(s), () => together(q, rest, [...ids, s.id], guest))), close));
+    }
+    if (guest) return flash(t('quickOneGuest'), true);
+    const field = h('input', { type: 'text', value: name, ariaLabel: t('guestName') });
+    out.replaceChildren(h('p', { textContent: t('quickNone') }),
+      h('div', { className: 'row' }, field, btn('→', () => (field.value.trim() ? together(q, rest, ids, field.value.trim()) : flash(t('needName'), true)), true), close));
+  };
+
   const go = () => {
     const q = parseQuick(input.value);
     if (!q) return flash(t('quickBad'), true);
     if (!o.where().date || !o.where().hall) return flash(t('quickBad'), true);
     if (!o.lengths().includes(q.minutes)) return flash(t('noRate'), true);
+    // "Dana - Avi": several people share the lesson, its price split between them.
+    const parts = q.name.split(/\s*-\s*/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length > 1) return together(q, parts, [], '');
     const found = findStudents(o.students, q.name);
     if (found.length === 1) return pick(q, found[0]);
     if (found.length > 1) {
