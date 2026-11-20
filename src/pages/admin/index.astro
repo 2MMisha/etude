@@ -483,7 +483,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
               <button type="button" class="active" data-sub="notice">Important &amp; payment</button>
               <button type="button" data-sub="events">Events</button>
               <button type="button" data-sub="music">Music</button>
-              <button type="button" data-sub="birthdays">Birthdays</button>
+              <!-- Birthdays now come from the CRM (students' birth dates); names are no longer kept in this public repo. -->
               <button type="button" data-sub="invite">Invite a friend</button>
               <button type="button" data-sub="prices">Prices &amp; rules</button>
               <button type="button" data-sub="access">Access code</button>
@@ -1614,7 +1614,7 @@ const APP_QR = await QRCode.toString(APP_URL, { type: 'svg', margin: 1, color: {
           },
           events: events.sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || '')),
           music,
-          birthdays: birthdays.list,
+          birthdays: [], // from the CRM now; never store names here (the repo is public)
           invite: { active: $('saInviteActive').checked, text: {} },
         };
         for (const [suffix, lang] of Object.entries(SA_LANGS)) {

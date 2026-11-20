@@ -98,7 +98,7 @@ const data = {
   music: (app.music ?? [])
     .map((st) => ({ style: st.style, dances: st.dances.filter((d) => d.links.length) }))
     .filter((st) => st.dances.length),
-  birthdays: app.birthdays ?? [],
+  birthdays: [], // from the CRM after sign-in (school_birthdays); never put names into the page
   invite: {
     active: app.invite?.active !== false,
     text: Object.fromEntries(ALL_LANGS.map((l) => [l, ((app.invite?.text as Record<string, string> | undefined)?.[l] || INVITE_DEFAULT[l]).replace('{link}', `${SITE.siteUrl}${localizePath(l, '/')}`)])),

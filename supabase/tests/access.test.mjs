@@ -634,10 +634,15 @@ assert.equal((await sched('client', '2026-11-01', '2026-11-30')).filter((x) => x
 await denied(rpc('client', 'family_schedule', ['2026-01-01', '2026-12-31']), /two months/);
 assert.deepEqual(await sched('nobody', '2026-11-01', '2026-11-30'), [], 'no family, no schedule');
 await denied(rpc('anon', 'family_schedule', ['2026-11-01', '2026-11-30']), /permission denied/);
-// The app's timetable for everyone: classes, never a private lesson; a month at most.
-const timetable = (await rpc('anon', 'public_timetable', ['2026-11-01', '2026-11-30'])).rows[0].public_timetable;
-assert.ok(timetable.some((x) => x.kind === 'class') && !timetable.some((x) => x.kind === 'lesson'), 'the public timetable has classes and no private lessons');
-await denied(rpc('anon', 'public_timetable', ['2026-01-01', '2026-12-31']), /a month/);
+// public_timetable() was removed in the security review (unused); visitors can run only the six public functions.
+await denied(rpc('anon', 'public_timetable', ['2026-11-01', '2026-11-30']), /does not exist/);
+for (const fn of ['family_me', 'hall_check', 'record_payment', 'group_classes_between', 'is_staff', 'class_earnings']) {
+  const r = (await db.query(`select bool_or(has_function_privilege('anon', p.oid, 'execute')) x from pg_proc p where p.proname = $1`, [fn])).rows[0].x;
+  assert.equal(r, false, `a visitor cannot run ${fn}`);
+}
+const anonFns = (await db.query(`select array_agg(p.proname order by p.proname) x from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')`)).rows[0].x;
+assert.deepEqual(anonFns, ['public_docs', 'public_event', 'public_signup', 'site_timetable', 'student_by_token', 'submit_student_form']);
 
 {
 // Personal pushes: a change to a family's future private lesson or group class is logged for that family.
@@ -892,6 +897,51 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await as('admin', 'update public.trainer_rates set price = 160 where trainer_id = $1 and minutes = 45', [misha.id]);
   assert.equal((await r90(misha.id)).price, 320, 'follows a change');
   await as('admin', 'update public.trainer_rates set price = 150 where trainer_id = $1 and minutes = 45', [misha.id]);
+}
+
+// Stage 8: a stranger who signed up (a login with no role, no family) and a visitor
+// without a login try every function that writes. Each is refused or changes nothing.
+{
+  const z = '00000000-0000-0000-0000-000000000000';
+  const someLesson = (await one('admin', 'select id from public.lessons limit 1'))?.id ?? z;
+  const someClient = (await one('admin', 'select id from public.clients limit 1'))?.id ?? z;
+  const someSlot = (await one('admin', 'select id from public.group_slots limit 1'))?.id ?? z;
+  const tables = ['clients', 'students', 'charges', 'payments', 'payment_lines', 'lessons', 'lesson_students', 'entries', 'class_sessions', 'push_log', 'profiles', 'settings', 'trainer_payouts'];
+  const snapshot = async () => Object.fromEntries(await Promise.all(tables.map(async (t) => [t, (await one('admin', `select count(*)::int n, coalesce(md5(string_agg(x::text, '' order by x::text)), '') h from public.${t} x`))])));
+  const before = await snapshot();
+  const tries = [
+    ['record_payment', `select public.record_payment('{"client_id":"${someClient}","amount":1,"method":"cash"}'::jsonb, '[]'::jsonb)`],
+    ['create_month_charges', `select public.create_month_charges('2026-12-01')`],
+    ['set_lesson_status', `select public.set_lesson_status('${someLesson}', 'done')`],
+    ['add_entry', `select public.add_entry('{"guest_name":"x","amount":1,"held_on":"2026-11-01"}'::jsonb)`],
+    ['use_credit', `select public.use_credit('${someClient}')`],
+    ['record_lesson', `select public.record_lesson('{"trainer_id":"${z}","minutes":45,"guest_name":"x"}'::jsonb, '{}')`],
+    ['approve_family', `select public.approve_family('${someClient}')`],
+    ['refuse_family', `select public.refuse_family('${someClient}')`],
+    ['merge_client', `select public.merge_client('${someClient}', '${someClient}')`],
+    ['mark_class', `select public.mark_class('${someSlot}', '2026-11-04', '{}')`],
+    ['lesson_put_charges', `select public.lesson_put_charges('${someLesson}')`],
+    ['decide_lesson_request', `select public.decide_lesson_request('${z}', true)`],
+    ['staff_push', `select public.staff_push(array['${someClient}']::uuid[], 't', 'b')`],
+    ['staff_push_many', `select public.staff_push_many(array['${someClient}']::uuid[], '{"he":["t","b"]}'::jsonb)`],
+    ['trainer_add_lesson', `select public.trainer_add_lesson('{"minutes":45,"guest_name":"x"}'::jsonb, '{}')`],
+    ['trainer_confirm', `select public.trainer_confirm('${someLesson}', 'done')`],
+    ['family_save_student', `select public.family_save_student(null, '{"full_name":"xx","full_name_en":"xx","birth_date":"2010-01-01","relation":"son"}'::jsonb)`],
+    ['push_everyone', `select public.push_everyone('t', 'b')`],
+    ['debt_reminders', `select public.debt_reminders()`],
+    ['birthday_push', `select public.birthday_push()`],
+  ];
+  for (const who of ['nobody', 'anon']) {
+    for (const [name, sql] of tries) {
+      try { await as(who, sql); } catch { /* refused: good */ }
+    }
+  }
+  assert.deepEqual(await snapshot(), before, 'nothing changed by a stranger or a visitor');
+  for (const who of ['nobody', 'anon']) {
+    await denied(as(who, `select public.rate_pay('${z}', 45)`), /permission denied/);
+    await denied(as(who, `select * from public.push_log`), /permission denied|row-level/).catch(async () => assert.equal(await count(who, 'push_log'), 0));
+  }
+  assert.equal((await as('nobody', 'select count(*)::int n from public.class_earnings()')).rows[0].n, 0, 'a stranger sees no earnings');
 }
 
 console.log('access rules: all checks passed');
