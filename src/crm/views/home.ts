@@ -7,7 +7,6 @@
 import { getLang } from '../i18n';
 import { db, h, get, money, ltr, today, type Row, nameIn } from '../ui';
 import { FORMS, stateOf, expired, dmy, pick, type L } from '../forms';
-import { ATTENDANCE } from '../attendance';
 
 const l = (ru: string, he: string, en: string): L => ({ ru, he, en });
 const tr = (x: L) => pick(x, getLang());
@@ -28,7 +27,6 @@ const S = {
   move: l('перенос', 'הזזה', 'move'),
   cancel: l('отмена', 'ביטול', 'cancel'),
   unconfirmed: l('Прошедшие частные уроки не подтверждены', 'שיעורים פרטיים שעברו ולא אושרו', 'Past private lessons not confirmed'),
-  unmarked: l('Групповые занятия без отметки посещаемости (14 дней)', 'שיעורים קבוצתיים ללא סימון נוכחות (14 יום)', 'Group classes without attendance (14 days)'),
   trainers: l('Тренерам к выплате', 'לתשלום למאמנים', 'To pay trainers'),
   signups: l('Новые записи онлайн (7 дней)', 'הרשמות חדשות באינטרנט (7 ימים)', 'New online sign-ups (7 days)'),
   birthdays: l('Дни рождения на этой неделе', 'ימי הולדת השבוע', 'Birthdays this week'),
@@ -50,7 +48,7 @@ const ageOf = (birth: string | null) => {
 
 export async function homeView() {
   const d0 = today();
-  const [clients, students, forms, balances, requested, changes, unconfirmed, classes, sessions, trainerOwed, signups] = await Promise.all([
+  const [clients, students, forms, balances, requested, changes, unconfirmed, trainerOwed, signups] = await Promise.all([
     get<Row[]>(db!.from('clients').select('id, full_name, full_name_en, phone, online, approved, user_id, archived')),
     get<Row[]>(db!.from('students').select('id, client_id, full_name, full_name_en, birth_date, archived')),
     get<Row[]>(db!.from('student_forms').select('student_id, form, submitted_at, needs_update, clarified, answers').order('submitted_at', { ascending: false })),
@@ -58,8 +56,6 @@ export async function homeView() {
     get<Row[]>(db!.from('lessons').select('id, held_on, start_time, trainers(full_name)').eq('status', 'requested').order('held_on')),
     get<Row[]>(db!.from('lesson_requests').select('id, kind, lessons(held_on, start_time, trainers(full_name))').eq('status', 'pending')),
     get<Row[]>(db!.from('lessons').select('id, held_on, start_time, trainers(full_name), lesson_students(students(full_name, full_name_en))').eq('status', 'planned').lt('held_on', d0).order('held_on')),
-    get<Row[]>(db!.rpc('group_classes_between', { d1: plusDays(d0, -14), d2: plusDays(d0, -1) })),
-    get<Row[]>(db!.from('class_sessions').select('slot_id, held_on').gte('held_on', plusDays(d0, -30))),
     get<Row[]>(db!.from('trainer_balances').select('trainer_id, owed').gt('owed', 0)),
     get<Row[]>(db!.from('entries').select('id, guest_name, created_at, events(title, held_on), students(full_name, full_name_en)').eq('online', true).gte('created_at', plusDays(d0, -7))),
   ]);
@@ -136,12 +132,6 @@ export async function homeView() {
   // Past private lessons still "planned".
   section('unconfirmed', unconfirmed.map((x) => item(`#/lessons/${x.held_on}`, ltr(when(x)), ' ', h('strong', { textContent: x.trainers?.full_name ?? '' }), ' — ',
     (x.lesson_students ?? []).map((ls: Row) => nameIn(ls.students)).filter(Boolean).join(', '))));
-
-  // Group classes of the last two weeks that nobody marked.
-  if (ATTENDANCE) section('unmarked', classes
-    .filter((c) => !c.cancelled && c.held_on < d0 && !sessions.some((s) => s.slot_id === c.slot_id && s.held_on === c.on_date))
-    .sort((a, b) => `${a.held_on} ${a.start_time}`.localeCompare(`${b.held_on} ${b.start_time}`))
-    .map((c) => item(`#/lessons/${c.held_on}`, ltr(`${dmy(c.held_on)} ${String(c.start_time).slice(0, 5)}`), ' ', h('strong', { textContent: c.group_name }))));
 
   // Money owed to trainers.
   section('trainers', trainerOwed.map((x) => item('#/trainersTab', h('strong', { textContent: trainerNames.find((t) => t.id === x.trainer_id)?.full_name ?? '?' }), ' — ', ltr(money(x.owed)))));

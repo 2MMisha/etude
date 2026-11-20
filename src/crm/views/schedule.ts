@@ -8,7 +8,6 @@ import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, toda
 import { weekGrid, fitCards } from '../../lib/weekGrid';
 import type { TimetableItem } from '../../lib/timetable';
 import { SITE } from '../../lib/site';
-import { attendanceBlock } from '../attendance';
 import { hallNotice, quickAdd } from '../quickLesson';
 
 const CHARGED = ['done', 'no_show', 'late_cancel'] as const;
@@ -46,7 +45,7 @@ export async function scheduleView(arg?: string) {
   const start = addDays(day, -weekdayOf(day));
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes, sessions] = await Promise.all([
+  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes] = await Promise.all([
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
@@ -63,10 +62,7 @@ export async function scheduleView(arg?: string) {
     // Waiting for a decision, whatever week they are in: lessons trainers asked for, and their requests to move or cancel.
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name, full_name_en))').eq('status', 'requested').order('held_on').order('start_time')),
     get<Row[]>(db!.from('lesson_requests').select('*, lessons(held_on, start_time, minutes, trainers(full_name), lesson_students(students(full_name, full_name_en)))').eq('status', 'pending').order('created_at')),
-    // Group classes already marked as taken place (a class moved within a week or so keeps its own date).
-    get<Row[]>(db!.from('class_sessions').select('slot_id, held_on').gte('held_on', addDays(start, -60)).lte('held_on', addDays(end, 60))),
   ]);
-  const tookPlace = (c: Row) => sessions.some((x) => x.slot_id === c.slot_id && x.held_on === c.on_date);
   const entryPrice = Number(entryPrices[0]?.amount ?? 0);
   const halls: string[] = settings[0]?.value ?? [];
   const hallOptions: [string, string][] = [['', '—'], ...halls.map((x): [string, string] => [x, x])];
@@ -80,7 +76,7 @@ export async function scheduleView(arg?: string) {
   const onGrid = new Map<string, Entry[]>(dates.map((d) => [d, [
     ...classes.filter((c) => c.held_on === d && !c.cancelled).map((c): Entry => ({
       group: c, key: `g:${c.slot_id}:${c.on_date}`,
-      item: { start: hhmm(c.start_time), end: plus(c.start_time, c.minutes), title: `${tookPlace(c) ? '✓ ' : ''}${c.changed ? '✎ ' : ''}${c.group_name}`, column: trainerName(c.trainer_id), hall: c.hall }, // ✓ = took place, ✎ = changed for this date
+      item: { start: hhmm(c.start_time), end: plus(c.start_time, c.minutes), title: `${c.changed ? '✎ ' : ''}${c.group_name}`, column: trainerName(c.trainer_id), hall: c.hall }, // ✓ = took place, ✎ = changed for this date
     })),
     ...lessons.filter((l) => l.held_on === d && l.start_time && l.status !== 'cancelled').map((l): Entry => ({
       lesson: l, key: `l:${l.id}`,
@@ -275,8 +271,6 @@ export async function scheduleView(arg?: string) {
         field(t('trainer'), select([['', '—'], ...trainerOptions], slot.trainer_id ?? '', (v) => always({ trainer_id: v || null }))),
         field(t('classPay'), h('input', { type: 'number', min: 0, step: 'any', className: 'num', value: Number(slot.class_pay), onchange: (ev: Event) => always({ class_pay: Number((ev.target as HTMLInputElement).value) || 0 }) }))
       ),
-      // Who came. Saving it is what says the class took place, and earns its trainer the class pay.
-      attendanceBlock(c.slot_id, c.on_date, false),
       ...entriesBlock({ group_id: c.group_id, held_on: c.held_on }, entryPrice, `${t('oneTimeEntry')}: ${c.group_name}, ${dayText(c.held_on)}`),
     ];
   };

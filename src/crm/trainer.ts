@@ -10,7 +10,6 @@
 import { LANGS, LOCALE, getLang, setLang, t, type Key } from './i18n';
 import { db, h, get, ok, nav, select, field, sureButton, flash, money, ltr, today, addTableTools, studentPicker, type Row } from './ui';
 import { signInView, newPasswordView } from './auth';
-import { attendanceBlock, ATTENDANCE } from './attendance';
 import { hallNotice, quickAdd } from './quickLesson';
 import { weekGrid, fitCards } from '../lib/weekGrid';
 import type { TimetableItem } from '../lib/timetable';
@@ -53,10 +52,9 @@ async function home() {
   const start = week || sundayOf(today());
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const [lessons, classes, lately, students, rates] = await Promise.all([
+  const [lessons, classes, students, rates] = await Promise.all([
     get<Row[]>(db!.rpc('trainer_lessons', { d1: addDays(today(), -60), d2: addDays(today(), 365) })),
     get<Row[]>(db!.rpc('trainer_classes', { d1: start, d2: end })),
-    get<Row[]>(db!.rpc('trainer_classes', { d1: addDays(today(), -14), d2: today() })), // to find classes not marked yet
     get<Row[]>(db!.rpc('trainer_students')),
     get<Row[]>(db!.rpc('trainer_rates_mine')),
   ]);
@@ -68,7 +66,7 @@ async function home() {
   const onGrid = new Map<string, Entry[]>(dates.map((d) => [d, [
     ...classes.filter((c) => c.held_on === d).map((c): Entry => ({
       group: c, key: `g:${c.slot_id}:${c.on_date}`,
-      item: { start: hhmm(c.start_time), end: plus(c.start_time, c.minutes), title: `${c.marked ? '✓ ' : c.held_on < today() ? '⚠ ' : ''}${c.group_name}`, column: t('groupClass'), hall: c.hall },
+      item: { start: hhmm(c.start_time), end: plus(c.start_time, c.minutes), title: c.group_name, column: t('groupClass'), hall: c.hall },
     })),
     ...lessons.filter((l) => l.held_on === d && l.start_time && l.status !== 'cancelled').map((l): Entry => ({
       lesson: l, key: `l:${l.id}`,
@@ -113,10 +111,9 @@ async function home() {
       box.childElementCount > 0 && box,
     ];
   };
-  // A group class: once its day has come, mark who was there.
+  // A group class: when and where.
   const classPanel = (c: Row): Part[] => [
     h('p', { className: 'quote' }, `${c.group_name} · `, ltr(`${dayText(c.held_on)} ${hhmm(c.start_time)}–${plus(c.start_time, c.minutes)}`), ` · ${c.hall || '—'}`, Number(c.pay) > 0 && ' · ', Number(c.pay) > 0 && ltr(money(c.pay))),
-    c.held_on <= today() && attendanceBlock(c.slot_id, c.on_date, true),
   ];
   const detail = h('div', { className: 'stack detail' });
   const open = (d: string, n: number, scroll: boolean) => {
@@ -155,18 +152,13 @@ async function home() {
     detail
   );
 
-  // ── Waiting for a word from me: lessons whose day has come, classes not marked yet ──
+  // ── Waiting for a word from me: lessons whose day has come ──
   const lessonsDue = lessons.filter((l) => l.status === 'planned' && l.held_on <= today());
-  const classesDue = ATTENDANCE ? lately.filter((c) => !c.marked) : [];
-  const dueCard = (lessonsDue.length > 0 || classesDue.length > 0) && h('section', { className: 'card' },
-    h('h2', { textContent: `${t('toConfirm')} (${lessonsDue.length + classesDue.length})` }),
+  const dueCard = lessonsDue.length > 0 && h('section', { className: 'card' },
+    h('h2', { textContent: `${t('toConfirm')} (${lessonsDue.length})` }),
     ...lessonsDue.map((l) => h('div', { className: 'row' },
       h('span', { className: 'grow' }, when(l), ` · ${l.students ?? ''} · ${l.minutes}′`),
       ...CHARGED.map((st) => h('button', { type: 'button', className: st === 'done' ? 'primary' : '', textContent: t(st), onclick: () => done(ok(db!.rpc('trainer_confirm', { lid: l.id, st }))) }))
-    )),
-    ...classesDue.map((c) => h('div', { className: 'row' },
-      h('span', { className: 'grow' }, ltr(`${dayText(c.held_on)} ${hhmm(c.start_time)}`), ` · ${c.group_name}`),
-      h('button', { type: 'button', className: 'primary', textContent: t('markAttendance'), onclick: () => goTo(c.held_on, `g:${c.slot_id}:${c.on_date}`) })
     ))
   );
 
