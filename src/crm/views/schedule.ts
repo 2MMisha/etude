@@ -45,7 +45,7 @@ export async function scheduleView(arg?: string) {
   const start = addDays(day, -weekdayOf(day));
   const end = addDays(start, 6);
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes] = await Promise.all([
+  const [lessons, classes, slots, rentals, trainers, rates, students, settings, waiting, events, entries, guestPaid, entryPrices, asked, changes, earnings] = await Promise.all([
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(id, discount_pct, discount_ils, students(full_name, full_name_en))').gte('held_on', start).lte('held_on', end).order('held_on').order('start_time')),
     get<Row[]>(db!.rpc('group_classes_between', { d1: start, d2: end })),
     get<Row[]>(db!.from('group_slots').select('*')),
@@ -62,6 +62,8 @@ export async function scheduleView(arg?: string) {
     // Waiting for a decision, whatever week they are in: lessons trainers asked for, and their requests to move or cancel.
     get<Row[]>(db!.from('lessons').select('*, trainers(full_name), lesson_students(students(full_name, full_name_en))').eq('status', 'requested').order('held_on').order('start_time')),
     get<Row[]>(db!.from('lesson_requests').select('*, lessons(held_on, start_time, minutes, trainers(full_name), lesson_students(students(full_name, full_name_en)))').eq('status', 'pending').order('created_at')),
+    // What each lesson earns its trainer: the rate times the part of the price charged after discounts.
+    get<Row[]>(db!.from('lesson_earnings').select('lesson_id, earned').gte('held_on', start).lte('held_on', end)),
   ]);
   const entryPrice = Number(entryPrices[0]?.amount ?? 0);
   const halls: string[] = settings[0]?.value ?? [];
@@ -214,6 +216,11 @@ export async function scheduleView(arg?: string) {
       : [h('button', { type: 'button', textContent: `↺ ${t('backToPlanned')}`, onclick: () => setStatus(l, 'planned') })]),
     sureButton(t(l.status === 'requested' ? 'reject' : 'del'), () => done(ok(db!.from('lessons').delete().eq('id', l.id)))),
   ];
+  /** "50 ₪ of 100 ₪" when a discount cuts the trainer's part, else the full rate. */
+  const trainerGets = (l: Row) => {
+    const e = earnings.find((x) => x.lesson_id === l.id)?.earned;
+    return e != null && Number(e) !== Number(l.trainer_pay) ? `${money(e)} / ${money(l.trainer_pay)}` : money(l.trainer_pay);
+  };
   const lessonPanel = (l: Row): Part[] => {
     const move = (patch: Row) => done(ok(db!.from('lessons').update(patch).eq('id', l.id)));
     // Another trainer means that trainer's price and pay for the same length.
@@ -233,7 +240,7 @@ export async function scheduleView(arg?: string) {
     const guestOwes = guestShare - paidFor('lesson_id', l.id);
     return [
       h('p', { className: 'quote' },
-        `${names(l)} · ${l.trainers.full_name} ${l.minutes}′ · `, ltr(money(l.price)), ` (${t('trainerGets')}: `, ltr(money(l.trainer_pay)), `) · ${t(l.status as Key)}`,
+        `${names(l)} · ${l.trainers.full_name} ${l.minutes}′ · `, ltr(money(l.price)), ` (${t('trainerGets')}: `, ltr(trainerGets(l)), `) · ${t(l.status as Key)}`,
         l.note && h('small', {}, l.note)
       ),
       // A planned lesson can still be moved or given to another trainer; a confirmed one keeps its place.

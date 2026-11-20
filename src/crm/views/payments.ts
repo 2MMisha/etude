@@ -379,9 +379,12 @@ export async function reportsView(arg?: string) {
   const [payments, charges, lessons, expenses] = await Promise.all([
     get<Row[]>(db!.from('payments').select('*, clients(full_name, full_name_en), payment_lines(amount, charges(kind, description, month, day, comment, students(full_name, full_name_en)))').gte('paid_on', `${ym}-01`).lt('paid_on', `${shift(ym, 1)}-01`).order('number')),
     get<Row[]>(db!.from('charges').select('id, amount').eq('month', `${ym}-01`)),
-    get<Row[]>(db!.from('lessons').select('trainer_pay').gte('held_on', `${ym}-01`).lt('held_on', `${shift(ym, 1)}-01`)),
+    // Lessons that count (charged), with what they earn after discounts.
+    get<Row[]>(db!.from('lesson_earnings').select('earned').in('status', ['done', 'no_show', 'late_cancel']).gte('held_on', `${ym}-01`).lt('held_on', `${shift(ym, 1)}-01`)),
     get<Row[]>(db!.from('expenses').select('*').gte('spent_on', `${ym}-01`).lt('spent_on', `${shift(ym, 1)}-01`).order('spent_on')),
   ]);
+  // Group classes given that month earn too.
+  const classPay = sum((await get<Row[]>(db!.rpc('class_earnings'))).filter((c) => String(c.held_on).startsWith(ym)), 'pay');
   const owed = charges.length ? sum(await get<Row[]>(db!.from('charge_balances').select('owed').in('charge_id', charges.map((c) => c.id))), 'owed') : 0;
   const live = payments.filter((p) => !p.voided);
   const lang = getLang();
@@ -422,9 +425,9 @@ export async function reportsView(arg?: string) {
       h('tr', {}, h('th', {}, t('received')), h('th', {}, ltr(money(sum(live))))),
       h('tr', {}, h('td', {}, t('charged')), h('td', {}, ltr(money(sum(charges))))),
       h('tr', {}, h('td', {}, t('stillOwed')), h('td', {}, ltr(money(owed)))),
-      h('tr', {}, h('td', {}, t('trainersEarned')), h('td', {}, ltr(money(sum(lessons, 'trainer_pay'))))),
+      h('tr', {}, h('td', {}, t('trainersEarned')), h('td', {}, ltr(money(sum(lessons, 'earned') + classPay)))),
       h('tr', {}, h('td', {}, t('expenses')), h('td', {}, ltr(money(sum(expenses))))),
-      h('tr', {}, h('th', {}, t('leftOver')), h('th', {}, ltr(money(sum(live) - sum(lessons, 'trainer_pay') - sum(expenses)))))
+      h('tr', {}, h('th', {}, t('leftOver')), h('th', {}, ltr(money(sum(live) - sum(lessons, 'earned') - classPay - sum(expenses)))))
     )),
     h('h2', { textContent: t('expenses') }),
     expenseForm,

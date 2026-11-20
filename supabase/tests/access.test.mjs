@@ -948,6 +948,31 @@ await denied(as('client', `select public.push_families(array[$1]::uuid[], '{}'::
   await as('admin', 'delete from public.lessons where id = $1', [lid]);
 }
 
+// The trainer earns the part of the rate the lesson is charged (owner, 2026-11-20).
+{
+  const bal = async () => (await one('admin', 'select earned::float e from public.trainer_balances where trainer_id = $1', [misha.id])).e;
+  const before = await bal();
+  // Misha, 45 minutes: price 150, fixed pay 100. One pays in full, the other has 100% off: half the price, half the pay.
+  const lid = (await one('admin', 'select public.record_lesson($1, $2) id', [JSON.stringify({ trainer_id: misha.id, minutes: 45, held_on: '2026-11-04', start_time: '05:00', hall: 'Small Hall' }), [a.id, b.id]])).id;
+  await as('admin', 'update public.lesson_students set discount_pct = 100 where lesson_id = $1 and student_id = $2', [lid, b.id]);
+  const earn = async () => Number((await one('admin', 'select earned from public.lesson_earnings where lesson_id = $1', [lid])).earned);
+  assert.equal(await earn(), 50, 'worked out from the discounts before it is charged');
+  await db.query('select public.lessons_autodone()');
+  assert.equal(await earn(), 50);
+  assert.equal(await bal(), before + 50, 'the balance counts the earned part');
+  // A charge changed by hand counts as changed.
+  await as('admin', `update public.charges set amount = 30, manual = true, comment = 'x' where lesson_id = $1 and student_id = $2`, [lid, a.id]);
+  assert.equal(await earn(), 20);
+  // No discount: the full rate.
+  await as('admin', 'update public.lesson_students set discount_pct = 0 where lesson_id = $1', [lid]);
+  await as('admin', `update public.charges set amount = list_amount where lesson_id = $1`, [lid]);
+  assert.equal(await earn(), 100);
+  await as('admin', 'delete from public.lessons where id = $1', [lid]);
+  assert.equal(await bal(), before);
+  await denied(as('anon', 'select * from public.lesson_earnings'), /permission denied/);
+  assert.equal(await count('client', 'lesson_earnings'), 0);
+}
+
 // Stage 8: a stranger who signed up (a login with no role, no family) and a visitor
 // without a login try every function that writes. Each is refused or changes nothing.
 {
